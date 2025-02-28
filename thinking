@@ -1,0 +1,250 @@
+
+# Lost and Found Items (web Application) for a University 
+==========================================================
+
+To be implimented with Reactjs, nodjes, express, prisma, and mongodb
+
+Main Features:
+===============
+
+-> User Authentication: Implement user authentication using React and Nodejs to ensure that only authorized users can access the lost and found portal.
+
+
+-> Lost Item Reporting: Create a form for users to report lost items, including fields for item description, location, and contact information.
+   
+-> Found Item Reporting: Create a form for users to report found items, including fields for item description, location, and contact information.
+    
+    
+-> Item Listing: Display a list of all reported lost and found items, with filtering and sorting options.
+   
+   
+-> Item Details: Display detailed information about each item, including photos and descriptions.
+   
+   
+-> Claiming Items: Allow users to claim found items, and notify the original owner via email or in-app notification.
+  
+  
+-> Item Status Updates: Allow users to update the status of their lost or found items (e.g. "found", "claimed", "returned").
+
+-> Search Functionality: Implement a search bar to allow users to search for specific items by keyword, category, or location.
+
+-> Admin Dashboard: Create an admin dashboard to manage reported items, user accounts, and system settings.
+   
+-> Notification System: Implement a notification system to alert users when an item is reported, claimed, or updated.[Web push notification] Firebase Cloud Messaging (FCM): FCM is a free service that allows you to send notifications to web and mobile apps.
+
+
+
+Backend (Nodejs, Express, Prisma, MongoDB):
+===========================================
+
+-> Set up Express Server: Create an Express server to handle API requests and responses.
+    Connect to MongoDB: Use Prisma to connect to a MongoDB database and define schemas for lost and found items.
+    
+-> Create API Endpoints: Create API endpoints for reporting lost and found items, retrieving item listings, and updating item status.
+  
+  
+-> Implement Authentication: Use a library like Passport.js and jwt to implement user authentication and authorization. (Alsp add google account and facebook acount login feature)
+    
+    
+-> Use Prisma to Interact with Database: Use Prisma to interact with the MongoDB database, performing CRUD operations on lost and found items.
+
+
+Frontend (Reactjs):
+====================
+To be bundled with Vite
+
+-> Create User Interface: Create a user-friendly interface for reporting lost and found items, viewing item listings, and updating item status.
+    
+-> Use React Components: Use React components to break down the interface into reusable and modular pieces.
+    
+-> Implement Routing: Use React Router to handle client-side routing and navigation.
+   
+-> Make API Requests: Use the Axios library to make API requests to the Express server and retrieve data from the database.
+
+-> Implement State Management: Use a state management library like Redux or Context API to manage application state and handle user interactions. 
+
+=============================================================================================
+
+
+
+Notifications
+==============
+
+Email Notifications
+
+Push Notification
+
+
+Notification Triggers:
+======================
+
+-> Item Reported: Send a notification when a new item is reported, including details about the item and the user who reported it.
+
+-> Item Claimed: Send a notification when an item is claimed, including details about the item and the user who claimed it.
+
+
+-> Item Updated: Send a notification when an item's status is updated, such as when an item is marked as "found" or "returned".
+
+
+Notification Content:
+=====================
+
+-> Item Details: Include details about the item, such as its description, location, and status.
+
+    
+-> User Information: Include information about the user who reported, claimed, or updated the item, such as their name and contact information.
+
+    
+-> Call to Action: Include a call to action, such as a link to view the item or contact the user who reported it.
+
+-> Custom Messages: Allow users to customize the notification messages, such as choosing the type of notifications they receive or the frequency of notifications.
+
+
+
+Notification Settings:
+=======================
+
+-> User Preferences: Allow users to customize their notification preferences, such as choosing the type of notifications they receive or the frequency of notifications.
+
+-> Notification Frequency: Allow users to choose how often they receive notifications, such as daily or weekly summaries.
+
+-> Notification Channels: Allow users to choose the notification channels they prefer, such as email, in-app notifications, or push notifications.
+
+
+
+
+
+React Components:
+=================
+
+    Login/Registration: User authentication and registration
+
+    Dashboard: Main dashboard for users to view and manage their lost and found items
+    
+    Item Listing: List of all lost and found items
+    
+    Item Details: Detailed view of a single item
+    
+    Report Lost Item: Form for users to report a lost item
+    
+    Report Found Item: Form for users to report a found item
+    
+    Notifications: Push notifications for users when an item is reported, claimed, or updated
+
+
+
+
+================================
+schema.prisma model improvements
+================================
+
+
+
+=========================================
+Further Improvements 
+=========================================
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                        String         @id @default(auto()) @map("_id") @db.ObjectId
+  name                      String
+  email                     String         @unique
+  phone                     String?        @unique
+  password                  String // Hashed password for local authentication
+  provider                  Provider // Enum: LOCAL, GOOGLE, FACEBOOK
+  role                      UserRole       @default(USER) // Enum: USER, ADMIN, SUPER_ADMIN
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  fcmToken                  String? // FCM token for push notifications
+  lastFcmUpdate             DateTime? // Last update of FCM token
+  emailNotificationsEnabled Boolean        @default(true)
+  inAppNotificationsEnabled Boolean        @default(true)
+  pushNotificationsEnabled  Boolean        @default(true)
+  items                     Item[]         @relation("UserItems")
+  claimedItems              Item[]         @relation("ClaimedItems")
+  notifications             Notification[]
+  auditlogs                 AuditLog[]
+}
+
+enum Provider {
+  LOCAL
+  GOOGLE
+  FACEBOOK
+}
+
+enum UserRole {
+  USER // Regular user
+  ADMIN // Can manage items & users
+  SUPER_ADMIN // Can delete logs, backup data
+}
+
+model Item {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  description  String
+  category     String
+  location     String
+  imageUrl     String?
+  status       ItemStatus @default(LOST) // Enum: LOST, FOUND, CLAIMED, RETURNED
+  reportedBy   User       @relation("UserItems", fields: [reportedById], references: [id])
+  reportedById String     @db.ObjectId
+  claimedBy    User?      @relation("ClaimedItems", fields: [claimedById], references: [id])
+  claimedById  String?    @db.ObjectId
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  auditLogs    AuditLog[]
+}
+
+enum ItemStatus {
+  LOST
+  FOUND
+  CLAIMED
+  RETURNED
+}
+
+model Notification {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  user      User             @relation(fields: [userId], references: [id])
+  userId    String           @db.ObjectId
+  message   String
+  type      NotificationType // Enum: ITEM_REPORTED, ITEM_CLAIMED, ITEM_UPDATED
+  createdAt DateTime         @default(now())
+  read      Boolean          @default(false)
+}
+
+enum NotificationType {
+  ITEM_REPORTED
+  ITEM_CLAIMED
+  ITEM_UPDATED
+}
+
+model AuditLog {
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  user      User        @relation(fields: [userId], references: [id])
+  userId    String      @db.ObjectId
+  item      Item?       @relation(fields: [itemId], references: [id])
+  itemId    String?     @db.ObjectId
+  action    AuditAction // CREATE, CLAIM, UPDATE, DELETE
+  timestamp DateTime    @default(now())
+  ipAddress String
+  userAgent String
+}
+
+enum AuditAction {
+  CREATE // User reported a lost item
+  CLAIM // User claimed a found item
+  UPDATE // Status update (e.g., "returned")
+  DELETE // Admin removed an item
+}
+
+===============================================================================
+
+
+
