@@ -36,7 +36,7 @@ const requireSignin = async (req, res, next) => {
 }
 
  
-const isLecturer = async (req, res, next) => {
+const isAdmin = async (req, res, next) => {
 
     try {
         const user = await prisma.user.findUnique({
@@ -54,7 +54,7 @@ const isLecturer = async (req, res, next) => {
     }
 }
 
-const isAdmin = async (req, res, next) => {
+const isSuperAdmin = async (req, res, next) => {
 
     try {
         const user = await prisma.user.findUnique({
@@ -72,4 +72,4 @@ const isAdmin = async (req, res, next) => {
     }
 }
 
-export default { requireSignin, isLecturer, isAdmin }
+export default { requireSignin, isSuperAdmin, isAdmin }
