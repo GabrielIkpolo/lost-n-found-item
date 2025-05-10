@@ -1,4 +1,4 @@
-import prisma from "./helpers/prisma.js";
+import prisma from "./src/helpers/prisma.js";
 
 /** ================= Server Hardening Measures ============================ */
 // Error handling for uncaught exceptions
@@ -35,10 +35,19 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import morgan from "morgan";
 import fs from 'fs';
+import session from 'express-session';
+import passport from "./src/helpers/passport.js";
+// Defined routes
+import authRoutes from './src/routes/authRoutes.js';
+
+
+
 
 
 dotenv.config();
 const app = express();
+
+
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
 
@@ -62,8 +71,30 @@ if (!fs.existsSync(imageStoragePath)) {
 app.use(cors("*"));
 
 
+
 // Serve static image files
 app.use('/api/images', express.static(imageStoragePath));
+
+const port = process.env.PORT || 3000;
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key-fallback', // Fallback for safety, but use .env
+  resave: false,
+  saveUninitialized: false,
+  // cookie: { secure: process.env.NODE_ENV === 'production' } // Enable for HTTPS
+}));
+
+// Initialize Passport with the configuration
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+
+
+app.use('/api/auth', authRoutes);
+
+
+
 
 
 // Return 404 for non accounted routes
@@ -73,8 +104,14 @@ app.all('*', (req, res) => {
   });
 });
 
-const port = process.env.PORT || 3000;
 
-app.listen(port, ()=>{
+
+
+// Global error handler
+app.use((err, req, res, next) => {
+  res.status(500).json({ message: "Something broke!" });
+});
+
+app.listen(port, () => {
   console.log(`App is listening on port: ${port} `);
 });

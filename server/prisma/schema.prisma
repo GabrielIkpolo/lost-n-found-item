@@ -29,7 +29,7 @@ model User {
   pushNotificationsEnabled  Boolean   @default(true)
 
   // Password Reset
-  passwordResetToken   String?   @unique // Token for password reset link
+  passwordResetToken   String? // Token for password reset link
   passwordResetExpires DateTime? // Expiry time for the reset token
 
   // Relations
@@ -38,8 +38,7 @@ model User {
   notifications Notification[] // Notifications for this user
   auditLogs     AuditLog[] // Actions performed by this user
 
-  @@unique([provider, providerId]) // Ensure uniqueness for OAuth logins
-}
+  }
 
 enum Provider {
   LOCAL

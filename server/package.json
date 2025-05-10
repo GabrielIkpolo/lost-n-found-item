@@ -6,7 +6,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "deploy": " npx prisma generate && npx prisma db push && pm2 start index.js -i max && pm2 log"
+    "deploy": " npm install pm2 --save-dev && npx prisma generate && npx prisma db push && npx pm2 stop all && npx pm2 start index.js -i max && npx pm2 logs"
   },
   "type": "module",
   "keywords": [],
@@ -22,10 +22,14 @@
     "email-validator": "^2.0.4",
     "express": "^4.21.2",
     "express-formidable": "^1.2.0",
+    "express-session": "^1.18.1",
     "firebase-admin": "^13.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "passport": "^0.7.0",
+    "passport-facebook": "^3.0.0",
+    "passport-google-oauth20": "^2.0.0"
   }
 }
