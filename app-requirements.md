@@ -185,8 +185,7 @@
 
 ## 4. Database Schema (Prisma)
 
-```prisma
-generator client {
+```generator client {
   provider = "prisma-client-js"
 }
 
@@ -196,36 +195,35 @@ datasource db {
 }
 
 model User {
-  id                        String         @id @default(auto()) @map("_id") @db.ObjectId
-  name                      String
-  email                     String         @unique
-  phone                     String?
-  password                  String?        // Hashed password for local auth, optional if only using OAuth
-  provider                  Provider       // Enum: LOCAL, GOOGLE, FACEBOOK
-  providerId                String?        // Store Google/Facebook ID, unique per provider
-  role                      UserRole       @default(USER) // Enum: USER, ADMIN, SUPER_ADMIN
-  createdAt                 DateTime       @default(now())
-  updatedAt                 DateTime       @updatedAt
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  email      String   @unique
+  phone      String? // Removed @unique based on earlier discussion, add back if needed
+  password   String? // Hashed password for local auth, optional if only using OAuth
+  provider   Provider // Enum: LOCAL, GOOGLE, FACEBOOK
+  providerId String? // Store Google/Facebook ID, unique per provider
+  role       UserRole @default(USER) // Enum: USER, ADMIN, SUPER_ADMIN
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   // Notification Settings
-  fcmToken                  String?        // FCM token for push notifications
-  lastFcmUpdate             DateTime?      // Last update of FCM token
-  emailNotificationsEnabled Boolean        @default(true)
-  inAppNotificationsEnabled Boolean        @default(true)
-  pushNotificationsEnabled  Boolean        @default(true)
+  fcmToken                  String? // FCM token for push notifications
+  lastFcmUpdate             DateTime? // Last update of FCM token
+  emailNotificationsEnabled Boolean   @default(true)
+  inAppNotificationsEnabled Boolean   @default(true)
+  pushNotificationsEnabled  Boolean   @default(true)
 
   // Password Reset
-  passwordResetToken        String?        @unique // Token for password reset link
-  passwordResetExpires      DateTime?      // Expiry time for the reset token
+  passwordResetToken   String? // Token for password reset link
+  passwordResetExpires DateTime? // Expiry time for the reset token
 
   // Relations
-  items                     Item[]         @relation("UserItems") // Items reported by this user
-  claimedItems              Item[]         @relation("ClaimedItems") // Items claimed by this user
-  notifications             Notification[] // Notifications for this user
-  auditLogs                 AuditLog[]     // Actions performed by this user
+  items         Item[]         @relation("UserItems") // Items reported by this user
+  claimedItems  Item[]         @relation("ClaimedItems") // Items claimed by this user
+  notifications Notification[] // Notifications for this user
+  auditLogs     AuditLog[] // Actions performed by this user
 
-  @@unique([provider, providerId]) // Ensure uniqueness for OAuth logins
-}
+  }
 
 enum Provider {
   LOCAL
@@ -234,46 +232,46 @@ enum Provider {
 }
 
 enum UserRole {
-  USER        // Regular user
-  ADMIN       // Can manage items & users
+  USER // Regular user
+  ADMIN // Can manage items & users
   SUPER_ADMIN // Can delete logs, backup data, manage admins
 }
 
 model Item {
-  id           String       @id @default(auto()) @map("_id") @db.ObjectId
-  title        String
-  description  String
-  category     ItemCategory // Enum for category
-  location     ItemLocation // Enum for location
-  imageUrlFront String?      // Path or URL to the stored front image
-  imageUrlBack  String?      // Path or URL to the stored back image
-  status       ItemStatus   @default(LOST) // Enum: LOST, FOUND, CLAIMED, RETURNED, ARCHIVED
-  reportedBy   User         @relation("UserItems", fields: [reportedById], references: [id])
-  reportedById String       @db.ObjectId
-  claimedBy    User?        @relation("ClaimedItems", fields: [claimedById], references: [id])
-  claimedById  String?      @db.ObjectId
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  expiresAt    DateTime?    // For automatic archival of FOUND items
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String
+  category      ItemCategory // Enum for category
+  location      ItemLocation // Enum for location
+  imageUrlFront String?
+  imageUrlBack  String?
+  status        ItemStatus   @default(LOST) // Enum: LOST, FOUND, CLAIMED, RETURNED, ARCHIVED
+  reportedBy    User         @relation("UserItems", fields: [reportedById], references: [id])
+  reportedById  String       @db.ObjectId
+  claimedBy     User?        @relation("ClaimedItems", fields: [claimedById], references: [id])
+  claimedById   String?      @db.ObjectId
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  expiresAt     DateTime? // For automatic archival of FOUND items
 
   // Relations
   notifications Notification[] // Notifications related to this item
-  auditLogs     AuditLog[]     // Audit trail for this item
+  auditLogs     AuditLog[] // Audit trail for this item
+  // Add text index for full-text search if using MongoDB Atlas Search
+  // @@fulltext([title, description, category, location]) // Example syntax, check Prisma/Mongo docs
 
-  @@index([status])
+  @@index([status]) // Index status for faster querying (e.g., finding all FOUND items)
   @@index([category])
   @@index([location])
   @@index([createdAt])
-  // Consider adding @@fulltext index if using MongoDB Atlas Search
-  // @@fulltext([title, description]) @map("ItemTextIndex")
 }
 
 enum ItemStatus {
-  LOST
-  FOUND
-  CLAIMED
-  RETURNED
-  ARCHIVED
+  LOST // Reported as lost
+  FOUND // Reported as found
+  CLAIMED // A found item has been claimed (pending return)
+  RETURNED // Item confirmed returned to owner
+  ARCHIVED // Unclaimed found item after expiry period
 }
 
 enum ItemCategory {
@@ -282,54 +280,53 @@ enum ItemCategory {
   ACADEMIC_SUPPLIES
   CLOTHING
   HEALTH_WELLNESS
-  OTHER
+  OTHER // Always good to have a fallback
 }
 
 enum ItemLocation {
   SENATE_BUILDING
-  PBA             // Pharmacy Building Area (Confirm full name)
-  NHS             // Nursing/Health Sciences (Confirm full name)
+  PBA // Pharmacy Building Area? Specify full name if possible
+  NHS // Nursing/Health Sciences? Specify full name
   CAFETERIA
-  LIBRARY
-  SPORTS_COMPLEX
-  OTHER
+  LIBRARY // Added common location
+  SPORTS_COMPLEX // Added common location
+  OTHER // Fallback
 }
 
 model Notification {
   id        String           @id @default(auto()) @map("_id") @db.ObjectId
-  user      User             @relation(fields: [userId], references: [id]) // Recipient user
+  user      User             @relation(fields: [userId], references: [id])
   userId    String           @db.ObjectId
-  item      Item?            @relation(fields: [itemId], references: [id]) // Related item (optional)
+  item      Item?            @relation(fields: [itemId], references: [id]) // Link notification to item
   itemId    String?          @db.ObjectId
-  message   String           // The notification text
-  type      NotificationType // Enum for categorizing notifications
+  message   String
+  type      NotificationType // Enum: ITEM_REPORTED, ITEM_CLAIMED, ITEM_UPDATED, ITEM_EXPIRING_SOON, etc.
   createdAt DateTime         @default(now())
-  read      Boolean          @default(false) // For the in-app notification center
+  read      Boolean          @default(false)
 
-  @@index([userId, read, createdAt])
+  @@index([userId, read, createdAt]) // Index for fetching user notifications efficiently
 }
 
 enum NotificationType {
-  ITEM_REPORTED
-  ITEM_CLAIMED
-  ITEM_UPDATED
-  ITEM_EXPIRING_SOON // Reminder for finder before archival
-  PASSWORD_RESET_REQUEST
-  ACCOUNT_WELCOME
-  // Add more as needed
+  ITEM_REPORTED // A new item (lost or found) was reported
+  ITEM_CLAIMED // A found item was claimed
+  ITEM_UPDATED // Item status changed (e.g., to RETURNED)
+  // Add more specific types as needed
+  // PASSWORD_RESET_REQUEST
+  // ACCOUNT_WELCOME
 }
 
 model AuditLog {
   id        String      @id @default(auto()) @map("_id") @db.ObjectId
-  user      User?       @relation(fields: [userId], references: [id]) // User performing action (null if system)
+  user      User?       @relation(fields: [userId], references: [id]) // User performing action (optional if system action)
   userId    String?     @db.ObjectId
   item      Item?       @relation(fields: [itemId], references: [id]) // Item affected (optional)
   itemId    String?     @db.ObjectId
-  action    AuditAction // Enum describing the action
-  details   String?     // Optional JSON string or text for extra context
+  action    AuditAction // Enum: CREATE_ITEM, CLAIM_ITEM, UPDATE_ITEM_STATUS, DELETE_ITEM, ARCHIVE_ITEM, USER_LOGIN, USER_REGISTER, PASSWORD_RESET, etc.
+  details   String? // Optional: Store extra context (e.g., old/new status)
   timestamp DateTime    @default(now())
-  ipAddress String?     // Optional IP address of the user
-  userAgent String?     // Optional user agent string
+  ipAddress String? // Make optional as system actions might not have one
+  userAgent String? // Make optional
 
   @@index([userId])
   @@index([itemId])
@@ -343,8 +340,8 @@ enum AuditAction {
   UPDATE_ITEM
   CLAIM_ITEM
   UPDATE_ITEM_STATUS
-  ARCHIVE_ITEM
-  DELETE_ITEM
+  ARCHIVE_ITEM // Specific action for auto-archival
+  DELETE_ITEM // Admin action
 
   // User Actions
   USER_REGISTER

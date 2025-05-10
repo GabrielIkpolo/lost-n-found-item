@@ -62,10 +62,9 @@ passport.use('google', new GoogleStrategy({
             console.log("Google Strategy - Existing user with this email:", existingUserWithEmail);
 
             if (existingUserWithEmail) {
-                // Option 1: Link Google to existing local account (more complex)
-                // Option 2: Or inform user they already have an account with this email
+                // Or inform user they already have an account with this email
                 console.error(`Google Strategy Error: User with email ${email} already exists with provider ${existingUserWithEmail.provider}. Cannot automatically create new Google user.`);
-                // You might want to redirect them to login and inform them, or provide a way to link accounts.
+                // Redirect them to login and inform them, or provide a way to link accounts.
                 return done(new Error(`Account with email ${email} already exists. Please log in with your original method.`), null);
             }
 
@@ -117,8 +116,7 @@ passport.use('facebook', new FacebookStrategy({ // Name the strategy 'facebook'
             // Option 1: Deny login/registration
             console.error("Facebook Strategy Error: No email found in Facebook profile. User might have denied permission or has no primary email.");
             return done(new Error("An email is required from Facebook to register/login. Please ensure your Facebook account has a primary email and you grant permission."), null);
-            // Option 2: Allow creation without email (requires User schema email to be optional, which it isn't currently)
-            // Option 3: Use profile.id as a placeholder if email is optional in your User model (not recommended if email is your primary user identifier)
+            
         }
         console.log("Facebook Strategy - Extracted email:", email);
 
