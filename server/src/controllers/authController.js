@@ -144,3 +144,56 @@ export const loginUser = async (req, res) => {
     }
 };
 
+
+export const verifyEmail = async (req, res) => {
+    const { token } = req.query; // Assuming token is in query param: /verify-email?token=XYZ
+
+    if (!token) {
+        return res.status(400).json({ error: "Verification token is missing." });
+    }
+
+    try {
+        const user = await prisma.user.findFirst({ // findFirst because token *should* be unique if index setup correctly
+            where: {
+                emailVerificationToken: token,
+                emailVerificationExpires: { gt: new Date() } // Check if token is not expired
+            }
+        });
+
+        if (!user) {
+            // Potentially redirect to a frontend page:
+            // return res.redirect('https://yourfrontend.com/verification-failed?reason=invalid_or_expired');
+            return res.status(400).json({ error: "Invalid or expired verification token." });
+        }
+
+        if (user.emailVerified) {
+            // Potentially redirect to a frontend page:
+            // return res.redirect('https://yourfrontend.com/login?message=already_verified');
+            return res.status(400).json({ error: "Email already verified." });
+        }
+
+        // Mark email as verified and clear token fields
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                emailVerified: true,
+                emailVerifiedAt: new Date(), // Optional: store verification time
+                emailVerificationToken: null, // Invalidate the token
+                emailVerificationExpires: null
+            }
+        });
+
+        // Optional: Log the user in automatically here by generating JWTs
+        // Or redirect to a success page that instructs them to log in.
+        // For API:
+        // return res.status(200).json({ message: "Email verified successfully. You can now log in." });
+        // For web redirect:
+        return res.redirect('https://yourfrontend.com/login?message=email_verified_success');
+
+
+    } catch (error) {
+        console.error("Error in email verification:", error);
+        // return res.redirect('https://yourfrontend.com/verification-failed?reason=server_error');
+        return res.status(500).json({ error: "Internal server error during email verification." });
+    }
+};

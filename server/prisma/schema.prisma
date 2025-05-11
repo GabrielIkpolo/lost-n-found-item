@@ -38,7 +38,10 @@ model User {
   notifications Notification[] // Notifications for this user
   auditLogs     AuditLog[] // Actions performed by this user
 
-  }
+  emailVerified            Boolean   @default(false) // Tracks if the email has been verified
+  emailVerificationToken   String?   // @unique // Stores the verification token
+  emailVerificationExpires DateTime? // Expiry for the token
+}
 
 enum Provider {
   LOCAL

@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import dotenv from 'dotenv';
+import crypto from 'crypto'
 
 
 // hashes password 
@@ -25,5 +26,10 @@ export const comparePassword = async (password, hashed) => {
     }
 }
 
-export default { hashPassword, comparePassword }
+export const genrateVerificationToken = ()=>{
+    return crypto.randomBytes(32).toString('hex');
+}
+
+
+export default { hashPassword, comparePassword, genrateVerificationToken }
 

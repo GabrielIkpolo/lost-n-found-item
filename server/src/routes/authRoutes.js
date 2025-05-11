@@ -1,5 +1,5 @@
 import express from 'express';
-import { registerUser, loginUser }  from '../controllers/authController.js';
+import { registerUser, loginUser, verifyEmail }  from '../controllers/authController.js';
 import passport from '../helpers/passport.js';
 
 const router = express.Router();
@@ -18,6 +18,9 @@ router.get('/facebook', passport.authenticate('facebook', {scope: ['email']}));
 router.get('/facebook/callback', passport.authenticate('facebook', {failureRedirect: '/login'}), (req, res)=>{
     res.redirect('/'); //Redirects to home page after successful login
 } );
+
+
+router.get('/verify-email', verifyEmail); // We can also use POST here
 
 
 //Google Login: http://localhost:3000/api/auth/google

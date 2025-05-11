@@ -1,8 +1,8 @@
 :root {
     /* Primary Colors */
-    --header-nav-color: #003366; /* Dark Blue */
+    --header-nav-color: #21135d; /* Dark Blue */
     --whitish-background-color: #FFFFFF; /* White */
-    --button-highlight-color: #0099CC; /* Light Blue */
+    --button-highlight-color: #3e2e87; /* Light Blue */
     --secondary-text-color: #808080; /* Gray */
   
     /* Existing colors (if any) */
@@ -13,7 +13,7 @@
     --bright-indigoish: #6610f2;
     --yelowish-highlight-: #fff3cd;
     --dark-orange: #fd7e14;
-    --navy-dark-emphasis: #052c65;
+    --navy-dark-emphasis: #0d062f;
     --yellow-warning: #ffc107;
     --blue-color: #0058E6;
   }
