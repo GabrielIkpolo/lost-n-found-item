@@ -1,0 +1,138 @@
+/* Font Awesome Icons */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+.footer {
+    background-color: var(--header-nav-color);
+    /* Dark Blue */
+    color: white;
+    text-align: left;
+    width: 100%;
+    overflow-x: hidden;
+    /* background: linear-gradient(to bottom, #000044, #000042); */
+    background: linear-gradient(to right, lab(3.77% 25.91 -39.82));
+
+}
+
+.footer-main {
+    max-width: 100%;
+    margin: 0 auto;
+    display: flex;
+    gap: 5rem;
+    padding: 2rem 8rem;
+}
+
+.footer-logo img {
+    width: 26rem;
+    /* Adjust the size of the logo */
+    height: auto;
+    /* Maintain aspect ratio */
+    object-fit: contain;
+    /* Ensure the logo isn't stretched */
+}
+
+.footer-address p {
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.icon-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.icon-container i {
+    font-size: 1rem;
+    color: var(--yellowish-color); 
+}
+
+.footer-links h3 {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.footer-links ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.footer-links li {
+    margin-bottom: 0.8rem;
+}
+
+.footer-links a {
+    font-size: 0.9rem;
+    text-decoration: none;
+    color: whitesmoke;
+    transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+    color: var(--yellowish-color);
+}
+
+/* Footer Bottom Section */
+.footer-bottom {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--navy-dark-emphasis);
+    padding: 1rem 1rem;
+}
+
+.footer-copyright {
+    font-size: 0.9rem;
+}
+
+.footer-social-icons {
+    display: flex;
+    gap: 1rem;
+}
+
+.social-icon {
+    color: white;
+    font-size: 1.5rem;
+    transition: color 0.3s ease;
+}
+
+.social-icon:hover {
+    color: var(--yellowish-color);
+}
+
+
+/* * Responsive Design for Mobile (max-width: 768px)  */
+@media (max-width: 768px) {
+    .footer-main {
+        flex-direction: column; /* Stack sections vertically */
+        gap: 1rem; 
+        padding: 2.5rem; 
+    }
+
+    .footer-logo img {
+        width: 100%; /* Make logo full width on mobile */
+        height: auto;
+    }
+
+    .footer-address,
+    .footer-links {
+        text-align: left; /* Center content for better readability */
+    }
+
+    .footer-links h3 {
+        font-size: 1rem; /* Adjust font size for mobile */
+    }
+
+    .footer-links a {
+        font-size: 0.9rem; 
+    }
+
+    .footer-bottom {
+        flex-direction: column; 
+        align-items: center; /* Center social icons */
+    }
+
+    .footer-social-icons {
+        gap: 1rem; 
+    }
+}
