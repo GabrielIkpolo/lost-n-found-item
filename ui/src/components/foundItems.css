@@ -27,6 +27,7 @@ body {
   overflow-y: auto;
   position: sticky;
   top: 20px;
+  display: block;
 }
 
 .sidebar h2 {
@@ -73,6 +74,68 @@ body {
 }
 
 .sidebar button:hover {
+  background-color: #0056b3;
+}
+
+
+/* Mobile side bar  */
+.mobile-sidebar {
+  background-color: #ffffff;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.mobile-sidebar h2 {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.mobile-sidebar ul {
+  list-style-type: none;
+  padding: 0;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  /* Enable horizontal scrolling if needed */
+}
+
+.mobile-sidebar li {
+  padding: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 14px;
+  color: #555;
+  border-radius: 8px;
+}
+
+.mobile-sidebar li.active {
+  background-color: #e0e0e0;
+}
+
+.mobile-sidebar li:hover {
+  background-color: #f0f0f0;
+}
+
+.mobile-sidebar button {
+  padding: 12px;
+  margin-top: 20px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.mobile-sidebar button:hover {
   background-color: #0056b3;
 }
 
@@ -193,4 +256,37 @@ body {
 
 .pagination button:hover {
   background-color: #ddd;
+}
+
+/* Media Queries for Small Screens */
+@media (max-width: 768px) {
+  .main-cover {
+    flex-direction: column;
+    /* Stack sidebar and main content vertically */
+  }
+
+  .sidebar {
+    display: none;
+    /* Hide the desktop sidebar */
+  }
+
+  .mobile-sidebar {
+    display: block;
+    /* Show the mobile sidebar */
+  }
+
+  .item-list {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    /* Adjust grid for smaller screens */
+  }
+
+  .item-card {
+    padding: 15px;
+    /* Reduce padding for smaller screens */
+  }
+
+  .item-image {
+    height: 150px;
+    /* Reduce image height for smaller screens */
+  }
 }
