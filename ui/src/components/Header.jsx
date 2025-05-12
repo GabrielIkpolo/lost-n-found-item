@@ -1,6 +1,7 @@
 import React from 'react';
 import "./header.css"; 
 import logo from '../assets/images/logo-1-300x69.png'; 
+import { NavLink } from 'react-router-dom';
 
 const Header = () => {
 
@@ -18,9 +19,9 @@ const Header = () => {
 
         {/* Navigation Links */}
         <nav className="nav-links">
-          <a href="#" className="nav-link">Login</a>
+          <NavLink to="/login" className="nav-link">Login</NavLink>
           <span className="separator">|</span>
-          <a href="#" className="nav-link">Logout</a>
+          <NavLink to="/" className="nav-link">Logout</NavLink>
         </nav>
       </div>
     </header>

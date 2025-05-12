@@ -5,6 +5,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import ErrorPage from './pages/ErrorPage';
+import Login from './components/Login';
 
 const Wrapper = ({ children }) => {
   return (
@@ -32,7 +33,8 @@ const guide = createBrowserRouter([
   {
     path: '/', element: <HeadAndFooter />,
     children: [
-      { path: '/', element: <Home /> },      
+      { path: '/', element: <Home /> }, 
+      {path: '/login', element: <Login />},     
       { path: '*', element: <ErrorPage /> }
     ]
   }
