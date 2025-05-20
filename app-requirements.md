@@ -187,6 +187,7 @@
 
 ```generator client {
   provider = "prisma-client-js"
+  output   = "./node_modules/@prisma/client"
 }
 
 datasource db {
@@ -223,7 +224,11 @@ model User {
   notifications Notification[] // Notifications for this user
   auditLogs     AuditLog[] // Actions performed by this user
 
-  }
+  emailVerified            Boolean   @default(false) // Tracks if the email has been verified
+  emailVerificationToken   String? // @unique // Stores the verification token
+  emailVerificationExpires DateTime? // Expiry for the token
+  emailVerifiedAt          DateTime?
+}
 
 enum Provider {
   LOCAL
@@ -258,7 +263,7 @@ model Item {
   notifications Notification[] // Notifications related to this item
   auditLogs     AuditLog[] // Audit trail for this item
   // Add text index for full-text search if using MongoDB Atlas Search
-  // @@fulltext([title, description, category, location]) // Example syntax, check Prisma/Mongo docs
+  // @@fulltext([title, description, category, location]) 
 
   @@index([status]) // Index status for faster querying (e.g., finding all FOUND items)
   @@index([category])
@@ -357,6 +362,7 @@ enum AuditAction {
   MANAGE_USER_ROLE
   // etc.
 }
+
 ```
 
 ---
