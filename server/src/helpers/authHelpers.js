@@ -26,10 +26,10 @@ export const comparePassword = async (password, hashed) => {
     }
 }
 
-export const genrateVerificationToken = ()=>{
+export const generateVerificationToken = ()=>{
     return crypto.randomBytes(32).toString('hex');
 }
 
 
-export default { hashPassword, comparePassword, genrateVerificationToken }
+// export default { hashPassword, comparePassword, genrateVerificationToken }
 

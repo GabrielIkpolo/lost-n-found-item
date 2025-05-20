@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
-dotenv.config() // loeads environment variable
+dotenv.config() // loads environment variable
 
 // Configure the transporter using environment variables
 
@@ -20,7 +20,7 @@ export const sendVerificationEmail = async (toEmail, token) => {
     const verificationLink = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/api/auth/verify-email?token=${token}`;
 
     const mailOptions = {
-        from: `"${process.env.EMAIL_FROM_NAME || 'Lost and Found Item'}" <${process.env.EMAIL_FROM_ADDRESS || 'noreply@yourdomain.com'}>`,
+        from: `"${process.env.EMAIL_FROM_NAME || 'Lost and Found Item'}" <${process.env.EMAIL_FROM_ADDRESS || 'noreply@yourdomain.com'}`,
         to: toEmail,
         subject: 'Verify Your Email Address',
         text: `Hello,\n\nPlease verify your email address by clicking this link: ${verificationLink}\n\nIf you did not request this, please ignore this email.\n\nThanks,\nThe Your App Team`,
@@ -73,3 +73,23 @@ const resetTokenEmailTemplate = (token, resetUrl) => `
 <p>Token: ${token}</p>
 <p>This token is valid for 15 minutes.</p>
 `;
+
+export const sendPasswordResetEmail = async (toEmail, token, resetUrl) => {
+    const mailOptions = {
+        from: `"${process.env.EMAIL_FROM_NAME || 'Lost and Found Item'}" <${process.env.EMAIL_FROM_ADDRESS || 'noreply@yourdomain.com'}>`,
+        to: toEmail,
+        subject: 'Password Reset Request',
+        text: `Hello,\n\nYou requested a password reset. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link is valid for 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nThanks,\nThe Your App Team`,
+        html: `<p>Hello,</p><p>You requested a password reset. Click the link below to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link is valid for 15 minutes.</p><p>If you did not request this, please ignore this email.</p><p>Thanks,<br/>The Your App Team</p>`,
+    };
+
+    try {
+        console.log(`Attempting to send password reset email to ${toEmail}...`);
+        let info = await transporter.sendMail(mailOptions);
+        console.log('Password reset email sent: %s', info.messageId);
+        return info;
+    } catch (error) {
+        console.error('Error sending password reset email:', error);
+        throw error; // Re-throw to be handled by the caller
+    }
+};

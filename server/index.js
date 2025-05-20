@@ -35,6 +35,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import morgan from "morgan";
 import fs from 'fs';
+import https from 'https';
 import session from 'express-session';
 import passport from "./src/helpers/passport.js";
 // Defined routes
@@ -78,7 +79,7 @@ app.use('/api/images', express.static(imageStoragePath));
 const port = process.env.PORT || 3000;
 
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key-fallback', // Fallback for safety, but use .env
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   // cookie: { secure: process.env.NODE_ENV === 'production' } // Enable for HTTPS
@@ -94,9 +95,6 @@ app.use(passport.session());
 app.use('/api/auth', authRoutes);
 
 
-
-
-
 // Return 404 for non accounted routes
 app.all('*', (req, res) => {
   res.status(404).json({
@@ -105,12 +103,19 @@ app.all('*', (req, res) => {
 });
 
 
-
-
 // Global error handler
 app.use((err, req, res, next) => {
   res.status(500).json({ message: "Something broke!" });
 });
+
+//For local ssl Usage
+// const sslOptions = {
+//   key: fs.readFileSync(process.env.SSL_KEY_PATH),
+//   cert: fs.readFileSync(process.env.SSL_CERT_PATH),
+// }
+
+// const httpsServer = https.createServer(sslOptions, app);
+
 
 app.listen(port, () => {
   console.log(`App is listening on port: ${port} `);
