@@ -1,0 +1,5 @@
+{
+    "telemetry.feedback.enabled": false,
+    "continue.telemetryEnabled": false,
+    "database-client.telemetry.usesOnlineServices": false
+}
