@@ -1,6 +1,6 @@
 import express from 'express';
-import { createItem, getItems, getItemDetails } from '../controllers/itemController.js'; 
-import { requireSignin } from '../helpers/authMiddleware.js';
+import { createItem, getItems, getItemDetails, updateItem, deleteItem } from '../controllers/itemController.js';
+import { requireSignin, isAdmin } from '../helpers/authMiddleware.js';
 
 
 // We'll export a function that takes the multer upload middleware
@@ -25,6 +25,28 @@ const itemRoutes = (upload) => {
 
     // Route for getting details of a single item (GET /api/items/:id)
     router.get('/:id', getItemDetails);
+
+    // Route for updating an item (PUT/PATCH /api/items/:id)
+    // Requires signin. Authorization check (owner or admin) will be inside the controller.
+    // Uses multer to handle potential new image uploads
+    router.put(
+        '/:id',
+        requireSignin,
+        upload.fields([
+            { name: 'imageUrlFront', maxCount: 1 },
+            { name: 'imageUrlBack', maxCount: 1 }
+        ]),
+        updateItem // Controller function to handle update
+    );
+
+    // Route for deleting an item (DELETE /api/items/:id)
+    // Requires signin. Authorization check (owner or admin) will be inside the controller.
+    router.delete(
+        '/:id',
+        requireSignin,
+        deleteItem // Controller function to handle delete
+    );
+
 
 
     return router;
