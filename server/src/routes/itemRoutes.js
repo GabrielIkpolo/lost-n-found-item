@@ -1,5 +1,5 @@
 import express from 'express';
-import { createItem, getItems, getItemDetails, updateItem, deleteItem } from '../controllers/itemController.js';
+import { createItem, getItems, getItemDetails, updateItem, deleteItem, claimItem } from '../controllers/itemController.js';
 import { requireSignin, isAdmin } from '../helpers/authMiddleware.js';
 
 
@@ -46,6 +46,14 @@ const itemRoutes = (upload) => {
         requireSignin,
         deleteItem // Controller function to handle delete
     );
+
+    // New Route for claiming a FOUND item (POST /api/items/claim/:id)
+    router.post(
+        '/claim/:id', // Use a descriptive endpoint like /:idS
+        requireSignin, // User must be signed in to claim
+        claimItem // Controller function to handle the claim logic
+    );
+
 
 
 
