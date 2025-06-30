@@ -5,6 +5,8 @@ import { sendVerificationEmail, sendPasswordResetEmail } from "../services/email
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto'
+import { UserRole, AuditAction, Prisma } from '@prisma/client'; // Import UserRole and Prisma Client for error handling
+
 
 
 
@@ -376,3 +378,336 @@ export const logoutUser = async (req, res) => {
     }
 
 }
+
+
+//========== Below are to be expunged ================
+
+// // --- Controller function to save FCM token ---
+// export const saveFcmToken = async (req, res) => {
+//     // requireSignin middleware ensures req.user is populated
+//     if (!req.user) {
+//         return res.status(401).json({ error: "Authentication required." });
+//     }
+
+//     const { fcmToken } = req.body;
+//     const userId = req.user.id; // User ID from the authenticated user
+
+//     // Basic validation
+//     if (!fcmToken || typeof fcmToken !== 'string') {
+//         // If token is null/undefined or not a string, treat it as a request to remove the token
+//         // This is useful for users who disable notifications or log out
+//         if (fcmToken === null || fcmToken === undefined) {
+//              console.log(`Received null/undefined FCM token for user ${userId}. Clearing token.`);
+//              try {
+//                  await prisma.user.update({
+//                      where: { id: userId },
+//                      data: {
+//                          fcmToken: null,
+//                          lastFcmUpdate: new Date() // Still update the timestamp
+//                      }
+//                  });
+//                  return res.status(200).json({ message: "FCM token cleared successfully." });
+//              } catch (error) {
+//                  console.error(`Error clearing FCM token for user ${userId}:`, error);
+//                  return res.status(500).json({ error: "Internal server error while clearing FCM token." });
+//              }
+//         }
+//         // If token is provided but not a string
+//         return res.status(400).json({ error: "Invalid FCM token format." });
+//     }
+
+//     try {
+//         // Save or update the FCM token for the user
+//         const updatedUser = await prisma.user.update({
+//             where: { id: userId },
+//             data: {
+//                 fcmToken: fcmToken,
+//                 lastFcmUpdate: new Date(), // Record the time the token was updated
+//             },
+//             select: {
+//                 id: true,
+//                 fcmToken: true,
+//                 lastFcmUpdate: true,
+//             }
+//         });
+
+//         console.log(`FCM token saved/updated for user ${userId}. Token: ${fcmToken.substring(0, 10)}...`); // Log first few chars for privacy
+
+//         return res.status(200).json({
+//             message: "FCM token saved successfully.",
+//             user: {
+//                  id: updatedUser.id,
+//                  fcmToken: updatedUser.fcmToken,
+//                  lastFcmUpdate: updatedUser.lastFcmUpdate,
+//             }
+//         });
+
+//     } catch (error) {
+//         console.error(`Error saving FCM token for user ${userId}:`, error);
+//          if (error.code === 'P2025') { // User not found (shouldn't happen with requireSignin)
+//              return res.status(404).json({ error: "Authenticated user not found." });
+//          }
+//         return res.status(500).json({ error: "Internal server error while saving FCM token." });
+//     }
+// };
+
+
+// // --- Admin: Get All Users ---
+// // Requires isAdmin or isSuperAdmin middleware
+// export const getAllUsers = async (req, res) => {
+//     // Middleware ensures user is authenticated and has admin role
+//     try {
+//         // Fetch all users
+//         const users = await prisma.user.findMany({
+//             // Select fields - be mindful of privacy, even for admins
+//             select: {
+//                 id: true,
+//                 name: true,
+//                 email: true,
+//                 phone: true,
+//                 provider: true,
+//                 role: true,
+//                 emailVerified: true,
+//                 createdAt: true,
+//                 updatedAt: true,
+//                 // Exclude sensitive data like passwords, providerIds (maybe), fcmTokens here.
+//                 // You might include more in getItemDetails if needed there.
+//             },
+//             orderBy: {
+//                 createdAt: 'asc' // Or 'email' or 'role'
+//             }
+//         });
+
+//         return res.status(200).json(users);
+
+//     } catch (error) {
+//         console.error("Error fetching all users:", error);
+//         return res.status(500).json({ error: "Internal server error while fetching users." });
+//     }
+// };
+
+// // --- Admin: Get User Details ---
+// // Requires isAdmin or isSuperAdmin middleware
+// export const getUserDetails = async (req, res) => {
+//     // Middleware ensures user is authenticated and has admin role
+//     try {
+//         const { id } = req.params; // User ID from URL parameter
+
+//         // Validate ID format (optional but good practice)
+//          // if (!ObjectId.isValid(id)) { // Requires ObjectId from 'mongodb'
+//          //     return res.status(400).json({ error: "Invalid User ID format." });
+//          // }
+
+//         const user = await prisma.user.findUnique({
+//             where: { id: id },
+//              // Select fields - include more details for the individual view
+//              select: {
+//                  id: true,
+//                  name: true,
+//                  email: true,
+//                  phone: true,
+//                  provider: true,
+//                  providerId: true, // Admins might need this
+//                  role: true,
+//                  emailVerified: true,
+//                  emailVerificationToken: false, // Don't expose tokens
+//                  emailVerificationExpires: false,
+//                  passwordResetToken: false, // Don't expose tokens
+//                  passwordResetExpires: false,
+//                  fcmToken: true, // Might be useful for admin to see
+//                  lastFcmUpdate: true,
+//                  emailNotificationsEnabled: true,
+//                  inAppNotificationsEnabled: true,
+//                  pushNotificationsEnabled: true,
+//                  createdAt: true,
+//                  updatedAt: true,
+//                  // Optionally include count of reported/claimed items, or the items themselves
+//                  // _count: {
+//                  //     select: { items: true, claimedItems: true, notifications: true, auditLogs: true }
+//                  // }
+//              }
+//         });
+
+//         if (!user) {
+//             return res.status(404).json({ error: "User not found." });
+//         }
+
+//         return res.status(200).json(user);
+
+//     } catch (error) {
+//         console.error("Error fetching user details:", error);
+//         if (error instanceof Prisma.PrismaClientKnownRequestError) {
+//              if (error.code === 'P2025') {
+//                  return res.status(404).json({ error: "User not found." });
+//              }
+//               // Example: Invalid ID format caught by Prisma
+//              if (error.code === 'P2000') {
+//                   return res.status(400).json({ error: "Invalid User ID format." });
+//              }
+//         }
+//         return res.status(500).json({ error: "Internal server error while fetching user details." });
+//     }
+// };
+
+
+// // --- Super Admin: Update User Role ---
+// // Requires isSuperAdmin middleware
+// export const updateUserRole = async (req, res) => {
+//      // Middleware ensures user is authenticated and is a Super Admin
+//     try {
+//         const { id } = req.params; // User ID to update
+//         const { role } = req.body; // New role
+
+//         // Validate incoming role value against the UserRole enum
+//         const validRoles = Object.values(UserRole);
+//         if (!role || !validRoles.includes(role)) {
+//             return res.status(400).json({ error: `Invalid role: ${role}. Must be one of ${validRoles.join(', ')}` });
+//         }
+
+//         // IMPORTANT SECURITY CHECK: Prevent Super Admin from downgrading or deleting the *last* Super Admin
+//         // or from changing their *own* role in this specific endpoint.
+//         // This requires more complex logic, potentially checking user count per role or requiring a different flow.
+//         // For simplicity NOW, let's prevent changing the *current* Super Admin's role via this route.
+//         // A production system needs more robust checks.
+//          if (req.user.id === id && req.user.role === UserRole.SUPER_ADMIN) {
+//               return res.status(403).json({ error: "Forbidden: Super Admin cannot change their own role via this endpoint." });
+//          }
+//          // Add check to prevent Super Admin from changing another Super Admin's role if needed.
+//          // Fetch the target user's current role first:
+//          const targetUser = await prisma.user.findUnique({ where: { id: id }, select: { id: true, role: true } });
+
+//          if (!targetUser) {
+//              return res.status(404).json({ error: "Target user not found." });
+//          }
+
+//          // Prevent Super Admin from changing *another* Super Admin's role (basic protection)
+//          if (targetUser.role === UserRole.SUPER_ADMIN && req.user.id !== id) {
+//               return res.status(403).json({ error: "Forbidden: Super Admin cannot change another Super Admin's role." });
+//          }
+//          // Prevent Super Admin from promoting to SUPER_ADMIN role (only Super Admins can manage Super Admins)
+//          // This check is implicitly handled by the isSuperAdmin middleware on the route,
+//          // but adding explicit logic here makes it clearer that Super Admins *can* assign ADMIN/USER roles.
+//          // However, the current logic is for *updating* roles. A separate `promoteToAdmin` might be clearer.
+//          // Given the `isSuperAdmin` middleware, `req.user.role` will be SUPER_ADMIN here.
+//          // The check below means SUPER_ADMIN can assign ADMIN or USER roles.
+//          if (role === UserRole.SUPER_ADMIN && req.user.role !== UserRole.SUPER_ADMIN) {
+//              // This check is redundant due to middleware but included for logical clarity
+//              return res.status(403).json({ error: "Forbidden: Only Super Admins can assign the Super Admin role." });
+//          }
+//           // Further checks: Prevent assigning a role *higher* than the current user's role (already implicitly handled by middleware structure, but good to think about).
+//           // A Super Admin *can* assign ADMIN or USER roles.
+
+
+//         // Update the user's role
+//         const updatedUser = await prisma.user.update({
+//             where: { id: id },
+//             data: { role: role },
+//              select: { id: true, name: true, email: true, role: true, updatedAt: true } // Select fields for response
+//         });
+
+//         // Create Audit Log
+//         await prisma.auditLog.create({
+//              data: {
+//                  userId: req.user.id, // The Super Admin performing the action
+//                  // itemId: null, // Action is on a user, not an item
+//                  action: 'MANAGE_USER_ROLE',
+//                  details: `Changed role of user "${updatedUser.name}" (${updatedUser.id}) from ${targetUser.role} to ${updatedUser.role}.`,
+//                  ipAddress: req.ip,
+//                  userAgent: req.headers['user-agent'],
+//              }
+//         });
+
+//         return res.status(200).json({
+//             message: `User role updated successfully to ${updatedUser.role}`,
+//             user: updatedUser
+//         });
+
+//     } catch (error) {
+//         console.error("Error updating user role:", error);
+//          if (error instanceof Prisma.PrismaClientKnownRequestError) {
+//              if (error.code === 'P2025') {
+//                  return res.status(404).json({ error: "User not found." });
+//              }
+//               // Example: Invalid ID format caught by Prisma
+//              if (error.code === 'P2000') {
+//                   return res.status(400).json({ error: "Invalid User ID format." });
+//              }
+//          }
+//         return res.status(500).json({ error: "Internal server error while updating user role." });
+//     }
+// };
+
+
+// // --- Admin: Delete User ---
+// // Requires isAdmin or isSuperAdmin middleware
+// // NOTE: Deleting a user might require cascading deletes or handling orphaned records (items, notifications, audit logs).
+// // Prisma's cascading delete rules in schema.prisma are important here.
+// // A "soft delete" (e.g., adding an `isActive: Boolean` field) is often safer.
+// export const deleteUser = async (req, res) => {
+//      // Middleware ensures user is authenticated and has admin role
+//     try {
+//         const { id } = req.params; // User ID to delete
+
+//         // IMPORTANT SECURITY CHECK: Prevent Super Admin from deleting themselves.
+//         // Also prevent ADMIN from deleting another ADMIN or SUPER_ADMIN.
+//          const targetUser = await prisma.user.findUnique({ where: { id: id }, select: { id: true, role: true } });
+
+//          if (!targetUser) {
+//              return res.status(404).json({ error: "User not found." });
+//          }
+
+//          // Prevent user from deleting themselves
+//          if (req.user.id === id) {
+//              return res.status(403).json({ error: "Forbidden: You cannot delete your own account via this endpoint." });
+//          }
+
+//          // Prevent ADMIN from deleting ADMIN or SUPER_ADMIN
+//          if (req.user.role === UserRole.ADMIN && (targetUser.role === UserRole.ADMIN || targetUser.role === UserRole.SUPER_ADMIN)) {
+//              return res.status(403).json({ error: "Forbidden: Admins cannot delete other Admins or Super Admins." });
+//          }
+
+//           // Super Admins can delete Admins and Users (but not themselves, handled above)
+
+
+//         // Perform the delete operation
+//         // NOTE: Ensure your schema.prisma has correct `onDelete` cascade rules
+//         // for related models like Item, Notification, AuditLog, etc.
+//         const deletedUser = await prisma.user.delete({
+//             where: { id: id },
+//              // Select fields for audit log before deletion
+//              select: { id: true, name: true, email: true, role: true }
+//         });
+
+//         // Create Audit Log for deletion
+//         await prisma.auditLog.create({
+//              data: {
+//                  userId: req.user.id, // The admin performing the action
+//                  // itemId: null, // Action is on a user
+//                  action: AuditAction.DELETE_USER, // Assuming you add this to AuditAction enum
+//                  details: `Deleted user "${deletedUser.name}" (${deletedUser.id}) with role ${deletedUser.role}.`,
+//                  ipAddress: req.ip,
+//                  userAgent: req.headers['user-agent'],
+//              }
+//         });
+
+//         return res.status(200).json({ message: "User deleted successfully", user: { id: deletedUser.id } });
+
+//     } catch (error) {
+//         console.error("Error deleting user:", error);
+//          if (error instanceof Prisma.PrismaClientKnownRequestError) {
+//              if (error.code === 'P2025') {
+//                  return res.status(404).json({ error: "User not found." });
+//              }
+//              // P2003: Foreign key constraint failed (if cascade rules are missing/incorrect)
+//              if (error.code === 'P2003') {
+//                   console.error("Prisma P2003 Error: Foreign key constraint failed during user deletion. Check schema.prisma `onDelete` rules.");
+//                   return res.status(409).json({ error: "Cannot delete user due to related data. Check database cascade rules or implement soft delete." });
+//              }
+//              // Example: Invalid ID format caught by Prisma
+//              if (error.code === 'P2000') {
+//                   return res.status(400).json({ error: "Invalid User ID format." });
+//              }
+//          }
+//         return res.status(500).json({ error: "Internal server error while deleting user." });
+//     }
+// };

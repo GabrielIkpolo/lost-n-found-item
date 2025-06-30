@@ -5,9 +5,11 @@ import {
     resendVerificationEmail,
     forgotPassword,
     resetPassword,
-    logoutUser
+    logoutUser,
 } from '../controllers/authController.js';
 import passport from '../helpers/passport.js';
+// Import the authentication and authorization middleware
+import { requireSignin} from '../helpers/authMiddleware.js';
 
 const router = express.Router();
 
@@ -44,5 +46,6 @@ router.post('/logout', logoutUser);
 // Forgot password: http://localhost:3000/api/auth/forgot-password
 
 // http://localhost:3000/api/auth/reset-password/4472665565a6a04a465f9c83e935fbeb195ab01b91cfc88e52ce85d47aceef8d
+
 
 export default router;

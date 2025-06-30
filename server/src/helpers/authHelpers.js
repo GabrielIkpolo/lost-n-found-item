@@ -31,5 +31,6 @@ export const generateVerificationToken = ()=>{
 }
 
 
-// export default { hashPassword, comparePassword, genrateVerificationToken }
+
+
 

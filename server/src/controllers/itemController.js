@@ -1,35 +1,9 @@
 import prisma from '../helpers/prisma.js';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { Prisma, ItemCategory, ItemLocation, ItemStatus, UserRole, NotificationType } from '@prisma/client';
 import { sendNotification } from '../services/notificationService.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const imageStoragePath = path.join(__dirname, '../../fileStorage', 'images'); // Adjust path relative to controller
-
-// Helper to get the static URL for a saved file path
-const getImageUrl = (filePath) => {
-    if (!filePath) return null;
-    const fileName = path.basename(filePath);
-    // Assumes your static server path is /api/images and files are in fileStorage/images
-    return `${process.env.APP_BASE_URL || 'http://localhost:3000'}/api/images/${fileName}`;
-};
-
-
-// Helper to delete a file if it exists
-const deleteFile = (filePath) => {
-    if (filePath && fs.existsSync(filePath)) {
-        try {
-            fs.unlinkSync(filePath);
-            console.log(`Successfully deleted file: ${filePath}`);
-        } catch (e) {
-            console.error(`Error deleting file: ${filePath}`, e);
-            // Continue execution even if file deletion fails
-        }
-    }
-};
+import { getImageUrl, deleteFile } from '../helpers/imageHelper.js';
 
 
 
@@ -144,166 +118,166 @@ export const createItem = async (req, res) => {
 };
 
 
-export const getItems = async (req, res) => {
-    try {
-        // Extract query parameters for pagination, filtering, and search
-        const page = parseInt(req.query.page, 10) || 1; // Default to page 1
-        const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 items per page
-        const status = req.query.status; // Filter by status (e.g., 'FOUND', 'LOST')
-        const category = req.query.category; // Filter by category
-        const location = req.query.location; // Filter by location
-        const searchQuery = req.query.q; // Add search query parameter
+// export const getItems = async (req, res) => {
+//     try {
+//         // Extract query parameters for pagination, filtering, and search
+//         const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+//         const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 items per page
+//         const status = req.query.status; // Filter by status (e.g., 'FOUND', 'LOST')
+//         const category = req.query.category; // Filter by category
+//         const location = req.query.location; // Filter by location
+//         const searchQuery = req.query.q; // Add search query parameter
 
-        const skip = (page - 1) * limit; // Calculate number of items to skip
+//         const skip = (page - 1) * limit; // Calculate number of items to skip
 
-        // Build the filter (where clause) for the Prisma query
-        const where = {};
+//         // Build the filter (where clause) for the Prisma query
+//         const where = {};
 
-        // --- Add status filter ---
-        // If a status query parameter is provided, validate and add it to the where clause.
-        // Otherwise, default to only showing 'FOUND' items.
-        if (status) {
-            // Ensure the status is a valid enum value before adding to where
-            // Correct: Use Prisma.ItemStatus
-            if (Object.values(ItemStatus).includes(status)) {
-                where.status = status;
-            } else {
-                // Handle invalid status input early
-                return res.status(400).json({ error: `Invalid status: ${status}. Must be one of ${Object.values(ItemStatus).join(', ')}` });
-            }
-        } else {
-            // Default behavior: Only show 'FOUND' items publicly if no status filter is provided
-            where.status = 'FOUND'; // Keep default filter for browsing
-        }
+//         // --- Add status filter ---
+//         // If a status query parameter is provided, validate and add it to the where clause.
+//         // Otherwise, default to only showing 'FOUND' items.
+//         if (status) {
+//             // Ensure the status is a valid enum value before adding to where
+//             // Correct: Use Prisma.ItemStatus
+//             if (Object.values(ItemStatus).includes(status)) {
+//                 where.status = status;
+//             } else {
+//                 // Handle invalid status input early
+//                 return res.status(400).json({ error: `Invalid status: ${status}. Must be one of ${Object.values(ItemStatus).join(', ')}` });
+//             }
+//         } else {
+//             // Default behavior: Only show 'FOUND' items publicly if no status filter is provided
+//             where.status = 'FOUND'; // Keep default filter for browsing
+//         }
 
-        // --- Add category filter ---
-        if (category) {
-            // Correct: Use Prisma.ItemCategory
-            if (Object.values(ItemCategory).includes(category)) {
-                where.category = category;
-            } else {
-                // Handle invalid category input early
-                return res.status(400).json({ error: `Invalid category: ${category}. Must be one of ${Object.values(ItemCategory).join(', ')}` });
-            }
-        }
+//         // --- Add category filter ---
+//         if (category) {
+//             // Correct: Use Prisma.ItemCategory
+//             if (Object.values(ItemCategory).includes(category)) {
+//                 where.category = category;
+//             } else {
+//                 // Handle invalid category input early
+//                 return res.status(400).json({ error: `Invalid category: ${category}. Must be one of ${Object.values(ItemCategory).join(', ')}` });
+//             }
+//         }
 
-        // --- Add location filter ---
-        if (location) {
-            // Correct: Use Prisma.ItemLocation
-            if (Object.values(ItemLocation).includes(location)) {
-                where.location = location;
-            } else {
-                // Handle invalid location input early
-                return res.status(400).json({ error: `Invalid location: ${location}. Must be one of ${Object.values(ItemLocation).join(', ')}` });
-            }
-        }
-
-
-        // --- Add search condition if searchQuery is provided ---
-        if (searchQuery) {
-            // Use 'OR' to search across multiple fields
-            where.OR = [
-                { title: { contains: searchQuery, mode: 'insensitive' } },
-                { description: { contains: searchQuery, mode: 'insensitive' } },
-                // Searching on enum fields requires matching the exact string value of the enum,
-                // not necessarily part of the user-friendly display name. 'contains' might work if the enum value
-                // is a substring of the search query (e.g., searching "ELECTRONICS" finds "ELECTRONICS_GADGETS").
-                // If you want to search user-friendly names, you might need a mapping or rethink the search strategy for enums.
-                { category: { contains: searchQuery, mode: 'insensitive' } }, // These search against the enum string values
-                { location: { contains: searchQuery, mode: 'insensitive' } }, // These search against the enum string values
-            ];
-            // Note: The search here is applied *within* the existing filters (status, category, location).
-            // E.g., if status is 'FOUND', search only happens on FOUND items.
-        }
+//         // --- Add location filter ---
+//         if (location) {
+//             // Correct: Use Prisma.ItemLocation
+//             if (Object.values(ItemLocation).includes(location)) {
+//                 where.location = location;
+//             } else {
+//                 // Handle invalid location input early
+//                 return res.status(400).json({ error: `Invalid location: ${location}. Must be one of ${Object.values(ItemLocation).join(', ')}` });
+//             }
+//         }
 
 
-        // Build the order by clause (e.g., newest first)
-        const orderBy = {
-            createdAt: 'desc', // Default sort by newest first
-        };
-
-        // Fetch items with pagination, filtering, and sorting
-        const items = await prisma.item.findMany({
-            where: where, // Use the constructed where object
-            orderBy: orderBy,
-            skip: skip,
-            take: limit, // Use take for the limit
-            // Select specific fields for performance and privacy
-            select: {
-                id: true,
-                title: true,
-                description: true,
-                category: true,
-                location: true,
-                imageUrlFront: true, // Fetch internal paths
-                imageUrlBack: true,   // Fetch internal paths
-                status: true,
-                createdAt: true,
-                updatedAt: true,
-                expiresAt: true,
-                // Include reportedBy and claimedBy if needed for display in the list view
-                reportedBy: { // Optional: select minimal reporter info for list view privacy
-                    select: {
-                        id: true,
-                        name: true, // Only expose name and ID in list view for privacy
-                    }
-                },
-                // claimedBy: { // Optional: select minimal claimer info for list view privacy
-                //      select: {
-                //          id: true,
-                //          name: true, // Only expose name and ID
-                //      }
-                // }
-            },
-        });
-
-        // Get the total count of items matching the combined filter and search criteria
-        // Use the SAME where clause as the findMany query
-        const totalItems = await prisma.item.count({
-            where: where,
-        });
-
-        // Calculate total pages
-        const totalPages = Math.ceil(totalItems / limit);
-
-        // Map items to include public image URLs and clean up user info for list view
-        const itemsWithPublicUrls = items.map(item => ({
-            ...item,
-            imageUrlFront: getImageUrl(item.imageUrlFront),
-            imageUrlBack: getImageUrl(item.imageUrlBack),
-            reportedBy: item.reportedBy ? { // Ensure reportedBy exists before mapping
-                id: item.reportedBy.id,
-                name: item.reportedBy.name // Explicitly include only desired fields
-            } : null,
-            // claimedBy: item.claimedBy ? { ... map claimedBy fields ... } : null, // Handle claimedBy similarly if included
-        }));
+//         // --- Add search condition if searchQuery is provided ---
+//         if (searchQuery) {
+//             // Use 'OR' to search across multiple fields
+//             where.OR = [
+//                 { title: { contains: searchQuery, mode: 'insensitive' } },
+//                 { description: { contains: searchQuery, mode: 'insensitive' } },
+//                 // Searching on enum fields requires matching the exact string value of the enum,
+//                 // not necessarily part of the user-friendly display name. 'contains' might work if the enum value
+//                 // is a substring of the search query (e.g., searching "ELECTRONICS" finds "ELECTRONICS_GADGETS").
+//                 // If you want to search user-friendly names, you might need a mapping or rethink the search strategy for enums.
+//                 { category: { contains: searchQuery, mode: 'insensitive' } }, // These search against the enum string values
+//                 { location: { contains: searchQuery, mode: 'insensitive' } }, // These search against the enum string values
+//             ];
+//             // Note: The search here is applied *within* the existing filters (status, category, location).
+//             // E.g., if status is 'FOUND', search only happens on FOUND items.
+//         }
 
 
-        return res.status(200).json({
-            items: itemsWithPublicUrls,
-            pagination: {
-                totalItems: totalItems,
-                totalPages: totalPages,
-                currentPage: page,
-                itemsPerPage: limit,
-                query: searchQuery // Echo the search query back
-            },
-        });
+//         // Build the order by clause (e.g., newest first)
+//         const orderBy = {
+//             createdAt: 'desc', // Default sort by newest first
+//         };
 
-    } catch (error) {
-        console.error("Error fetching items:", error);
-        // Handle specific Prisma errors if needed, otherwise return generic 500
-        // Check if it's a known Prisma error, potentially due to invalid input or database issues
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            if (error.code === 'P2011' || error.code === 'P2000') { // P2011: Invalid enum value, P2000: Input data too large/invalid
-                return res.status(400).json({ error: "Invalid filter or search value provided." });
-            }
-            // You could add more specific error handling for other Prisma errors here based on error.code
-        }
-        // Catch other unexpected errors (network, other code issues)
-        return res.status(500).json({ error: "Internal server error while fetching items." });
-    }
-};
+//         // Fetch items with pagination, filtering, and sorting
+//         const items = await prisma.item.findMany({
+//             where: where, // Use the constructed where object
+//             orderBy: orderBy,
+//             skip: skip,
+//             take: limit, // Use take for the limit
+//             // Select specific fields for performance and privacy
+//             select: {
+//                 id: true,
+//                 title: true,
+//                 description: true,
+//                 category: true,
+//                 location: true,
+//                 imageUrlFront: true, // Fetch internal paths
+//                 imageUrlBack: true,   // Fetch internal paths
+//                 status: true,
+//                 createdAt: true,
+//                 updatedAt: true,
+//                 expiresAt: true,
+//                 // Include reportedBy and claimedBy if needed for display in the list view
+//                 reportedBy: { // Optional: select minimal reporter info for list view privacy
+//                     select: {
+//                         id: true,
+//                         name: true, // Only expose name and ID in list view for privacy
+//                     }
+//                 },
+//                 // claimedBy: { // Optional: select minimal claimer info for list view privacy
+//                 //      select: {
+//                 //          id: true,
+//                 //          name: true, // Only expose name and ID
+//                 //      }
+//                 // }
+//             },
+//         });
+
+//         // Get the total count of items matching the combined filter and search criteria
+//         // Use the SAME where clause as the findMany query
+//         const totalItems = await prisma.item.count({
+//             where: where,
+//         });
+
+//         // Calculate total pages
+//         const totalPages = Math.ceil(totalItems / limit);
+
+//         // Map items to include public image URLs and clean up user info for list view
+//         const itemsWithPublicUrls = items.map(item => ({
+//             ...item,
+//             imageUrlFront: getImageUrl(item.imageUrlFront),
+//             imageUrlBack: getImageUrl(item.imageUrlBack),
+//             reportedBy: item.reportedBy ? { // Ensure reportedBy exists before mapping
+//                 id: item.reportedBy.id,
+//                 name: item.reportedBy.name // Explicitly include only desired fields
+//             } : null,
+//             // claimedBy: item.claimedBy ? { ... map claimedBy fields ... } : null, // Handle claimedBy similarly if included
+//         }));
+
+
+//         return res.status(200).json({
+//             items: itemsWithPublicUrls,
+//             pagination: {
+//                 totalItems: totalItems,
+//                 totalPages: totalPages,
+//                 currentPage: page,
+//                 itemsPerPage: limit,
+//                 query: searchQuery // Echo the search query back
+//             },
+//         });
+
+//     } catch (error) {
+//         console.error("Error fetching items:", error);
+//         // Handle specific Prisma errors if needed, otherwise return generic 500
+//         // Check if it's a known Prisma error, potentially due to invalid input or database issues
+//         if (error instanceof Prisma.PrismaClientKnownRequestError) {
+//             if (error.code === 'P2011' || error.code === 'P2000') { // P2011: Invalid enum value, P2000: Input data too large/invalid
+//                 return res.status(400).json({ error: "Invalid filter or search value provided." });
+//             }
+//             // You could add more specific error handling for other Prisma errors here based on error.code
+//         }
+//         // Catch other unexpected errors (network, other code issues)
+//         return res.status(500).json({ error: "Internal server error while fetching items." });
+//     }
+// };
 
 
 export const getItemDetails = async (req, res) => {
@@ -880,3 +854,148 @@ export const claimItem = async (req, res) => {
 };
 
 
+
+
+// --- getItems function (Finalized for Public/Admin Filtering) ---
+// optionalSignin middleware ensures req.user is available if token is present
+export const getItems = async (req, res) => {
+    try {
+        const userId = req.user?.id; // User ID (will be null for guests)
+        const userRole = req.user?.role; // User Role (will be null for guests)
+        const isAdminUser = userRole === UserRole.ADMIN || userRole === UserRole.SUPER_ADMIN;
+
+
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        let statusFilter = req.query.status; // Query param for status filtering
+        const category = req.query.category; // Query param for category filtering
+        const location = req.query.location; // Query param for location filtering
+        const searchQuery = req.query.q; // Query param for search
+
+        const skip = (page - 1) * limit;
+
+        const whereConditions = [ ];// Array to build up conditions
+
+        // --- Status Filtering Logic ---
+        if (statusFilter) {
+             if (Object.values(ItemStatus).includes(statusFilter)) {
+                 whereConditions.push({ status: statusFilter }); // Add valid status filter
+             } else if (isAdminUser && statusFilter === 'ALL') {
+                 // Admin requested ALL statuses - do not add a status filter to whereConditions
+             } else {
+                 // Invalid status provided for a non-admin or status is not 'ALL' for an admin
+                 return res.status(400).json({ error: `Invalid status filter: ${statusFilter}. Must be one of ${Object.values(ItemStatus).join(', ')}${isAdminUser ? " or 'ALL' (for admins)." : ""}.` });
+             }
+        } else {
+             // No status filter provided in the query
+             // Default behavior: Only show 'FOUND' items (for public or if admin doesn't specify)
+             whereConditions.push({ status: ItemStatus.FOUND });
+        }
+
+
+        // --- Category Filtering ---
+        if (category) {
+             if (Object.values(ItemCategory).includes(category)) {
+                  whereConditions.push({ category: category }); // Add valid category filter
+             } else {
+                  return res.status(400).json({ error: `Invalid category filter: ${category}. Must be one of ${Object.values(ItemCategory).join(', ')}` });
+             }
+        }
+
+
+        // --- Location Filtering ---
+        if (location) {
+             if (Object.values(ItemLocation).includes(location)) {
+                  whereConditions.push({ location: location }); // Add valid location filter
+             } else {
+                  return res.status(400).json({ error: `Invalid location filter: ${location}. Must be one of ${Object.values(ItemLocation).join(', ')}` });
+             }
+        }
+
+
+        // --- Search Query ---
+        if (searchQuery) {
+            const searchCondition = {
+                OR: [
+                    { title: { contains: searchQuery, mode: 'insensitive' } },
+                    { description: { contains: searchQuery, mode: 'insensitive' } },
+                    { category: { contains: searchQuery, mode: 'insensitive' } },
+                    { location: { contains: searchQuery, mode: 'insensitive' } },
+                ]
+            };
+            whereConditions.push(searchCondition); // Add the search condition
+        }
+
+        // Combine all conditions using AND if there's more than one condition
+        // If there's only one condition (or none if status='ALL' and no other filters),
+        // Prisma uses it directly without needing `AND`.
+        const finalWhere = whereConditions.length > 0 ? { AND: whereConditions } : {};
+        // If statusFilter was 'ALL' and no other filters were provided, whereConditions will be empty, resulting in {} which is correct for fetching all items.
+
+
+        // Fetch items with pagination, filtering, and sorting
+        const items = await prisma.item.findMany({
+            where: finalWhere, // Use the constructed 'where' object
+            orderBy: { createdAt: 'desc' }, // Default sort
+            skip: skip,
+            take: limit,
+            select: { // Select fields for performance and privacy
+                id: true,
+                title: true,
+                description: true,
+                category: true,
+                location: true,
+                imageUrlFront: true,
+                imageUrlBack: true,
+                status: true,
+                createdAt: true,
+                updatedAt: true,
+                expiresAt: true,
+                reportedBy: { select: { id: true, name: true } }, // Minimal info
+                // Consider adding claimedBy if needed in the list view for some roles/contexts
+                // claimedBy: { select: { id: true, name: true } }
+            },
+        });
+
+        // Get the total count of items matching the combined filter and search criteria
+        const totalItems = await prisma.item.count({ where: finalWhere }); // Use the same 'where'
+        const totalPages = Math.ceil(totalItems / limit);
+
+        // Map items to include public image URLs
+        const itemsWithPublicUrls = items.map(item => ({
+            ...item,
+            imageUrlFront: getImageUrl(item.imageUrlFront),
+            imageUrlBack: getImageUrl(item.imageUrlBack),
+            // Ensure reportedBy is not null before spreading/selecting
+             reportedBy: item.reportedBy ? { id: item.reportedBy.id, name: item.reportedBy.name } : null,
+             // Add claimedBy similarly if selected above
+             // claimedBy: item.claimedBy ? { id: item.claimedBy.id, name: item.claimedBy.name } : null,
+        }));
+
+
+        return res.status(200).json({
+            items: itemsWithPublicUrls,
+            pagination: {
+                totalItems: totalItems,
+                totalPages: totalPages,
+                currentPage: page,
+                itemsPerPage: limit,
+                query: searchQuery, // Echo search query
+                statusFilter: statusFilter, // Echo status filter
+                categoryFilter: category, // Echo category filter
+                locationFilter: location, // Echo location filter
+            },
+        });
+
+    } catch (error) {
+        console.error("Error fetching items:", error);
+         if (error instanceof Prisma.PrismaClientKnownRequestError) {
+             // Add checks for specific Prisma error codes related to invalid input
+             if (error.code === 'P2011' || error.code === 'P2000') { // P2011: Invalid enum value, P2000: Input data too large/invalid
+                  return res.status(400).json({ error: "Invalid filter or search value provided." });
+             }
+             // You could add more specific error handling for other Prisma errors here
+         }
+        return res.status(500).json({ error: "Internal server error while fetching items." });
+    }
+};

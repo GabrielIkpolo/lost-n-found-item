@@ -115,7 +115,7 @@ enum ItemLocation {
 
 model Notification {
   id        String           @id @default(auto()) @map("_id") @db.ObjectId
-  user      User             @relation(fields: [userId], references: [id])
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String           @db.ObjectId
   item      Item?            @relation(fields: [itemId], references: [id]) // Link notification to item
   itemId    String?          @db.ObjectId
@@ -175,5 +175,6 @@ enum AuditAction {
 
   // Admin Actions
   MANAGE_USER_ROLE
+  DELETE_USER
   // etc.
 }
