@@ -123,6 +123,7 @@ model Notification {
   type      NotificationType // Enum: ITEM_REPORTED, ITEM_CLAIMED, ITEM_UPDATED, ITEM_EXPIRING_SOON, etc.
   createdAt DateTime         @default(now())
   read      Boolean          @default(false)
+  updatedAt DateTime         @updatedAt
 
   @@index([userId, read, createdAt]) // Index for fetching user notifications efficiently
 }

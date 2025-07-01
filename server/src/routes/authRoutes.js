@@ -8,13 +8,13 @@ import {
     logoutUser,
 } from '../controllers/authController.js';
 import passport from '../helpers/passport.js';
-// Import the authentication and authorization middleware
-import { requireSignin} from '../helpers/authMiddleware.js';
+import { authLimiter, moderateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
-router.post('/register', registerUser);
-router.post('/login', loginUser);
+
+router.post('/register', authLimiter, registerUser);
+router.post('/login', authLimiter, loginUser);
 
 // Google and facebook Strategy routes
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
@@ -29,14 +29,14 @@ router.get('/facebook/callback', passport.authenticate('facebook', { failureRedi
 });
 
 
-router.get('/verify-email', verifyEmail); // We can also use POST here
+router.get('/verify-email', moderateLimiter, verifyEmail); // We can also use POST here
 
 
-router.post('/resend-verification', resendVerificationEmail);
+router.post('/resend-verification', moderateLimiter, resendVerificationEmail);
 
 // Password Reset Routes
-router.post('/forgot-password', forgotPassword); // Placeholder for forgot password controller
-router.post('/reset-password/:token', resetPassword); // Placeholder for reset password controller
+router.post('/forgot-password',  authLimiter, forgotPassword); // Placeholder for forgot password controller
+router.post('/reset-password/:token', authLimiter, resetPassword); // Placeholder for reset password controller
 
 router.post('/logout', logoutUser);
 

@@ -1,17 +1,7 @@
 import prisma from "../helpers/prisma.js";
 import { UserRole, AuditAction, Prisma, ItemStatus } from '@prisma/client';
-import { sendNotification } from '../services/notificationService.js'; // Assuming sendNotification is needed here
-// Import getImageUrl helper from itemController or move it to a shared helper file
-import { getImageUrl } from '../helpers/imageHelper.js'; //
-// import path from 'path';
-// import fs from 'fs'; 
-
-// Function to generate public URL for images (copied from itemController)
-// const getImageUrl = (filePath) => {
-//     if (!filePath) return null;
-//     const fileName = path.basename(filePath);
-//     return `${process.env.APP_BASE_URL || 'http://localhost:3000'}/api/images/${fileName}`;
-// };
+import { sendNotification } from '../services/notificationService.js'; 
+import { getImageUrl } from '../helpers/imageHelper.js'; 
 
 
 // --- Standard User: Get My Items ---
@@ -346,3 +336,219 @@ export const deleteUser = async (req, res) => {
         return res.status(500).json({ error: "Internal server error while deleting user." });
     }
 };
+
+
+// --- Standard User: Update Notification Preferences ---
+// Requires requireSignin middleware on the route
+export const updateNotificationPreferences = async (req, res) => {
+    // requireSignin middleware ensures req.user is populated
+    if (!req.user) {
+         return res.status(401).json({ error: "Authentication required." });
+    }
+
+    const userId = req.user.id;
+    // Extract preference fields from request body
+    const { emailNotificationsEnabled, inAppNotificationsEnabled, pushNotificationsEnabled } = req.body;
+
+    // Build update data, only including fields if they are explicitly provided in the body
+    // This allows users to update one preference without affecting others
+    const updateData = {};
+    if (emailNotificationsEnabled !== undefined && typeof emailNotificationsEnabled === 'boolean') {
+        updateData.emailNotificationsEnabled = emailNotificationsEnabled;
+    }
+    if (inAppNotificationsEnabled !== undefined && typeof inAppNotificationsEnabled === 'boolean') {
+        updateData.inAppNotificationsEnabled = inAppNotificationsEnabled;
+    }
+    if (pushNotificationsEnabled !== undefined && typeof pushNotificationsEnabled === 'boolean') {
+        updateData.pushNotificationsEnabled = pushNotificationsEnabled;
+    }
+
+    // If no valid preference fields were provided, return an error
+    if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "No valid notification preference fields provided for update. Expected boolean fields: emailNotificationsEnabled, inAppNotificationsEnabled, pushNotificationsEnabled." });
+    }
+
+    try {
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: updateData,
+            select: { // Return updated preferences
+                id: true,
+                emailNotificationsEnabled: true,
+                inAppNotificationsEnabled: true,
+                pushNotificationsEnabled: true,
+                updatedAt: true,
+            },
+        });
+
+         // Create Audit Log for updating notification preferences
+         try {
+             const changedFields = Object.keys(updateData).join(', ');
+             await prisma.auditLog.create({
+                 data: {
+                     userId: userId,
+                     action: AuditAction.UPDATE_NOTIFICATION_PREFS, // Use the enum value
+                     details: `Updated notification preferences for user ${userId}. Fields changed: ${changedFields}.`,
+                     ipAddress: req.ip,
+                     userAgent: req.headers['user-agent'],
+                 }
+             });
+         } catch (auditError) {
+             console.error("Failed to create audit log for update notification prefs:", auditError);
+         }
+
+
+        return res.status(200).json({
+            message: "Notification preferences updated successfully.",
+            preferences: updatedUser,
+        });
+
+    } catch (error) {
+        console.error(`Error updating notification preferences for user ${userId}:`, error);
+         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+             return res.status(404).json({ error: "Authenticated user not found." }); // Should not happen with requireSignin
+         }
+        return res.status(500).json({ error: "Internal server error while updating notification preferences." });
+    }
+};
+
+
+// --- Standard User: Get My Notifications ---
+// Requires requireSignin middleware on the route
+export const getUserNotifications = async (req, res) => {
+    // requireSignin middleware ensures req.user is populated
+    if (!req.user) {
+         return res.status(401).json({ error: "Authentication required." });
+    }
+
+    const userId = req.user.id;
+
+    try {
+        // Extract query parameters for pagination and filtering
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const skip = (page - 1) * limit;
+        const readFilter = req.query.read; // Optional filter: 'true', 'false', or undefined
+
+        const where = { userId: userId }; // Filter notifications for the logged-in user
+
+        // Apply read status filter if provided
+        if (readFilter !== undefined) {
+             if (readFilter === 'true') {
+                 where.read = true;
+             } else if (readFilter === 'false') {
+                 where.read = false;
+             } else {
+                 return res.status(400).json({ error: "Invalid 'read' filter value. Must be 'true' or 'false'." });
+             }
+        }
+
+        // Fetch notifications with pagination
+        const notifications = await prisma.notification.findMany({
+            where: where,
+             // Optionally include related item details if needed for display
+             include: {
+                 item: {
+                     select: { id: true, title: true, imageUrlFront: true } // Select minimal item info
+                 }
+             },
+            orderBy: {
+                createdAt: 'desc' // Newest notifications first
+            },
+            skip: skip,
+            take: limit,
+        });
+
+         // Count total notifications matching the criteria for pagination info
+         const totalNotifications = await prisma.notification.count({
+            where: where
+         });
+         const totalPages = Math.ceil(totalNotifications / limit);
+
+        // Format notifications (e.g., include public item image URL)
+         const formattedNotifications = notifications.map(notification => ({
+             ...notification,
+              // Add public image URL for related item if available
+              item: notification.item ? {
+                  ...notification.item,
+                  imageUrlFront: getImageUrl(notification.item.imageUrlFront) // Re-using getImageUrl from imageHelper
+              } : null,
+         }));
+
+
+        return res.status(200).json({
+            notifications: formattedNotifications,
+             pagination: {
+                 totalItems: totalNotifications,
+                 totalPages: totalPages,
+                 currentPage: page,
+                 itemsPerPage: limit,
+             },
+        });
+
+    } catch (error) {
+        console.error(`Error fetching notifications for user ${userId}:`, error);
+        return res.status(500).json({ error: "Internal server error while fetching notifications." });
+    }
+};
+
+
+// --- Standard User: Mark Notification As Read ---
+// Requires requireSignin middleware on the route
+export const markNotificationAsRead = async (req, res) => {
+     // requireSignin middleware ensures req.user is populated
+     if (!req.user) {
+         return res.status(401).json({ error: "Authentication required." });
+     }
+
+     const userId = req.user.id;
+     const { id } = req.params; // Notification ID from URL parameter
+
+     try {
+         // Find the notification and ensure it belongs to the current user
+         const notification = await prisma.notification.findUnique({
+             where: { id: id },
+             select: { id: true, userId: true, read: true } // Select id, userId, and read status
+         });
+
+         if (!notification) {
+             return res.status(404).json({ error: "Notification not found." });
+         }
+
+         // Authorization check: Ensure the notification belongs to the logged-in user
+         if (notification.userId !== userId) {
+             return res.status(403).json({ error: "Forbidden: You do not have permission to access this notification." });
+         }
+
+         // If already read, no need to update
+         if (notification.read) {
+             return res.status(200).json({ message: "Notification is already marked as read." });
+         }
+
+         // Mark the notification as read
+         const updatedNotification = await prisma.notification.update({
+             where: { id: id },
+             data: { read: true },
+             select: { id: true, read: true, updatedAt: true } // Return updated status
+         });
+
+          // Consider adding an Audit Log for this action if desired, though maybe less critical than item/user actions.
+          // await prisma.auditLog.create({ ... });
+
+         return res.status(200).json({
+             message: "Notification marked as read.",
+             notification: updatedNotification,
+         });
+
+     } catch (error) {
+         console.error(`Error marking notification ${id} as read for user ${userId}:`, error);
+          if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2025' || error.code === 'P2000')) {
+              return res.status(400).json({ error: "Invalid Notification ID format or notification not found." });
+          }
+         return res.status(500).json({ error: "Internal server error while marking notification as read." });
+     }
+};
+
+// TODO: Implement a batch update endpoint to mark multiple notifications as read (e.g., PUT /api/users/notifications/mark-read)
+// Request body could be { notificationIds: ['id1', 'id2', ...] } or { all: true }
+// Need to add a new route and controller function for this if required.

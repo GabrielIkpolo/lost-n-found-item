@@ -1,7 +1,7 @@
 import prisma from '../helpers/prisma.js';
 import path from 'path';
 import fs from 'fs';
-import { Prisma, ItemCategory, ItemLocation, ItemStatus, UserRole, NotificationType } from '@prisma/client';
+import { Prisma, ItemCategory, ItemLocation, ItemStatus, UserRole, NotificationType, AuditAction } from '@prisma/client';
 import { sendNotification } from '../services/notificationService.js';
 import { getImageUrl, deleteFile } from '../helpers/imageHelper.js';
 
@@ -12,7 +12,7 @@ export const createItem = async (req, res) => {
         // req.body contains text fields
         // req.files contains file information from multer
         const { title, description, category, location, status } = req.body;
-        const userId = req.user.id; // Assuming req.user is populated by requireSignin
+        const userId = req.user.id;
 
         // Validate required fields (basic check)
         if (!title || !description || !category || !location) {
@@ -44,8 +44,6 @@ export const createItem = async (req, res) => {
 
         // Determine the status based on reporting type (Lost/Found)
         // The frontend should ideally send `status` as 'LOST' or 'FOUND'
-        // You might enforce this based on the route or add validation here.
-        // For simplicity, let's assume the frontend sends a valid status.
         if (!validStatuses.includes(status)) {
             // Clean up uploaded files if validation fails
             if (req.files?.imageUrlFront?.[0]?.path) fs.unlinkSync(req.files.imageUrlFront[0].path);
@@ -53,13 +51,20 @@ export const createItem = async (req, res) => {
             return res.status(400).json({ error: `Invalid status: ${status}. Must be one of ${validStatuses.join(', ')}` });
         }
 
+        // Yet to test this terse validation logic
+        // if (!title || !description || !category || !location || !validCategories.includes(category) || !validLocations.includes(location) || !validStatuses.includes(status)) {
+        //     if (req.files?.imageUrlFront?.[0]?.path) fs.unlinkSync(req.files.imageUrlFront[0].path);
+        //     if (req.files?.imageUrlBack?.[0]?.path) fs.unlinkSync(req.files.imageUrlBack[0].path);
+        //     return res.status(400).json({ error: "Missing or invalid required fields." });
+        // }
+
         // Process uploaded files
         const imageUrlFrontPath = req.files?.imageUrlFront?.[0]?.path || null; // Use path saved by multer
         const imageUrlBackPath = req.files?.imageUrlBack?.[0]?.path || null;
 
         // Calculate expiry date for FOUND items
         let expiresAt = null;
-        if (status === 'FOUND') {
+        if (status === ItemStatus.FOUND) {
             // Example: Expires 90 days from creation
             expiresAt = new Date();
             expiresAt.setDate(expiresAt.getDate() + 90); // 90 days from now
@@ -79,17 +84,59 @@ export const createItem = async (req, res) => {
                 expiresAt: expiresAt, // Set expiry for found items
                 // claimedById will be null initially
             },
+            // Select reporter for potential notification trigger
+            select: {
+                id: true, title: true, description: true, category: true, location: true, status: true,
+                imageUrlFront: true, imageUrlBack: true, createdAt: true, updatedAt: true, expiresAt: true,
+                reportedBy: { select: { id: true, name: true } }
+            }
         });
+
+        // Create Audit Log for CREATE_ITEM action
+        try {
+            await prisma.auditLog.create({
+                data: {
+                    userId: userId,
+                    itemId: newItem.id,
+                    action: AuditAction.CREATE_ITEM, // Use the enum value
+                    details: `Item "${newItem.title}" reported by user ${userId} with status ${newItem.status}.`,
+                    ipAddress: req.ip,
+                    userAgent: req.headers['user-agent'],
+                }
+            });
+        } catch (auditError) {
+            console.error("Failed to create audit log for create item:", auditError);
+        }
+
+
+        // --- Implement Notification for new item (e.g., notify admins?) ---
+        // Option 1: Notify Admins about a new item
+        // This would require fetching admins and looping through them, or having a system notification mechanism.
+        // Let's add a simple console log placeholder for now and note that actual admin notification needs implementation.
+        console.log(`Notification Idea: Notify admins about new item ${newItem.id} - "${newItem.title}"`);
+        // Example if you had a way to get admin IDs:
+        // const adminUsers = await prisma.user.findMany({ where: { OR: [{ role: UserRole.ADMIN }, { role: UserRole.SUPER_ADMIN }] } });
+        // for (const adminUser of adminUsers) {
+        //      await sendNotification({
+        //          userId: adminUser.id,
+        //          itemId: newItem.id,
+        //          type: NotificationType.ITEM_REPORTED, // Assuming you add this type
+        //          message: `A new item ("${newItem.title}", Status: ${newItem.status}) has been reported.`,
+        //          pushTitle: 'New Item Reported',
+        //          data: { itemId: newItem.id, status: newItem.status }
+        //      });
+        // }
+
 
         // Optionally, return the public URLs in the response
         const responseItem = {
             ...newItem,
             imageUrlFront: getImageUrl(newItem.imageUrlFront),
             imageUrlBack: getImageUrl(newItem.imageUrlBack),
+            // Ensure reportedBy is not null before selecting
+            reportedBy: newItem.reportedBy ? { id: newItem.reportedBy.id, name: newItem.reportedBy.name } : null,
         };
 
-        // TODO: Implement Audit Log for CREATE_ITEM action
-        // TODO: Implement Notification for new item (e.g., notify admins?)
 
         return res.status(201).json({
             message: "Item reported successfully",
@@ -375,7 +422,6 @@ export const getItemDetails = async (req, res) => {
 export const updateItem = async (req, res) => {
     // Ensure req.user is available from requireSignin middleware
     if (!req.user) {
-        // This should not happen if requireSignin is used on the route
         return res.status(401).json({ error: "Authentication required." });
     }
 
@@ -385,12 +431,7 @@ export const updateItem = async (req, res) => {
         const { id } = req.params;
         // Extract fields to update from body. Use object destructuring carefully
         // Only include fields you INTEND to allow updating
-        const {
-            title,
-            description,
-            category,
-            location,
-            status,
+        const { title, description, category, location, status,
             // Flags to explicitly remove images
             removeImageUrlFront, // Should be 'true' or 'false' string from form-data
             removeImageUrlBack   // Should be 'true' or 'false' string from form-data
@@ -414,7 +455,7 @@ export const updateItem = async (req, res) => {
             where: { id: id },
             select: {
                 id: true,
-                reportedById: true,
+                reportedById: true, title: true, claimedById: true,
                 imageUrlFront: true, // Get current image paths
                 imageUrlBack: true,   // Get current image paths
                 status: true, // Need current status for expiry logic
@@ -442,14 +483,54 @@ export const updateItem = async (req, res) => {
             return res.status(403).json({ error: "Forbidden: You do not have permission to update this item." });
         }
 
-        // Optional: Add more granular permissions (e.g., Owners can only update status, Admins can update anything)
-        // For now, assuming owner/admin can update allowed fields.
 
         // 3. Prepare update data object and handle image paths
         const updateData = {};
         const filesToDelete = []; // Array to store paths of old files to delete AFTER db update
 
-        // Add fields from body to updateData if they are provided (not undefined)
+        //==============================Play==========================
+
+        // Status change logic (refined for notifications)
+        const oldStatus = existingItem.status;
+        let newStatus = oldStatus; // Default new status to old status
+        if (status !== undefined) {
+            if (Object.values(ItemStatus).includes(status)) {
+                newStatus = status; // Update new status if provided and valid
+                updateData.status = newStatus;
+
+                // Recalculate expiresAt if status changes to FOUND
+                if (newStatus === ItemStatus.FOUND && oldStatus !== ItemStatus.FOUND) {
+                    updateData.expiresAt = new Date();
+                    updateData.expiresAt.setDate(updateData.expiresAt.getDate() + 90);
+                }
+                // If status changes FROM FOUND to something else, clear expiresAt
+                if (oldStatus === ItemStatus.FOUND && newStatus !== ItemStatus.FOUND) {
+                    updateData.expiresAt = null;
+                }
+
+                // Handle claimedBy update if status changes to CLAIMED - primarily via /claim/:id route
+                // If an admin *forces* status to CLAIMED via update without specifying claimedById
+                // (which isn't allowed in the current updateData structure anyway), claimedById wouldn't change.
+                // If status changes FROM CLAIMED, maybe clear claimedBy?
+                if (oldStatus === ItemStatus.CLAIMED && newStatus !== ItemStatus.CLAIMED) {
+                    // This depends on your desired workflow. E.g., if RETURNED items *should* still show who claimed them, don't clear.
+                    // If clearing unclaimed items, this might happen in archive.
+                    // Let's leave claimedBy as is on status change from CLAIMED for now.
+                }
+
+
+            } else {
+                // Clean up newly uploaded files before returning error
+                if (newFiles?.imageUrlFront?.[0]?.path) deleteFile(newFiles.imageUrlFront[0].path);
+                if (newFiles?.imageUrlBack?.[0]?.path) deleteFile(newFiles.imageUrlBack[0].path);
+                return res.status(400).json({ error: `Invalid status: ${status}. Must be one of ${Object.values(Prisma.ItemStatus).join(', ')}` });
+            }
+        }
+
+        //===========================End Play============================
+
+
+        // Add other fields if provided after status check
         if (title !== undefined) updateData.title = title;
         if (description !== undefined) updateData.description = description;
 
@@ -533,8 +614,6 @@ export const updateItem = async (req, res) => {
             updateData.imageUrlBack = null;
         }
         // Note: If neither a new file is uploaded nor remove flag is true, the existing imageUrlBack remains untouched.
-
-
         // If no fields are provided for update, return a 400 or 200 with a message
         if (Object.keys(updateData).length === 0) {
             // Clean up newly uploaded files if no update data was valid
@@ -572,6 +651,149 @@ export const updateItem = async (req, res) => {
         // 5. Delete old files AFTER successful database update
         filesToDelete.forEach(filePath => deleteFile(filePath));
 
+
+        // To Review Start ============START=====================
+
+        // Create Audit Log for UPDATE_ITEM action
+        try {
+            const changedFields = Object.keys(updateData).filter(key => key !== 'updatedAt');
+            if (changedFields.length > 0) { // Only log if actual fields were updated (excluding status change handled below)
+                await prisma.auditLog.create({
+                    data: {
+                        userId: userId,
+                        itemId: updatedItem.id,
+                        action: AuditAction.UPDATE_ITEM, // Using the enum value
+                        details: `Item "${updatedItem.title}" updated by user ${userId}. Fields changed: ${changedFields.join(', ')}.`,
+                        ipAddress: req.ip,
+                        userAgent: req.headers['user-agent'],
+                    }
+                });
+            }
+
+            // Add a separate audit log for status change if it occurred
+            if (oldStatus !== newStatus) {
+                try {
+                    await prisma.auditLog.create({
+                        data: {
+                            userId: userId,
+                            itemId: updatedItem.id,
+                            action: AuditAction.UPDATE_ITEM_STATUS, // Using the enum value
+                            details: `Item "${updatedItem.title}" status changed from ${oldStatus} to ${newStatus} by user ${userId}.`,
+                            ipAddress: req.ip,
+                            userAgent: req.headers['user-agent'],
+                        }
+                    });
+                } catch (statusAuditError) {
+                    console.error("Failed to create status update audit log:", statusAuditError);
+                }
+            }
+        } catch (auditError) {
+            console.error("Failed to create general update item audit log:", auditError);
+        }
+
+
+        // --- Implement Notification for item status update ---
+        // Notify relevant parties if status changes
+        if (oldStatus !== newStatus) {
+            // Notify reporter if status changes to RETURNED (regardless of original status)
+            if (newStatus === ItemStatus.RETURNED && updatedItem.reportedBy) {
+                try {
+                    const message = oldStatus === ItemStatus.LOST
+                        ? `Your lost item "${updatedItem.title}" has been found and marked as RETURNED.` // If it was LOST and now RETURNED
+                        : `Your reported item "${updatedItem.title}" has been marked as RETURNED.`; // If it was FOUND/CLAIMED and now RETURNED
+
+                    // Send notification to the original reporter
+                    await sendNotification({
+                        userId: updatedItem.reportedBy.id,
+                        itemId: updatedItem.id,
+                        type: NotificationType.ITEM_UPDATED, // ITEM_UPDATED seems appropriate for status changes
+                        message: message,
+                        pushTitle: `Item Returned: "${updatedItem.title}"`,
+                        data: { itemId: updatedItem.id, status: updatedItem.status }
+                    });
+                    console.log(`Notification sent to reporter ${updatedItem.reportedBy.id} for item ${updatedItem.id} status RETURNED.`);
+
+                } catch (notificationError) {
+                    console.error("Failed to trigger notification for item status RETURNED to reporter:", notificationError);
+                }
+            }
+            // Notify claimant if status changes to RETURNED (if item was CLAIMED)
+            // Note: This assumes claimedBy is still linked, which it should be unless manually cleared.
+            if (newStatus === ItemStatus.RETURNED && oldStatus === ItemStatus.CLAIMED && updatedItem.claimedBy) {
+                try {
+                    const message = `The item "${updatedItem.title}" you claimed has now been marked as RETURNED.`;
+                    // Send notification to the claimant
+                    await sendNotification({
+                        userId: updatedItem.claimedBy.id,
+                        itemId: updatedItem.id,
+                        type: NotificationType.ITEM_UPDATED, // Or a specific type like ITEM_RETURN_CONFIRMED
+                        message: message,
+                        pushTitle: `Item Returned: "${updatedItem.title}"`,
+                        data: { itemId: updatedItem.id, status: updatedItem.status }
+                    });
+                    console.log(`Notification sent to claimant ${updatedItem.claimedBy.id} for item ${updatedItem.id} status RETURNED.`);
+
+                } catch (notificationError) {
+                    console.error("Failed to trigger notification for item status RETURNED to claimant:", notificationError);
+                }
+            }
+            // Add notifications for other status changes if needed (e.g., LOST to FOUND, FOUND to LOST, CLAIMED to LOST/FOUND/ARCHIVED by admin override)
+            if (newStatus === ItemStatus.FOUND && oldStatus === ItemStatus.LOST && updatedItem.reportedBy) {
+                try {
+                    const message = `Your lost item "${updatedItem.title}" has been marked as FOUND. Check the app for details.`;
+                    await sendNotification({
+                        userId: updatedItem.reportedBy.id,
+                        itemId: updatedItem.id,
+                        type: NotificationType.ITEM_UPDATED, // Or ITEM_FOUND_UPDATE
+                        message: message,
+                        pushTitle: `Item Status Update: Found`,
+                        data: { itemId: updatedItem.id, status: updatedItem.status }
+                    });
+                    console.log(`Notification sent to reporter ${updatedItem.reportedBy.id} for item ${updatedItem.id} status FOUND.`);
+                } catch (notificationError) {
+                    console.error("Failed to trigger notification for item status FOUND to reporter:", notificationError);
+                }
+            }
+            // Notify the reporter if their FOUND item is ARCHIVED (by admin or automated task)
+            if (newStatus === ItemStatus.ARCHIVED && updatedItem.reportedBy) {
+                try {
+                    const message = `Your reported item "${updatedItem.title}" has been archived as it was unclaimed.`;
+                    await sendNotification({
+                        userId: updatedItem.reportedBy.id,
+                        itemId: updatedItem.id,
+                        type: NotificationType.ITEM_UPDATED, // Or ITEM_ARCHIVED
+                        message: message,
+                        pushTitle: `Item Archived: "${updatedItem.title}"`,
+                        data: { itemId: updatedItem.id, status: updatedItem.status }
+                    });
+                    console.log(`Notification sent to reporter ${updatedItem.reportedBy.id} for item ${updatedItem.id} status ARCHIVED.`);
+                } catch (notificationError) {
+                    console.error("Failed to trigger notification for item status ARCHIVED to reporter:", notificationError);
+                }
+            }
+            // You might also want to notify the reporter if their FOUND item is updated by an admin (e.g., description refined, image added/removed)
+            // if (isOwner && oldStatus === newStatus && changedFields.length > 0 && updatedItem.reportedBy) {
+            //      try {
+            //           const message = `Your reported item "${updatedItem.title}" has been updated.`;
+            //            await sendNotification({
+            //                userId: updatedItem.reportedBy.id,
+            //                itemId: updatedItem.id,
+            //                type: NotificationType.ITEM_UPDATED, // Or ITEM_DETAILS_UPDATED
+            //                message: message,
+            //                pushTitle: `Item Updated: "${updatedItem.title}"`,
+            //                data: { itemId: updatedItem.id }
+            //            });
+            //           console.log(`Notification sent to reporter ${updatedItem.reportedBy.id} for item ${updatedItem.id} details update.`);
+            //      } catch (notificationError) {
+            //           console.error("Failed to trigger notification for item details update to reporter:", notificationError);
+            //      }
+            // }
+
+        }
+
+        // To Review ============END==================================
+
+
         // 6. Format response with public image URLs and potentially censor user info
         const responseItem = {
             ...updatedItem,
@@ -593,15 +815,12 @@ export const updateItem = async (req, res) => {
         //     data: {
         //         userId: userId,
         //         itemId: updatedItem.id,
-        //         action: 'UPDATE_ITEM', // Or UPDATE_ITEM_STATUS if only status changed
+        //         action: AuditAction.UPDATE_ITEM, // Or UPDATE_ITEM_STATUS if only status changed
         //         details: `Updated item "${updatedItem.title}". Fields changed: ${Object.keys(updateData).join(', ')}. Updated by User ${userId}.`,
         //         ipAddress: req.ip, // Get IP from request
         //         userAgent: req.headers['user-agent'], // Get user agent from headers
         //     }
         // });
-
-        // TODO: Implement Notification for item update (e.g., notify claimant if status becomes RETURNED)
-
 
         res.status(200).json({
             message: "Item updated successfully",
@@ -874,42 +1093,42 @@ export const getItems = async (req, res) => {
 
         const skip = (page - 1) * limit;
 
-        const whereConditions = [ ];// Array to build up conditions
+        const whereConditions = [];// Array to build up conditions
 
         // --- Status Filtering Logic ---
         if (statusFilter) {
-             if (Object.values(ItemStatus).includes(statusFilter)) {
-                 whereConditions.push({ status: statusFilter }); // Add valid status filter
-             } else if (isAdminUser && statusFilter === 'ALL') {
-                 // Admin requested ALL statuses - do not add a status filter to whereConditions
-             } else {
-                 // Invalid status provided for a non-admin or status is not 'ALL' for an admin
-                 return res.status(400).json({ error: `Invalid status filter: ${statusFilter}. Must be one of ${Object.values(ItemStatus).join(', ')}${isAdminUser ? " or 'ALL' (for admins)." : ""}.` });
-             }
+            if (Object.values(ItemStatus).includes(statusFilter)) {
+                whereConditions.push({ status: statusFilter }); // Add valid status filter
+            } else if (isAdminUser && statusFilter === 'ALL') {
+                // Admin requested ALL statuses - do not add a status filter to whereConditions
+            } else {
+                // Invalid status provided for a non-admin or status is not 'ALL' for an admin
+                return res.status(400).json({ error: `Invalid status filter: ${statusFilter}. Must be one of ${Object.values(ItemStatus).join(', ')}${isAdminUser ? " or 'ALL' (for admins)." : ""}.` });
+            }
         } else {
-             // No status filter provided in the query
-             // Default behavior: Only show 'FOUND' items (for public or if admin doesn't specify)
-             whereConditions.push({ status: ItemStatus.FOUND });
+            // No status filter provided in the query
+            // Default behavior: Only show 'FOUND' items (for public or if admin doesn't specify)
+            whereConditions.push({ status: ItemStatus.FOUND });
         }
 
 
         // --- Category Filtering ---
         if (category) {
-             if (Object.values(ItemCategory).includes(category)) {
-                  whereConditions.push({ category: category }); // Add valid category filter
-             } else {
-                  return res.status(400).json({ error: `Invalid category filter: ${category}. Must be one of ${Object.values(ItemCategory).join(', ')}` });
-             }
+            if (Object.values(ItemCategory).includes(category)) {
+                whereConditions.push({ category: category }); // Add valid category filter
+            } else {
+                return res.status(400).json({ error: `Invalid category filter: ${category}. Must be one of ${Object.values(ItemCategory).join(', ')}` });
+            }
         }
 
 
         // --- Location Filtering ---
         if (location) {
-             if (Object.values(ItemLocation).includes(location)) {
-                  whereConditions.push({ location: location }); // Add valid location filter
-             } else {
-                  return res.status(400).json({ error: `Invalid location filter: ${location}. Must be one of ${Object.values(ItemLocation).join(', ')}` });
-             }
+            if (Object.values(ItemLocation).includes(location)) {
+                whereConditions.push({ location: location }); // Add valid location filter
+            } else {
+                return res.status(400).json({ error: `Invalid location filter: ${location}. Must be one of ${Object.values(ItemLocation).join(', ')}` });
+            }
         }
 
 
@@ -967,9 +1186,9 @@ export const getItems = async (req, res) => {
             imageUrlFront: getImageUrl(item.imageUrlFront),
             imageUrlBack: getImageUrl(item.imageUrlBack),
             // Ensure reportedBy is not null before spreading/selecting
-             reportedBy: item.reportedBy ? { id: item.reportedBy.id, name: item.reportedBy.name } : null,
-             // Add claimedBy similarly if selected above
-             // claimedBy: item.claimedBy ? { id: item.claimedBy.id, name: item.claimedBy.name } : null,
+            reportedBy: item.reportedBy ? { id: item.reportedBy.id, name: item.reportedBy.name } : null,
+            // Add claimedBy similarly if selected above
+            // claimedBy: item.claimedBy ? { id: item.claimedBy.id, name: item.claimedBy.name } : null,
         }));
 
 
@@ -989,13 +1208,13 @@ export const getItems = async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching items:", error);
-         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-             // Add checks for specific Prisma error codes related to invalid input
-             if (error.code === 'P2011' || error.code === 'P2000') { // P2011: Invalid enum value, P2000: Input data too large/invalid
-                  return res.status(400).json({ error: "Invalid filter or search value provided." });
-             }
-             // You could add more specific error handling for other Prisma errors here
-         }
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            // Add checks for specific Prisma error codes related to invalid input
+            if (error.code === 'P2011' || error.code === 'P2000') { // P2011: Invalid enum value, P2000: Input data too large/invalid
+                return res.status(400).json({ error: "Invalid filter or search value provided." });
+            }
+            // You could add more specific error handling for other Prisma errors here
+        }
         return res.status(500).json({ error: "Internal server error while fetching items." });
     }
 };
