@@ -33,6 +33,10 @@ model User {
   passwordResetToken   String? // Token for password reset link
   passwordResetExpires DateTime? // Expiry time for the reset token
 
+  // Refresh Token Fields (for rotation)
+  refreshToken        String? // Store hashed refresh token
+  refreshTokenExpires DateTime? // Store expiry of the refresh token
+
   // Relations
   items         Item[]         @relation("UserItems") // Items reported by this user
   claimedItems  Item[]         @relation("ClaimedItems") // Items claimed by this user

@@ -83,7 +83,7 @@ const optionalSignin = async (req, res, next) => {
             });
 
             if (!user) {
-                 console.warn(`Optional signin: User with ID ${decoded.userId} not found from token.`);
+                console.warn(`Optional signin: User with ID ${decoded.userId} not found from token.`);
                 req.user = null; // User not found, proceed with req.user = null
                 return next();
             }
@@ -93,7 +93,7 @@ const optionalSignin = async (req, res, next) => {
         });
     } catch (error) {
         console.error("Error in optionalSignin middleware: ", error);
-         // Even on unexpected errors, proceed gracefully with req.user = null
+        // Even on unexpected errors, proceed gracefully with req.user = null
         req.user = null;
         next();
     }
@@ -138,4 +138,4 @@ const isSuperAdmin = async (req, res, next) => {
     }
 }
 
-export { requireSignin, isAdmin, isSuperAdmin,  optionalSignin  }
+export { requireSignin, isAdmin, isSuperAdmin, optionalSignin }

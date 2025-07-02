@@ -6,8 +6,10 @@ import {
     forgotPassword,
     resetPassword,
     logoutUser,
+    refreshAccessToken
 } from '../controllers/authController.js';
 import passport from '../helpers/passport.js';
+import { requireSignin } from '../helpers/authMiddleware.js';
 import { authLimiter, moderateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
@@ -46,6 +48,13 @@ router.post('/logout', logoutUser);
 // Forgot password: http://localhost:3000/api/auth/forgot-password
 
 // http://localhost:3000/api/auth/reset-password/4472665565a6a04a465f9c83e935fbeb195ab01b91cfc88e52ce85d47aceef8d
+
+
+
+// New Route to Refresh Access Token using Refresh Token from cookie
+// Endpoint: POST /api/auth/refresh-token
+// Does NOT need requireSignin middleware, it validates the cookie token itself
+// router.post('/refresh-token', refreshAccessToken);
 
 
 export default router;
