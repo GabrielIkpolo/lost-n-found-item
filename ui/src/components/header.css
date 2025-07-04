@@ -56,6 +56,7 @@ body {
   color: whitesmoke;
   font-weight: bold;
   transition: color 0.3s ease;
+   border-radius: 4px; 
 }
 
 .nav-link:hover {
@@ -76,6 +77,32 @@ body {
   cursor: pointer;
   margin-left: auto;
 }
+
+
+/* Style for the logout button to look like a link */
+.nav-link.logout-button {
+    /* Reset button default styles */
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.0rem; 
+    margin: 0 0.0rem; 
+    font: inherit; /* Inherit font styles from parent */
+    text-align: inherit; /* Inherit text alignment */
+    outline: none; /*Remove outline on focus if you prefer */
+    /* Apply link-like styles */
+    text-decoration: none; /* Already set on .nav-link, but good practice */
+    color: whitesmoke; /* Match .nav-link color */
+    font-weight: bold; /* Match .nav-link font-weight */
+    transition: color 0.3s ease; /* Match .nav-link transition */
+    border-radius: 4px; 
+}
+
+.nav-link.logout-button:hover {
+    color: var(--yellowish-color); /* Match .nav-link hover color */
+    text-decoration: underline; /* Optional: add underline on hover */
+}
+
 
 /* Responsive Design for Mobile (max-width: 768px) */
 @media (max-width: 768px) {
