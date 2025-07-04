@@ -6,6 +6,8 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import ErrorPage from './pages/ErrorPage';
 import Login from './components/Login';
+// Import the NotificationContainer component
+import NotificationContainer from './components/NotificationContainer';
 
 const Wrapper = ({ children }) => {
   return (
@@ -23,6 +25,7 @@ const HeadAndFooter = () => {
         <Outlet />
       </Wrapper>
       <Footer />
+      <NotificationContainer />
     </>
   );
 }
