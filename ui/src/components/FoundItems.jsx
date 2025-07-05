@@ -1,60 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './foundItems.css'; // Import the custom CSS file
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchItems } from '../features/items/itemsSlice';
+import { addNotification, NotificationType } from '../features/notifications/notificationsSlice';
+import './foundItems.css';
 import itemImage from '../assets/images/logo-1.png';
-
-// Mock data for demonstration purposes
-const mockItems = [
-  {
-    id: '1',
-    name: 'Laptop',
-    category: 'ELECTRONICS_GADGETS',
-    image: itemImage,
-    status: 'UNCLAIMED',
-    description: 'A black Dell laptop with a sticker on the back.',
-  },
-  {
-    id: '2',
-    name: 'Wallet',
-    category: 'PERSONAL_ACCESSORIES',
-    image: 'https://via.placeholder.com/150',
-    status: 'UNCLAIMED',
-    description: 'A brown leather wallet with a keychain attached.',
-  },
-  {
-    id: '3',
-    name: 'Long Note',
-    category: 'ACADEMIC_SUPPLIES',
-    image: 'https://via.placeholder.com/150',
-    status: 'UNCLAIMED',
-    description: 'My long brown note.',
-  },
-  {
-    id: '4',
-    name: 'Bag',
-    category: 'CLOTHING',
-    image: 'https://via.placeholder.com/150',
-    status: 'UNCLAIMED',
-    description: 'A beautiful brown bag.',
-  },
-  {
-    id: '5',
-    name: 'Eye Glasses',
-    category: 'HEALTH_WELLNESS',
-    image: 'https://via.placeholder.com/150',
-    status: 'UNCLAIMED',
-    description: 'An eye glass with a black frame.',
-  },
-  {
-    id: '6',
-    name: 'Water Bottle',
-    category: 'OTHER',
-    image: 'https://via.placeholder.com/150',
-    status: 'UNCLAIMED',
-    description: 'A water bottle.',
-  },
-  // Add more mock items as needed
-];
+import { Link } from 'react-router-dom';
 
 // Sidebar Categories (mapped to ItemCategory enum)
 const categories = [
@@ -67,51 +18,93 @@ const categories = [
 ];
 
 const FoundItems = () => {
-  const [items, setItems] = useState(mockItems); // State to hold lost items
-  const [searchTerm, setSearchTerm] = useState(''); // State for search term
-  const [selectedCategory, setSelectedCategory] = useState(null); // State for selected category
-  const [currentPage, setCurrentPage] = useState(1); // State for current page
-  const [itemsPerPage] = useState(5); // Number of items per page
+  const dispatch = useDispatch();
+  const { items, pagination, isLoading, error } = useSelector((state) => state.items);
+
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-  // Calculate total pages
-  const totalPages = Math.ceil(items.length / itemsPerPage);
+  // --- EFFECT 1: Debounce the search input ---
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      console.log('Debouncing complete, setting search term to:', searchInput);
+      setDebouncedSearchTerm(searchInput);
+    }, 500); // 500ms debounce delay
 
-  // Get items for the current page
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = items.slice(indexOfFirstItem, indexOfLastItem);
+    return () => {
+      clearTimeout(handler);
+      console.log('Debounce timer cleared.');
+    };
+  }, [searchInput]);
 
-  // Handle category selection
-  const handleCategorySelect = (category) => {
-    setSelectedCategory(category);
-    // Filter items based on category
-    if (category) {
-      setItems(mockItems.filter((item) => item.category === category));
-    } else {
-      setItems(mockItems); // Reset to all items
+  // --- EFFECT 2: Fetch items based on filters and debounced search term ---
+  useEffect(() => {
+    console.log(`Fetching items with params: Page: ${pagination.currentPage}, Category: ${selectedCategory}, Search: "${debouncedSearchTerm}"`);
+    dispatch(fetchItems({
+      page: pagination.currentPage,
+      limit: pagination.itemsPerPage,
+      category: selectedCategory,
+      search: debouncedSearchTerm,
+            status: 'FOUND',
+        }));
+  }, [dispatch, pagination.currentPage, pagination.itemsPerPage, selectedCategory, debouncedSearchTerm]);
+
+
+  // --- SHOW ERROR NOTIFICATION ---
+  useEffect(() => {
+      if (error) {
+          dispatch(addNotification({
+              message: `Error fetching items: ${error}`,
+              type: NotificationType.ERROR,
+              duration: 5000,
+          }));
+      }
+  }, [error, dispatch]);
+
+
+  const handleCategorySelect = (categoryValue) => {
+    if (selectedCategory !== categoryValue) {
+       setSelectedCategory(categoryValue);
+        console.log(`Category changed to ${categoryValue}, fetching page 1.`);
+        dispatch(fetchItems({
+            page: 1, // Reset to page 1
+            limit: pagination.itemsPerPage,
+            category: categoryValue,
+            search: debouncedSearchTerm,
+            status: 'FOUND',
+        }));
     }
   };
 
-  // Handle search input
   const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
-    // Filter items based on search term
-    const filteredItems = mockItems.filter((item) =>
-      item.name.toLowerCase().includes(event.target.value.toLowerCase())
-    );
-    setItems(filteredItems);
+    const newSearchTerm = event.target.value;
+    setSearchInput(newSearchTerm);
+    console.log('Search input changed, resetting to page 1.');
+    // We dispatch fetchItems here to reset pagination immediately when typing starts
+    // The debounced effect will trigger the actual search API call after the pause
+    dispatch(fetchItems({
+        page: 1, // Reset to page 1
+        limit: pagination.itemsPerPage,
+        category: selectedCategory,
+        search: newSearchTerm, // Use the immediate newSearchTerm here for the page=1 dispatch
+        status: 'FOUND',
+    }));
   };
 
-  // Handle pagination
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
-
-  // Fetch real data from API (mocked here)
-  useEffect(() => {
-    // Replace with actual API call
-    // axios.get('/api/lost-items').then((response) => setItems(response.data));
-    setItems(mockItems);
-  }, []);
+  const paginate = (pageNumber) => {
+    if (pageNumber !== pagination.currentPage) {
+      console.log(`Paginating to page ${pageNumber}`);
+      dispatch(fetchItems({
+        page: pageNumber,
+        limit: pagination.itemsPerPage,
+        category: selectedCategory,
+        search: debouncedSearchTerm,
+        status: 'FOUND',
+      }));
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -121,10 +114,14 @@ const FoundItems = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const itemsToDisplay = items;
+  const { totalPages, currentPage } = pagination;
+
+
   return (
     <div className="main-cover">
-      {/* Sidebar */}
-      {isMobile ? (
+      {/* ... Sidebar JSX ... */}
+       {isMobile ? (
         <div className="mobile-sidebar">
           <h2>Search by Category</h2>
           <ul>
@@ -139,7 +136,7 @@ const FoundItems = () => {
             ))}
           </ul>
           <button className="btn-foundItems" onClick={() => handleCategorySelect(null)}>
-            Found Items
+            All Found Items
           </button>
         </div>
       ) : (
@@ -157,200 +154,85 @@ const FoundItems = () => {
             ))}
           </ul>
           <button className="btn-foundItems" onClick={() => handleCategorySelect(null)}>
-            Found Items
+            All Found Items
           </button>
         </aside>
       )}
 
+
       {/* Main Content */}
       <main className="main-content">
         <h1 className="headerOne">
-          Lost items within the University Campus
+          Found items within the University Campus
         </h1>
 
         {/* Search Bar */}
         <div className="search-bar">
           <input
             type="text"
-            placeholder="Search by Name"
-            value={searchTerm}
-            onChange={handleSearchChange}
+            placeholder="Search by Name or Description"
+            value={searchInput} // Bind to searchInput
+            onChange={handleSearchChange} // Update searchInput
             className="input-search"
           />
         </div>
 
-        {/* Item List */}
-        <div className="item-list">
-          {currentItems.map((item) => (
-            <div key={item.id} className="item-card">
-              <h2>{item.name}</h2>
-              <img src={item.image} alt={item.name} className="item-image" />
-              <p>
-                <strong>Status:</strong> {item.status}
-              </p>
-              <p>{item.description}</p>
-            </div>
-          ))}
-        </div>
+        {/* --- LOADING, ERROR, AND ITEM LIST RENDERING --- */}
+        {isLoading && <p style={{ textAlign: 'center' }}>Loading items...</p>}
+        {!isLoading && itemsToDisplay.length === 0 && !error && (
+            <p style={{ textAlign: 'center' }}>No items found matching your criteria.</p>
+        )}
 
-        {/* Pagination */}
-        <div className="pagination">
-          <nav aria-label="Pagination">
-            <ul>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <li key={page}>
-                  <button
-                    onClick={() => paginate(page)}
-                    className={currentPage === page ? 'active' : ''}
-                  >
-                    {page}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
+        {!isLoading && !error && itemsToDisplay.length > 0 && (
+            <div className="item-list">
+                {itemsToDisplay.map((item) => (
+                <div key={item.id} className="item-card">
+                    <h2>{item.title}</h2>
+                    <img
+                       src={item.imageUrlFront || itemImage}
+                       alt={item.title}
+                       className="item-image"
+                    />
+                    <p>
+                    <strong>Status:</strong> {item.status}
+                    </p>
+                    <p>{item.description}</p>
+                    <p><strong>Category:</strong> {item.category}</p>
+                    <p><strong>Location:</strong> {item.location}</p>
+                    {/* Make the button a Link */}
+                    <Link to={`/items/${item.id}`} className="btn-details">
+                        View Details
+                    </Link>
+                </div>
+                ))}
+            </div>
+         )}
+        {/* --------------------------------------------- */}
+
+
+        {/* Pagination - Only show if there are items and more than one page */}
+        {!isLoading && !error && totalPages > 1 && (
+            <div className="pagination">
+                <nav aria-label="Pagination">
+                    <ul>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <li key={page}>
+                        <button
+                            onClick={() => paginate(page)}
+                            className={currentPage === page ? 'active' : ''}
+                            disabled={isLoading}
+                        >
+                            {page}
+                        </button>
+                        </li>
+                    ))}
+                    </ul>
+                </nav>
+            </div>
+        )}
       </main>
     </div>
   );
 };
-
-
-// const FoundItems = () => {
-//   const [items, setItems] = useState(mockItems);
-//   const [searchTerm, setSearchTerm] = useState('');
-//   const [selectedCategory, setSelectedCategory] = useState(null);
-//   const [currentPage, setCurrentPage] = useState(1);
-//   const [itemsPerPage] = useState(5);
-//   const [isMobile, setIsMobile] = useState();
-
-//   const totalPages = Math.ceil(items.length / itemsPerPage);
-//   const indexOfLastItem = currentPage * itemsPerPage;
-//   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-//   const currentItems = items.slice(indexOfFirstItem, indexOfLastItem);
-
-//   const handleCategorySelect = (category) => {
-//     console.log("Selected Category:", category);
-//     setSelectedCategory(category);
-//     if (category) {
-//       const filteredItems = mockItems.filter((item) => item.category === category);
-//       console.log("Filtered Items:", filteredItems);
-//       setItems(filteredItems);
-//     } else {
-//       console.log("Resetting to all items");
-//       setItems(mockItems);
-//     }
-//   };
-
-//   const handleSearchChange = (event) => {
-//     setSearchTerm(event.target.value);
-//     const filteredItems = mockItems.filter((item) =>
-//       item.name.toLowerCase().includes(event.target.value.toLowerCase())
-//     );
-//     setItems(filteredItems);
-//   };
-
-//   const paginate = (pageNumber) => setCurrentPage(pageNumber);
-
-//   useEffect(() => {
-//     setItems(mockItems);
-//   }, []);
-
-//   useEffect(() => {
-//     const handleResize = () => {
-//       setIsMobile(window.innerWidth <= 768);
-//     };
-//     window.addEventListener('resize', handleResize);
-//     return () => window.removeEventListener('resize', handleResize);
-//   }, []);
-
-//   return (
-//     <div className="main-cover">
-//       {isMobile ? (
-//         <div className="mobile-sidebar">
-//           <h2>Search by Category</h2>
-//           <ul>
-//             {categories.map((category) => (
-//               <li
-//                 key={category.value}
-//                 className={selectedCategory === category.value ? 'active' : ''}
-//                 onClick={() => handleCategorySelect(category.value)}
-//               >
-//                 {category.label}
-//               </li>
-//             ))}
-//           </ul>
-//           <button className="btn-foundItems" onClick={() => handleCategorySelect(null)}>
-//             Found Items
-//           </button>
-//         </div>
-//       ) : (
-//         <aside className="sidebar">
-//           <h2>Search by Category</h2>
-//           <ul>
-//             {categories.map((category) => (
-//               <li
-//                 key={category.value}
-//                 className={selectedCategory === category.value ? 'active' : ''}
-//                 onClick={() => handleCategorySelect(category.value)}
-//               >
-//                 {category.label}
-//               </li>
-//             ))}
-//           </ul>
-//           <button className="btn-foundItems" onClick={() => handleCategorySelect(null)}>
-//             Found Items
-//           </button>
-//         </aside>
-//       )}
-
-//       <main className="main-content">
-//         <h1 className="headerOne">
-//           Lost items within the University Campus
-//         </h1>
-
-//         <div className="search-bar">
-//           <input
-//             type="text"
-//             placeholder="Search by Name"
-//             value={searchTerm}
-//             onChange={handleSearchChange}
-//             className="input-search"
-//           />
-//         </div>
-
-//         <div className="item-list">
-//           {currentItems.map((item) => (
-//             <div key={item.id} className="item-card">
-//               <h2>{item.name}</h2>
-//               <img src={item.image} alt={item.name} className="item-image" />
-//               <p>
-//                 <strong>Status:</strong> {item.status}
-//               </p>
-//               <p>{item.description}</p>
-//             </div>
-//           ))}
-//         </div>
-
-//         <div className="pagination">
-//           <nav aria-label="Pagination">
-//             <ul>
-//               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-//                 <li key={page}>
-//                   <button
-//                     onClick={() => paginate(page)}
-//                     className={currentPage === page ? 'active' : ''}
-//                   >
-//                     {page}
-//                   </button>
-//                 </li>
-//               ))}
-//             </ul>
-//           </nav>
-//         </div>
-//       </main>
-//     </div>
-//   );
-// };
 
 export default FoundItems;

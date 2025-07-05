@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createBrowserRouter, RouterProvider, Link, Outlet } from "react-router-dom";
 import './App.css'
 import Header from './components/Header';
@@ -6,11 +6,16 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import ErrorPage from './pages/ErrorPage';
 import Login from './components/Login';
-// Import the NotificationContainer component
 import NotificationContainer from './components/NotificationContainer';
 import Register from './components/Register';
+import ItemDetail from './pages/ItemDetail';
+
+// Import Redux hooks and the loadAuthState action
 import { useDispatch } from 'react-redux';
 import { loadAuthState } from './features/auth/authSlice';
+
+
+
 
 const Wrapper = ({ children }) => {
   return (
@@ -42,6 +47,8 @@ const guide = createBrowserRouter([
       { path: '/', element: <Home /> },
       { path: '/login', element: <Login /> },
       { path: '/register', element: <Register /> },
+      { path: '/items/:id', element: <ItemDetail /> },
+
       { path: '*', element: <ErrorPage /> }
     ]
   }
@@ -49,13 +56,12 @@ const guide = createBrowserRouter([
 
 
 function App() {
-
   const dispatch = useDispatch();
 
+  // Effect to load auth state from localStorage on initial render
   useEffect(() => {
     dispatch(loadAuthState());
-  }, [dispatch]);
-
+  }, [dispatch]); // Only run once on mount
 
   return (
     <>

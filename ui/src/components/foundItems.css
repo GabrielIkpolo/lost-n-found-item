@@ -189,6 +189,11 @@ body {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   overflow: hidden;
+
+  /* display: flex; Added flex to stack content */
+  /* flex-direction: column; Stack children vertically */
+  /* height: 100%; */
+
 }
 
 .item-card:hover {
@@ -205,10 +210,13 @@ body {
 
 .item-image {
   width: 100%;
-  height: auto;
-  object-fit: contain;
+  /* height: auto; */
+  height: 150px; /* Set a fixed height for consistency */
+  /* object-fit: contain; */
+  object-fit: cover; /* Crop image to cover the area */
   border-radius: 8px;
   margin-bottom: 10px;
+  flex-shrink: 0; /* Prevent image from shrinking */
 }
 
 .item-card p {
@@ -257,6 +265,42 @@ body {
 .pagination button:hover {
   background-color: #ddd;
 }
+
+
+/* Style for the "View Details" button */
+.btn-details {
+  display: block; /* Make button take full width */
+  width: 100%; /* Ensure it spans the card width */
+  padding: 10px 15px;
+  margin-top: 15px; /* Add space above the button */
+  background-color: #007bff; /* Primary button color */
+  color: #fff; /* White text */
+  border: none;
+  border-radius: 8px; /* Rounded corners */
+  cursor: pointer;
+  transition: background-color 0.3s ease, opacity 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center; /* Center text */
+  text-decoration: none; /* Remove underline if it was a link styled as button */
+  margin-top: auto; /* Pushes the button to the bottom of the flex container */
+}
+
+.btn-details:hover {
+  background-color: #0056b3; /* Darker shade on hover */
+}
+
+.btn-details:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+
+
+
+
+
 
 /* Media Queries for Small Screens */
 @media (max-width: 768px) {

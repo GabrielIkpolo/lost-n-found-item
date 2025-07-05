@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import notificationsReducer from './features/notifications/notificationsSlice';
 // Import other reducers here as you add more features (e.g., authReducer, itemsReducer)
 import authReducer from './features/auth/authSlice.js'
+import itemsReducer from './features/items/itemsSlice.js';
 
 export const store = configureStore({
     reducer: {
@@ -9,7 +10,7 @@ export const store = configureStore({
         notifications: notificationsReducer,
         // Add other reducers here:
         auth: authReducer,
-        // items: itemsReducer,
+        items: itemsReducer,
     },
   //devTools: process.env.NODE_ENV !== 'production', // Enable Redux DevTools Extension in development
 });
