@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { createBrowserRouter, RouterProvider, Link, Outlet  } from "react-router-dom";
+import { useEffect, useState } from 'react'
+import { createBrowserRouter, RouterProvider, Link, Outlet } from "react-router-dom";
 import './App.css'
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -8,6 +8,9 @@ import ErrorPage from './pages/ErrorPage';
 import Login from './components/Login';
 // Import the NotificationContainer component
 import NotificationContainer from './components/NotificationContainer';
+import Register from './components/Register';
+import { useDispatch } from 'react-redux';
+import { loadAuthState } from './features/auth/authSlice';
 
 const Wrapper = ({ children }) => {
   return (
@@ -36,8 +39,9 @@ const guide = createBrowserRouter([
   {
     path: '/', element: <HeadAndFooter />,
     children: [
-      { path: '/', element: <Home /> }, 
-      {path: '/login', element: <Login />},     
+      { path: '/', element: <Home /> },
+      { path: '/login', element: <Login /> },
+      { path: '/register', element: <Register /> },
       { path: '*', element: <ErrorPage /> }
     ]
   }
@@ -45,6 +49,12 @@ const guide = createBrowserRouter([
 
 
 function App() {
+
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(loadAuthState());
+  }, [dispatch]);
 
 
   return (

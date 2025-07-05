@@ -53,12 +53,12 @@ const Home = () => {
     return (
         <>
             {/* Add the test buttons */}
-            <div style={{ textAlign: 'center', margin: '20px 0' }}>
+            {/* <div style={{ textAlign: 'center', margin: '20px 0' }}>
                 <button onClick={handleSuccessClick} style={{ margin: '0 5px' }}>Show Success Notification</button>
                 <button onClick={handleErrorClick} style={{ margin: '0 5px' }}>Show Error Notification</button>
                 <button onClick={handleInfoClick} style={{ margin: '0 5px' }}>Show Info Notification</button>
                 <button onClick={handleWarningClick} style={{ margin: '0 5px' }}>Show Warning Notification</button>
-            </div>
+            </div> */}
 
             {/* Keep the FoundItems component */}
             <FoundItems />
