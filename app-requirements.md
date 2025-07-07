@@ -187,7 +187,7 @@
 
 ```generator client {
   provider = "prisma-client-js"
-  output   = "./node_modules/@prisma/client"
+  // output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -217,6 +217,10 @@ model User {
   // Password Reset
   passwordResetToken   String? // Token for password reset link
   passwordResetExpires DateTime? // Expiry time for the reset token
+
+  // Refresh Token Fields (for rotation)
+  refreshToken        String? // Store hashed refresh token
+  refreshTokenExpires DateTime? // Store expiry of the refresh token
 
   // Relations
   items         Item[]         @relation("UserItems") // Items reported by this user
@@ -290,8 +294,8 @@ enum ItemCategory {
 
 enum ItemLocation {
   SENATE_BUILDING
-  PBA // Pharmacy Building Area? Specify full name if possible
-  NHS // Nursing/Health Sciences? Specify full name
+  PAB // Performing Art Building
+  NHS // New Horizons
   CAFETERIA
   LIBRARY // Added common location
   SPORTS_COMPLEX // Added common location
@@ -300,7 +304,7 @@ enum ItemLocation {
 
 model Notification {
   id        String           @id @default(auto()) @map("_id") @db.ObjectId
-  user      User             @relation(fields: [userId], references: [id])
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String           @db.ObjectId
   item      Item?            @relation(fields: [itemId], references: [id]) // Link notification to item
   itemId    String?          @db.ObjectId
@@ -308,6 +312,7 @@ model Notification {
   type      NotificationType // Enum: ITEM_REPORTED, ITEM_CLAIMED, ITEM_UPDATED, ITEM_EXPIRING_SOON, etc.
   createdAt DateTime         @default(now())
   read      Boolean          @default(false)
+  updatedAt DateTime         @updatedAt
 
   @@index([userId, read, createdAt]) // Index for fetching user notifications efficiently
 }
@@ -360,8 +365,10 @@ enum AuditAction {
 
   // Admin Actions
   MANAGE_USER_ROLE
+  DELETE_USER
   // etc.
 }
+
 
 ```
 

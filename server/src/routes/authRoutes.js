@@ -11,23 +11,26 @@ import {
 import passport from '../helpers/passport.js';
 import { requireSignin } from '../helpers/authMiddleware.js';
 import { authLimiter, moderateLimiter } from '../middleware/rateLimiter.js';
+import dotenv from 'dotenv';
 
 const router = express.Router();
+dotenv.config();
 
+const frontEndHome = process.env.ALLOWED_ORIGINS;  
 
 router.post('/register', authLimiter, registerUser);
 router.post('/login', authLimiter, loginUser);
 
 // Google and facebook Strategy routes
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), (req, res) => {
-    res.redirect('/'); // Redirect to homepage after successful login
+router.get('/google/callback', passport.authenticate('google', { failureRedirect: `/login` }), (req, res) => {
+    res.redirect(`/`); // Redirect to homepage after successful login
 })
 
 
 router.get('/facebook', passport.authenticate('facebook', { scope: ['email'] }));
-router.get('/facebook/callback', passport.authenticate('facebook', { failureRedirect: '/login' }), (req, res) => {
-    res.redirect('/'); //Redirects to home page after successful login
+router.get('/facebook/callback', passport.authenticate('facebook', { failureRedirect: `${frontEndHome}/login` }), (req, res) => {
+    res.redirect(`${frontEndHome}`); //Redirects to home page after successful login
 });
 
 

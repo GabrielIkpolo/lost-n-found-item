@@ -109,8 +109,8 @@ enum ItemCategory {
 
 enum ItemLocation {
   SENATE_BUILDING
-  PBA // Pharmacy Building Area? Specify full name if possible
-  NHS // Nursing/Health Sciences? Specify full name
+  PAB // Performing Art Building
+  NHS // New Horizons
   CAFETERIA
   LIBRARY // Added common location
   SPORTS_COMPLEX // Added common location
