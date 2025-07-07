@@ -5,7 +5,7 @@ import { fetchItems } from '../features/items/itemsSlice';
 import { addNotification, NotificationType } from '../features/notifications/notificationsSlice';
 import './foundItems.css';
 import itemImage from '../assets/images/logo-1.png';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 // Sidebar Categories (mapped to ItemCategory enum)
 const categories = [
@@ -25,6 +25,8 @@ const FoundItems = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  const navigate = useNavigate();
 
   // --- EFFECT 1: Debounce the search input ---
   useEffect(() => {
@@ -47,34 +49,34 @@ const FoundItems = () => {
       limit: pagination.itemsPerPage,
       category: selectedCategory,
       search: debouncedSearchTerm,
-            status: 'FOUND',
-        }));
+      status: 'FOUND',
+    }));
   }, [dispatch, pagination.currentPage, pagination.itemsPerPage, selectedCategory, debouncedSearchTerm]);
 
 
   // --- SHOW ERROR NOTIFICATION ---
   useEffect(() => {
-      if (error) {
-          dispatch(addNotification({
-              message: `Error fetching items: ${error}`,
-              type: NotificationType.ERROR,
-              duration: 5000,
-          }));
-      }
+    if (error) {
+      dispatch(addNotification({
+        message: `Error fetching items: ${error}`,
+        type: NotificationType.ERROR,
+        duration: 5000,
+      }));
+    }
   }, [error, dispatch]);
 
 
   const handleCategorySelect = (categoryValue) => {
     if (selectedCategory !== categoryValue) {
-       setSelectedCategory(categoryValue);
-        console.log(`Category changed to ${categoryValue}, fetching page 1.`);
-        dispatch(fetchItems({
-            page: 1, // Reset to page 1
-            limit: pagination.itemsPerPage,
-            category: categoryValue,
-            search: debouncedSearchTerm,
-            status: 'FOUND',
-        }));
+      setSelectedCategory(categoryValue);
+      console.log(`Category changed to ${categoryValue}, fetching page 1.`);
+      dispatch(fetchItems({
+        page: 1, // Reset to page 1
+        limit: pagination.itemsPerPage,
+        category: categoryValue,
+        search: debouncedSearchTerm,
+        status: 'FOUND',
+      }));
     }
   };
 
@@ -85,11 +87,11 @@ const FoundItems = () => {
     // We dispatch fetchItems here to reset pagination immediately when typing starts
     // The debounced effect will trigger the actual search API call after the pause
     dispatch(fetchItems({
-        page: 1, // Reset to page 1
-        limit: pagination.itemsPerPage,
-        category: selectedCategory,
-        search: newSearchTerm, // Use the immediate newSearchTerm here for the page=1 dispatch
-        status: 'FOUND',
+      page: 1, // Reset to page 1
+      limit: pagination.itemsPerPage,
+      category: selectedCategory,
+      search: newSearchTerm, // Use the immediate newSearchTerm here for the page=1 dispatch
+      status: 'FOUND',
     }));
   };
 
@@ -121,7 +123,7 @@ const FoundItems = () => {
   return (
     <div className="main-cover">
       {/* ... Sidebar JSX ... */}
-       {isMobile ? (
+      {isMobile ? (
         <div className="mobile-sidebar">
           <h2>Search by Category</h2>
           <ul>
@@ -138,6 +140,11 @@ const FoundItems = () => {
           <button className="btn-foundItems" onClick={() => handleCategorySelect(null)}>
             All Found Items
           </button>
+
+          <button className="btn-foundItems" onClick={() => navigate('/report')}>
+            Report Found Item
+          </button>
+
         </div>
       ) : (
         <aside className="sidebar">
@@ -156,6 +163,11 @@ const FoundItems = () => {
           <button className="btn-foundItems" onClick={() => handleCategorySelect(null)}>
             All Found Items
           </button>
+
+          <button className="btn-foundItems" onClick={() => navigate('/report')}>
+            Report Found Item
+          </button>
+
         </aside>
       )}
 
@@ -180,55 +192,55 @@ const FoundItems = () => {
         {/* --- LOADING, ERROR, AND ITEM LIST RENDERING --- */}
         {isLoading && <p style={{ textAlign: 'center' }}>Loading items...</p>}
         {!isLoading && itemsToDisplay.length === 0 && !error && (
-            <p style={{ textAlign: 'center' }}>No items found matching your criteria.</p>
+          <p style={{ textAlign: 'center' }}>No items found matching your criteria.</p>
         )}
 
         {!isLoading && !error && itemsToDisplay.length > 0 && (
-            <div className="item-list">
-                {itemsToDisplay.map((item) => (
-                <div key={item.id} className="item-card">
-                    <h2>{item.title}</h2>
-                    <img
-                       src={item.imageUrlFront || itemImage}
-                       alt={item.title}
-                       className="item-image"
-                    />
-                    <p>
-                    <strong>Status:</strong> {item.status}
-                    </p>
-                    <p>{item.description}</p>
-                    <p><strong>Category:</strong> {item.category}</p>
-                    <p><strong>Location:</strong> {item.location}</p>
-                    {/* Make the button a Link */}
-                    <Link to={`/items/${item.id}`} className="btn-details">
-                        View Details
-                    </Link>
-                </div>
-                ))}
-            </div>
-         )}
+          <div className="item-list">
+            {itemsToDisplay.map((item) => (
+              <div key={item.id} className="item-card">
+                <h2>{item.title}</h2>
+                <img
+                  src={item.imageUrlFront || itemImage}
+                  alt={item.title}
+                  className="item-image"
+                />
+                <p>
+                  <strong>Status:</strong> {item.status}
+                </p>
+                <p>{item.description}</p>
+                <p><strong>Category:</strong> {item.category}</p>
+                <p><strong>Location:</strong> {item.location}</p>
+                {/* Make the button a Link */}
+                <Link to={`/items/${item.id}`} className="btn-details">
+                  View Details
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
         {/* --------------------------------------------- */}
 
 
         {/* Pagination - Only show if there are items and more than one page */}
         {!isLoading && !error && totalPages > 1 && (
-            <div className="pagination">
-                <nav aria-label="Pagination">
-                    <ul>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <li key={page}>
-                        <button
-                            onClick={() => paginate(page)}
-                            className={currentPage === page ? 'active' : ''}
-                            disabled={isLoading}
-                        >
-                            {page}
-                        </button>
-                        </li>
-                    ))}
-                    </ul>
-                </nav>
-            </div>
+          <div className="pagination">
+            <nav aria-label="Pagination">
+              <ul>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <li key={page}>
+                    <button
+                      onClick={() => paginate(page)}
+                      className={currentPage === page ? 'active' : ''}
+                      disabled={isLoading}
+                    >
+                      {page}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </div>
         )}
       </main>
     </div>

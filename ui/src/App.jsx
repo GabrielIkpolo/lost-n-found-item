@@ -13,6 +13,9 @@ import ItemDetail from './pages/ItemDetail';
 // Import Redux hooks and the loadAuthState action
 import { useDispatch } from 'react-redux';
 import { loadAuthState } from './features/auth/authSlice';
+import ProtectedRoutes from './components/ProtectedRoutes';
+import ReportItem from './pages/ReportItem';
+import MyItemsPage from './pages/MyItemsPage';
 
 
 
@@ -48,6 +51,24 @@ const guide = createBrowserRouter([
       { path: '/login', element: <Login /> },
       { path: '/register', element: <Register /> },
       { path: '/items/:id', element: <ItemDetail /> },
+
+      {
+        path: '/report', element: (
+          <ProtectedRoutes >
+            <ReportItem />
+          </ProtectedRoutes>
+        )
+      },
+
+
+      {
+        path: '/my-items', element: (
+          <ProtectedRoutes>
+            <MyItemsPage />
+          </ProtectedRoutes>
+        )
+      },
+
 
       { path: '*', element: <ErrorPage /> }
     ]

@@ -1,30 +1,48 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-// Define the initial state for items, including state for a single selected item
+// Define the initial state for items, including state for my items
 const initialState = {
-  items: [], // Array to hold the fetched items for lists
-  pagination: { // State for list pagination info
+  items: [], // Array to hold the fetched items for public lists (Found)
+  pagination: { // State for public list pagination info
     totalItems: 0,
     totalPages: 1,
     currentPage: 1,
     itemsPerPage: 10, // Match default backend limit or configure
   },
-  isLoading: false, // State to track if the list of items is currently being fetched
-  error: null, // Stores any error message from fetching the list
+  isLoading: false, // State to track if the public list is currently being fetched
+  error: null, // Stores any error message from fetching the public list
 
-  // --- State for fetching and displaying a single item ---
-  currentItem: null, // Stores the details of the single item currently being viewed
-  isItemLoading: false, // State to track if a single item is being fetched
-  itemError: null, // Stores any error message from fetching a single item
+  // State for fetching and displaying a single item
+  currentItem: null,
+  isItemLoading: false,
+  itemError: null,
+
+  // State for item creation
+  isCreating: false,
+  creationError: null,
+  itemCreationSuccess: false,
+  createdItem: null,
+
+  // --- State for fetching and displaying *my* items ---
+  myItems: [], // Array to hold items reported or claimed by the logged-in user
+  myItemsPagination: { // State for my items list pagination info
+    totalItems: 0,
+    totalPages: 1,
+    currentPage: 1,
+    itemsPerPage: 10, // Match default backend limit or configure
+  },
+  isMyItemsLoading: false, // State to track if my items are currently being fetched
+  myItemsError: null, // Stores any error message from fetching my items
   // ------------------------------------------------------
 };
 
-// Define an async thunk to fetch items from the backend API (for lists)
+// Define an async thunk to fetch items from the backend API (for public lists)
 export const fetchItems = createAsyncThunk(
   'items/fetchItems',
   async (params = {}, { rejectWithValue, getState }) => {
     try {
+      // This endpoint is public for 'FOUND' items, but might be protected for others
       // const token = getState().auth.token;
       // const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
@@ -40,8 +58,9 @@ export const fetchItems = createAsyncThunk(
       });
 
       return response.data;
+
     } catch (error) {
-      let errorMessage = 'Failed to fetch items list.'; // More specific error message
+      let errorMessage = 'Failed to fetch items list.';
       if (error.response) {
         errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
       } else if (error.request) {
@@ -55,27 +74,32 @@ export const fetchItems = createAsyncThunk(
   }
 );
 
-// --- Define a new async thunk to fetch a single item by its ID ---
+// Define a new async thunk to fetch a single item by its ID
 export const fetchItemById = createAsyncThunk(
-    'items/fetchItemById', // Action type string
+    'items/fetchItemById',
     async (itemId, { rejectWithValue, getState }) => {
       try {
-        // const token = getState().auth.token; // Get token if accessing restricted item details later
-        // const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        // Item details might require authentication if it's a 'LOST' item not reported by the user
+        const token = getState().auth.token;
+        // For simplicity now, we'll just add the token if it exists.
+        // Backend middleware should handle access control.
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        // Make the API call to fetch the specific item details
-        const response = await axios.get(`/api/items/${itemId}`); // Use the dynamic ID in the URL
 
-        // Assuming your backend returns the single item object directly
-        return response.data; // This will be the payload for the 'fulfilled' action
+        const response = await axios.get(`/api/items/${itemId}`, { headers });
+
+        return response.data;
 
       } catch (error) {
-        let errorMessage = 'Failed to fetch item details.'; // Specific error message
+        let errorMessage = 'Failed to fetch item details.';
         if (error.response) {
-          // Check for 404 specifically
           if (error.response.status === 404) {
               errorMessage = 'Item not found.';
-          } else {
+          } else if (error.response.status === 401 || error.response.status === 403) {
+              // Handle auth errors specifically for item details if needed
+              errorMessage = 'Unauthorized to view item details.';
+          }
+           else {
              errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
           }
         } else if (error.request) {
@@ -84,11 +108,96 @@ export const fetchItemById = createAsyncThunk(
           errorMessage = `Error sending request: ${error.message}`;
         }
         console.error(`Fetch item ${itemId} API call failed:`, error);
+        return rejectWithValue(errorMessage);
+      }
+    }
+);
+
+// Define a new async thunk to create an item
+export const createItem = createAsyncThunk(
+    'items/createItem',
+    async (formData, { rejectWithValue, getState }) => {
+      try {
+        const token = getState().auth.token;
+        if (!token) {
+             return rejectWithValue('Authentication required to report an item.');
+        }
+        const headers = {
+             Authorization: `Bearer ${token}`,
+        };
+
+        const response = await axios.post('/api/items', formData, { headers });
+
+        return response.data;
+
+      } catch (error) {
+        let errorMessage = 'Failed to report item.';
+        if (error.response) {
+          errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
+        } else if (error.request) {
+          errorMessage = 'No response received from server.';
+        } else {
+          errorMessage = `Error sending request: ${error.message}`;
+        }
+        console.error('Create item API call failed:', error);
+        return rejectWithValue(errorMessage);
+      }
+    }
+);
+
+// --- Define a new async thunk to fetch *my* items ---
+// This calls the protected /api/users/my-items endpoint
+export const fetchMyItems = createAsyncThunk(
+    'items/fetchMyItems', // Action type string
+    async (params = {}, { rejectWithValue, getState }) => {
+      try {
+        // --- This endpoint requires authentication ---
+        const token = getState().auth.token;
+        if (!token) {
+             // This case should be handled by ProtectedRoute, but double-check
+             return rejectWithValue('Authentication required to view your items.');
+        }
+        const headers = {
+             Authorization: `Bearer ${token}`,
+        };
+        // ---------------------------------------------
+
+        // Make the API call to fetch the user's items
+        const response = await axios.get('/api/users/my-items', {
+             headers,
+             params: {
+                page: params.page || initialState.myItemsPagination.currentPage,
+                limit: params.limit || initialState.myItemsPagination.itemsPerPage,
+                // Add filters specific to 'my-items' if your backend supports them
+                // status: params.status || undefined, // Example: filter my items by status
+             }
+        });
+
+        // Assuming your backend returns { items: [...], pagination: { totalItems, totalPages, ... } }
+        return response.data; // This will be the payload for the 'fulfilled' action
+
+      } catch (error) {
+        let errorMessage = 'Failed to fetch your items.'; // Specific error message
+        if (error.response) {
+          errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
+          // Handle 401/403 specifically if needed, e.g., redirect to login + notification
+           if (error.response.status === 401 || error.response.status === 403) {
+               // Optional: Dispatch logout action if token is invalid
+               // const { logout } = await import('../auth/authSlice'); // Dynamic import to avoid circular dependency
+               // dispatch(logout());
+               errorMessage = 'Session expired or unauthorized. Please log in again.';
+           }
+        } else if (error.request) {
+          errorMessage = 'No response received from server.';
+        } else {
+          errorMessage = `Error sending request: ${error.message}`;
+        }
+        console.error('Fetch my items API call failed:', error);
         return rejectWithValue(errorMessage); // Return the error message
       }
     }
 );
-// -------------------------------------------------------------------
+// -----------------------------------------------------
 
 
 // Create the items slice
@@ -104,21 +213,41 @@ const itemsSlice = createSlice({
         state.pagination = initialState.pagination;
         state.isLoading = false;
         state.error = null;
-        // Also clear single item state
         state.currentItem = null;
         state.isItemLoading = false;
         state.itemError = null;
+        state.isCreating = false;
+        state.creationError = null;
+        state.itemCreationSuccess = false;
+        state.createdItem = null;
+        // Also clear my items state
+        state.myItems = [];
+        state.myItemsPagination = initialState.myItemsPagination;
+        state.isMyItemsLoading = false;
+        state.myItemsError = null;
     },
-     // Reducer to clear single item state when leaving the detail page
      clearCurrentItem: (state) => {
         state.currentItem = null;
         state.isItemLoading = false;
         state.itemError = null;
      },
-    // Add other synchronous reducers here if needed later (e.g., addItem, updateItem)
+     clearItemCreationStatus: (state) => {
+        state.isCreating = false;
+        state.creationError = null;
+        state.itemCreationSuccess = false;
+        state.createdItem = null;
+     },
+     // --- Reducer to clear *my* items state ---
+     clearMyItems: (state) => {
+        state.myItems = [];
+        state.myItemsPagination = initialState.myItemsPagination;
+        state.isMyItemsLoading = false;
+        state.myItemsError = null;
+     }
+     // ------------------------------------------
   },
   extraReducers: (builder) => {
-    // Handle states for fetchItems (list) thunk
+    // Handle states for fetchItems (public list) thunk
     builder
       .addCase(fetchItems.pending, (state) => {
         state.isLoading = true;
@@ -144,31 +273,83 @@ const itemsSlice = createSlice({
         console.error('Fetch items list failed:', state.error);
       })
 
-      // --- Handle states for fetchItemById (single item) thunk ---
+      // Handle states for fetchItemById (single item) thunk
       .addCase(fetchItemById.pending, (state) => {
-        state.isItemLoading = true; // Use specific loading state for single item
-        state.itemError = null; // Clear previous errors
-        state.currentItem = null; // Clear previous item data
+        state.isItemLoading = true;
+        state.itemError = null;
+        state.currentItem = null;
       })
       .addCase(fetchItemById.fulfilled, (state, action) => {
         state.isItemLoading = false;
-        state.currentItem = action.payload; // Store the fetched single item object
-        state.itemError = null; // Clear error on success
+        state.currentItem = action.payload;
+        state.itemError = null;
         console.log('Single item fetched successfully:', action.payload?.title);
       })
       .addCase(fetchItemById.rejected, (state, action) => {
         state.isItemLoading = false;
-        state.currentItem = null; // Clear item data on failure
-        state.itemError = action.payload || 'Failed to fetch item details'; // Use the error message
+        state.currentItem = null;
+        state.itemError = action.payload || 'Failed to fetch item details';
         console.error('Fetch single item failed:', state.itemError);
+      })
+
+      // Handle states for createItem thunk
+      .addCase(createItem.pending, (state) => {
+        state.isCreating = true;
+        state.creationError = null;
+        state.itemCreationSuccess = false;
+        state.createdItem = null;
+      })
+      .addCase(createItem.fulfilled, (state, action) => {
+        state.isCreating = false;
+        state.itemCreationSuccess = true;
+        state.createdItem = action.payload;
+        state.creationError = null;
+        console.log('Item created successfully:', action.payload?.title);
+        // Optional: Add the newly created item to the items list if appropriate
+        // state.items.unshift(action.payload); // Add to the beginning of the list
+      })
+      .addCase(createItem.rejected, (state, action) => {
+        state.isCreating = false;
+        state.itemCreationSuccess = false;
+        state.createdItem = null;
+        state.creationError = action.payload || 'Failed to report item';
+        console.error('Item creation failed:', state.creationError);
+      })
+
+      // --- Handle states for fetchMyItems thunk ---
+      .addCase(fetchMyItems.pending, (state) => {
+        state.isMyItemsLoading = true; // Use specific loading state for my items
+        state.myItemsError = null; // Clear previous errors
+        state.myItems = []; // Clear previous items
+      })
+      .addCase(fetchMyItems.fulfilled, (state, action) => {
+        state.isMyItemsLoading = false;
+        state.myItems = action.payload.items; // Store the fetched my items array
+        state.myItemsPagination = { // Store my items pagination info
+            ...state.myItemsPagination, // Keep default itemsPerPage unless backend overrides
+            totalItems: action.payload.pagination.totalItems,
+            totalPages: action.payload.pagination.totalPages,
+            currentPage: action.payload.pagination.currentPage,
+        };
+        state.myItemsError = null; // Clear error on success
+        console.log('My items fetched successfully.');
+      })
+      .addCase(fetchMyItems.rejected, (state, action) => {
+        state.isMyItemsLoading = false;
+        state.myItems = []; // Clear items on failure
+        state.myItemsPagination = initialState.myItemsPagination; // Reset pagination on failure
+        state.myItemsError = action.payload || 'Failed to fetch your items'; // Use the error message
+        console.error('Fetch my items failed:', state.myItemsError);
       });
-    // ---------------------------------------------------------------
+    // ---------------------------------------------
   },
 });
 
 // Export the synchronous action creators
-export const { setPagination, clearItems, clearCurrentItem } = itemsSlice.actions; // Export clearCurrentItem
+export const { setPagination, clearItems, clearCurrentItem, clearItemCreationStatus, clearMyItems } = itemsSlice.actions; // Export clearMyItems
 
+// Export the async thunk action creators
+// export { fetchItems, fetchItemById, createItem, fetchMyItems }; // Export fetchMyItems
 
 // Export the reducer as the default export
 export default itemsSlice.reducer;
