@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react'; 
-import { useDispatch, useSelector } from 'react-redux'; 
-import { useNavigate, Link } from 'react-router-dom'; 
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, Link } from 'react-router-dom';
 import { loginUser } from '../features/auth/authSlice'; // Import the loginUser thunk
-import { addNotification, NotificationType } from '../features/notifications/notificationsSlice'; 
+import { addNotification, clearAllNotifications, NotificationType } from '../features/notifications/notificationsSlice';
 
-import './login.css'; 
+import './login.css';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -20,13 +20,16 @@ const Login = () => {
     useEffect(() => {
         if (isAuthenticated) {
             // Redirect to home page 
-            navigate('/'); 
+            navigate('/');
             // Optionally show a success notification
             dispatch(addNotification({
                 message: 'Login successful!',
                 type: NotificationType.SUCCESS
             }));
+
+           
         }
+
 
         // We don't need to add `dispatch` or `navigate` to the dependency array
         // because `dispatch` is stable and `navigate` is also stable.
@@ -40,7 +43,7 @@ const Login = () => {
             dispatch(addNotification({
                 message: `Login failed: ${error}`,
                 type: NotificationType.ERROR,
-                duration: 5000 
+                duration: 5000
             }));
         }
     }, [error, dispatch]); // Re-run effect if error state or dispatch changes
@@ -51,7 +54,7 @@ const Login = () => {
 
         // Basic validation before dispatching
         if (!email || !password) {
-             dispatch(addNotification({
+            dispatch(addNotification({
                 message: 'Please enter both email and password.',
                 type: NotificationType.WARNING,
                 duration: 3000
@@ -69,7 +72,7 @@ const Login = () => {
     };
 
     const handleFacebookLogin = () => {
-        window.location.href = '/api/auth/facebook'; 
+        window.location.href = '/api/auth/facebook';
     };
 
 
@@ -84,7 +87,7 @@ const Login = () => {
             <div className="form-container">
                 <h2>Login</h2>
                 {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
-                <form onSubmit={handleSubmit}> 
+                <form onSubmit={handleSubmit}>
                     <input
                         type="email"
                         name="email"
@@ -107,9 +110,9 @@ const Login = () => {
                 </form>
 
                 {/* Forgot Password Link */}
-                 <div style={{ marginTop: '10px', fontSize: '0.9em' }}>
-                     <Link to="/forgot-password">Forgot Password?</Link>
-                 </div>
+                <div style={{ marginTop: '10px', fontSize: '0.9em' }}>
+                    <Link to="/forgot-password">Forgot Password?</Link>
+                </div>
 
 
                 {/* Social Login */}

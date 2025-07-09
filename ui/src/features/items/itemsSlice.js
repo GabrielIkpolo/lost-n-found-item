@@ -34,6 +34,15 @@ const initialState = {
   },
   isMyItemsLoading: false, // State to track if my items are currently being fetched
   myItemsError: null, // Stores any error message from fetching my items
+
+  // --- State for claiming an item ---
+  isClaiming: false, // State to track if an item is currently being claimed
+  claimError: null, // Stores any error message from claiming
+  claimSuccess: false, // Flag to indicate successful claim
+  claimedItem: null, // Stores the updated item data after a successful claim
+  // -----------------------------------
+
+
   // ------------------------------------------------------
 };
 
@@ -76,126 +85,174 @@ export const fetchItems = createAsyncThunk(
 
 // Define a new async thunk to fetch a single item by its ID
 export const fetchItemById = createAsyncThunk(
-    'items/fetchItemById',
-    async (itemId, { rejectWithValue, getState }) => {
-      try {
-        // Item details might require authentication if it's a 'LOST' item not reported by the user
-        const token = getState().auth.token;
-        // For simplicity now, we'll just add the token if it exists.
-        // Backend middleware should handle access control.
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  'items/fetchItemById',
+  async (itemId, { rejectWithValue, getState }) => {
+    try {
+      // Item details might require authentication if it's a 'LOST' item not reported by the user
+      const token = getState().auth.token;
+      // For simplicity now, we'll just add the token if it exists.
+      // Backend middleware should handle access control.
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
 
-        const response = await axios.get(`/api/items/${itemId}`, { headers });
+      const response = await axios.get(`/api/items/${itemId}`, { headers });
 
-        return response.data;
+      return response.data;
 
-      } catch (error) {
-        let errorMessage = 'Failed to fetch item details.';
-        if (error.response) {
-          if (error.response.status === 404) {
-              errorMessage = 'Item not found.';
-          } else if (error.response.status === 401 || error.response.status === 403) {
-              // Handle auth errors specifically for item details if needed
-              errorMessage = 'Unauthorized to view item details.';
-          }
-           else {
-             errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
-          }
-        } else if (error.request) {
-          errorMessage = 'No response received from server.';
-        } else {
-          errorMessage = `Error sending request: ${error.message}`;
+    } catch (error) {
+      let errorMessage = 'Failed to fetch item details.';
+      if (error.response) {
+        if (error.response.status === 404) {
+          errorMessage = 'Item not found.';
+        } else if (error.response.status === 401 || error.response.status === 403) {
+          // Handle auth errors specifically for item details if needed
+          errorMessage = 'Unauthorized to view item details.';
         }
-        console.error(`Fetch item ${itemId} API call failed:`, error);
-        return rejectWithValue(errorMessage);
+        else {
+          errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
+        }
+      } else if (error.request) {
+        errorMessage = 'No response received from server.';
+      } else {
+        errorMessage = `Error sending request: ${error.message}`;
       }
+      console.error(`Fetch item ${itemId} API call failed:`, error);
+      return rejectWithValue(errorMessage);
     }
+  }
 );
 
 // Define a new async thunk to create an item
 export const createItem = createAsyncThunk(
-    'items/createItem',
-    async (formData, { rejectWithValue, getState }) => {
-      try {
-        const token = getState().auth.token;
-        if (!token) {
-             return rejectWithValue('Authentication required to report an item.');
-        }
-        const headers = {
-             Authorization: `Bearer ${token}`,
-        };
-
-        const response = await axios.post('/api/items', formData, { headers });
-
-        return response.data;
-
-      } catch (error) {
-        let errorMessage = 'Failed to report item.';
-        if (error.response) {
-          errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
-        } else if (error.request) {
-          errorMessage = 'No response received from server.';
-        } else {
-          errorMessage = `Error sending request: ${error.message}`;
-        }
-        console.error('Create item API call failed:', error);
-        return rejectWithValue(errorMessage);
+  'items/createItem',
+  async (formData, { rejectWithValue, getState }) => {
+    try {
+      const token = getState().auth.token;
+      if (!token) {
+        return rejectWithValue('Authentication required to report an item.');
       }
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      const response = await axios.post('/api/items', formData, { headers });
+
+      return response.data;
+
+    } catch (error) {
+      let errorMessage = 'Failed to report item.';
+      if (error.response) {
+        errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = 'No response received from server.';
+      } else {
+        errorMessage = `Error sending request: ${error.message}`;
+      }
+      console.error('Create item API call failed:', error);
+      return rejectWithValue(errorMessage);
     }
+  }
 );
 
 // --- Define a new async thunk to fetch *my* items ---
 // This calls the protected /api/users/my-items endpoint
 export const fetchMyItems = createAsyncThunk(
-    'items/fetchMyItems', // Action type string
-    async (params = {}, { rejectWithValue, getState }) => {
-      try {
-        // --- This endpoint requires authentication ---
-        const token = getState().auth.token;
-        if (!token) {
-             // This case should be handled by ProtectedRoute, but double-check
-             return rejectWithValue('Authentication required to view your items.');
-        }
-        const headers = {
-             Authorization: `Bearer ${token}`,
-        };
-        // ---------------------------------------------
-
-        // Make the API call to fetch the user's items
-        const response = await axios.get('/api/users/my-items', {
-             headers,
-             params: {
-                page: params.page || initialState.myItemsPagination.currentPage,
-                limit: params.limit || initialState.myItemsPagination.itemsPerPage,
-                // Add filters specific to 'my-items' if your backend supports them
-                // status: params.status || undefined, // Example: filter my items by status
-             }
-        });
-
-        // Assuming your backend returns { items: [...], pagination: { totalItems, totalPages, ... } }
-        return response.data; // This will be the payload for the 'fulfilled' action
-
-      } catch (error) {
-        let errorMessage = 'Failed to fetch your items.'; // Specific error message
-        if (error.response) {
-          errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
-          // Handle 401/403 specifically if needed, e.g., redirect to login + notification
-           if (error.response.status === 401 || error.response.status === 403) {
-               // Optional: Dispatch logout action if token is invalid
-               // const { logout } = await import('../auth/authSlice'); // Dynamic import to avoid circular dependency
-               // dispatch(logout());
-               errorMessage = 'Session expired or unauthorized. Please log in again.';
-           }
-        } else if (error.request) {
-          errorMessage = 'No response received from server.';
-        } else {
-          errorMessage = `Error sending request: ${error.message}`;
-        }
-        console.error('Fetch my items API call failed:', error);
-        return rejectWithValue(errorMessage); // Return the error message
+  'items/fetchMyItems', // Action type string
+  async (params = {}, { rejectWithValue, getState }) => {
+    try {
+      // --- This endpoint requires authentication ---
+      const token = getState().auth.token;
+      if (!token) {
+        // This case should be handled by ProtectedRoute, but double-check
+        return rejectWithValue('Authentication required to view your items.');
       }
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+      // ---------------------------------------------
+
+      // Make the API call to fetch the user's items
+      const response = await axios.get('/api/users/my-items', {
+        headers,
+        params: {
+          page: params.page || initialState.myItemsPagination.currentPage,
+          limit: params.limit || initialState.myItemsPagination.itemsPerPage,
+          // Add filters specific to 'my-items' if your backend supports them
+          // status: params.status || undefined, // Example: filter my items by status
+        }
+      });
+
+      // Assuming your backend returns { items: [...], pagination: { totalItems, totalPages, ... } }
+      return response.data; // This will be the payload for the 'fulfilled' action
+
+    } catch (error) {
+      let errorMessage = 'Failed to fetch your items.'; // Specific error message
+      if (error.response) {
+        errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
+        // Handle 401/403 specifically if needed, e.g., redirect to login + notification
+        if (error.response.status === 401 || error.response.status === 403) {
+          // Optional: Dispatch logout action if token is invalid
+          // const { logout } = await import('../auth/authSlice'); // Dynamic import to avoid circular dependency
+          // dispatch(logout());
+          errorMessage = 'Session expired or unauthorized. Please log in again.';
+        }
+      } else if (error.request) {
+        errorMessage = 'No response received from server.';
+      } else {
+        errorMessage = `Error sending request: ${error.message}`;
+      }
+      console.error('Fetch my items API call failed:', error);
+      return rejectWithValue(errorMessage); // Return the error message
     }
+  }
+);
+
+
+
+
+// --- Define a new async thunk to claim an item ---
+// Expects the item ID as payload
+export const claimItem = createAsyncThunk(
+  'items/claimItem', // Action type string
+  async (itemId, { rejectWithValue, getState }) => {
+    try {
+      // --- This endpoint requires authentication ---
+      const token = getState().auth.token;
+      if (!token) {
+        return rejectWithValue('Authentication required to claim an item.');
+      }
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+      // ---------------------------------------------
+
+      // Make the API call to claim the item (POST /api/items/claim/:id)
+      // We don't need a request body for this endpoint typically
+      const response = await axios.post(`/api/items/claim/${itemId}`, {}, { headers });
+
+      // Assuming your backend returns the updated item object on success
+      return response.data; // This will be the payload for the 'fulfilled' action (the updated item)
+
+    } catch (error) {
+      let errorMessage = 'Failed to claim item.'; // Specific error message
+      if (error.response) {
+        // Check for specific backend validation errors (e.g., already claimed, not FOUND, user is reporter)
+        errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
+        if (error.response.status === 401 || error.response.status === 403) {
+          errorMessage = 'Unauthorized or forbidden to claim this item.';
+        } else if (error.response.status === 400) { // Bad Request, likely due to validation
+          // Keep backend's specific error message for 400 errors
+          errorMessage = error.response.data?.error || error.response.data?.message || 'Invalid request to claim item.';
+        }
+      } else if (error.request) {
+        errorMessage = 'No response received from server.';
+      } else {
+        errorMessage = `Error sending request: ${error.message}`;
+      }
+      console.error(`Claim item ${itemId} API call failed:`, error);
+      return rejectWithValue(errorMessage); // Return the error message
+    }
+  }
 );
 // -----------------------------------------------------
 
@@ -209,42 +266,56 @@ const itemsSlice = createSlice({
       state.pagination = { ...state.pagination, ...action.payload };
     },
     clearItems: (state) => {
-        state.items = [];
-        state.pagination = initialState.pagination;
-        state.isLoading = false;
-        state.error = null;
-        state.currentItem = null;
-        state.isItemLoading = false;
-        state.itemError = null;
-        state.isCreating = false;
-        state.creationError = null;
-        state.itemCreationSuccess = false;
-        state.createdItem = null;
-        // Also clear my items state
-        state.myItems = [];
-        state.myItemsPagination = initialState.myItemsPagination;
-        state.isMyItemsLoading = false;
-        state.myItemsError = null;
+      state.items = [];
+      state.pagination = initialState.pagination;
+      state.isLoading = false;
+      state.error = null;
+      state.currentItem = null;
+      state.isItemLoading = false;
+      state.itemError = null;
+      state.isCreating = false;
+      state.creationError = null;
+      state.itemCreationSuccess = false;
+      state.createdItem = null;
+      // Also clear my items state
+      state.myItems = [];
+      state.myItemsPagination = initialState.myItemsPagination;
+      state.isMyItemsLoading = false;
+      state.myItemsError = null;
+
+      // Reset claim state too
+      state.isClaiming = false;
+      state.claimError = null;
+      state.claimSuccess = false;
+      state.claimedItem = null;
     },
-     clearCurrentItem: (state) => {
-        state.currentItem = null;
-        state.isItemLoading = false;
-        state.itemError = null;
-     },
-     clearItemCreationStatus: (state) => {
-        state.isCreating = false;
-        state.creationError = null;
-        state.itemCreationSuccess = false;
-        state.createdItem = null;
-     },
-     // --- Reducer to clear *my* items state ---
-     clearMyItems: (state) => {
-        state.myItems = [];
-        state.myItemsPagination = initialState.myItemsPagination;
-        state.isMyItemsLoading = false;
-        state.myItemsError = null;
-     }
-     // ------------------------------------------
+    clearCurrentItem: (state) => {
+      state.currentItem = null;
+      state.isItemLoading = false;
+      state.itemError = null;
+    },
+    clearItemCreationStatus: (state) => {
+      state.isCreating = false;
+      state.creationError = null;
+      state.itemCreationSuccess = false;
+      state.createdItem = null;
+    },
+    // --- Reducer to clear *my* items state ---
+    clearMyItems: (state) => {
+      state.myItems = [];
+      state.myItemsPagination = initialState.myItemsPagination;
+      state.isMyItemsLoading = false;
+      state.myItemsError = null;
+    },
+
+    // --- Reducer to clear item claim status ---
+    clearClaimStatus: (state) => {
+      state.isClaiming = false;
+      state.claimError = null;
+      state.claimSuccess = false;
+      state.claimedItem = null;
+    },
+    // ------------------------------------------
   },
   extraReducers: (builder) => {
     // Handle states for fetchItems (public list) thunk
@@ -257,10 +328,10 @@ const itemsSlice = createSlice({
         state.isLoading = false;
         state.items = action.payload.items;
         state.pagination = {
-            ...state.pagination,
-            totalItems: action.payload.pagination.totalItems,
-            totalPages: action.payload.pagination.totalPages,
-            currentPage: action.payload.pagination.currentPage,
+          ...state.pagination,
+          totalItems: action.payload.pagination.totalItems,
+          totalPages: action.payload.pagination.totalPages,
+          currentPage: action.payload.pagination.currentPage,
         };
         state.error = null;
         console.log('Items list fetched successfully.');
@@ -284,6 +355,9 @@ const itemsSlice = createSlice({
         state.currentItem = action.payload;
         state.itemError = null;
         console.log('Single item fetched successfully:', action.payload?.title);
+        // Optional: Update the item in the main list if it exists there
+        // const index = state.items.findIndex(item => item.id === action.payload.id);
+        // if (index !== -1) { state.items[index] = action.payload; }
       })
       .addCase(fetchItemById.rejected, (state, action) => {
         state.isItemLoading = false;
@@ -326,10 +400,10 @@ const itemsSlice = createSlice({
         state.isMyItemsLoading = false;
         state.myItems = action.payload.items; // Store the fetched my items array
         state.myItemsPagination = { // Store my items pagination info
-            ...state.myItemsPagination, // Keep default itemsPerPage unless backend overrides
-            totalItems: action.payload.pagination.totalItems,
-            totalPages: action.payload.pagination.totalPages,
-            currentPage: action.payload.pagination.currentPage,
+          ...state.myItemsPagination, // Keep default itemsPerPage unless backend overrides
+          totalItems: action.payload.pagination.totalItems,
+          totalPages: action.payload.pagination.totalPages,
+          currentPage: action.payload.pagination.currentPage,
         };
         state.myItemsError = null; // Clear error on success
         console.log('My items fetched successfully.');
@@ -340,13 +414,50 @@ const itemsSlice = createSlice({
         state.myItemsPagination = initialState.myItemsPagination; // Reset pagination on failure
         state.myItemsError = action.payload || 'Failed to fetch your items'; // Use the error message
         console.error('Fetch my items failed:', state.myItemsError);
-      });
+      })
+
+      // --- Handle states for claimItem thunk ---
+      .addCase(claimItem.pending, (state) => {
+        state.isClaiming = true;
+        state.claimError = null;
+        state.claimSuccess = false;
+        state.claimedItem = null;
+      })
+      .addCase(claimItem.fulfilled, (state, action) => {
+        state.isClaiming = false;
+        state.claimSuccess = true;
+        state.claimedItem = action.payload;
+        state.claimError = null;
+        console.log('Item claimed successfully:', action.payload?.title);
+
+        // Optional: Update the item in the main items list if it exists there
+        const index = state.items.findIndex(item => item.id === action.payload.id);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+
+        // Optional: Update the item in myItems list if it exists there
+        const myItemsIndex = state.myItems.findIndex(item => item.id === action.payload.id);
+        if (myItemsIndex !== -1) {
+          state.myItems[myItemsIndex] = action.payload;
+        }
+      })
+      .addCase(claimItem.rejected, (state, action) => {
+        state.isClaiming = false;
+        state.claimSuccess = false;
+        state.claimedItem = null;
+        state.claimError = action.payload || 'Failed to claim item';
+        console.error('Item claim failed:', state.claimError);
+      })
+
     // ---------------------------------------------
   },
 });
 
 // Export the synchronous action creators
-export const { setPagination, clearItems, clearCurrentItem, clearItemCreationStatus, clearMyItems } = itemsSlice.actions; // Export clearMyItems
+export const { setPagination, clearItems,
+  clearCurrentItem, clearItemCreationStatus,
+  clearMyItems, clearClaimStatus, claimedItem } = itemsSlice.actions; // Export clearMyItems
 
 // Export the async thunk action creators
 // export { fetchItems, fetchItemById, createItem, fetchMyItems }; // Export fetchMyItems

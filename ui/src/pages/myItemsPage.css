@@ -20,29 +20,28 @@
 /* If you want a different layout, define new styles here */
 
 /* Example of reusing/adapting styles */
-/*
-.my-items-list { // New list container
+
+.my-items-list {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
 }
 
-.my-item-card { // Could reuse .item-card or create a new one
-    // ... copy styles from .item-card in foundItems.css ...
+.my-item-card { 
+    /* // ... copy styles from .item-card in foundItems.css ... */
 }
 
-.my-item-image { // Could reuse .item-image or create a new one
-    // ... copy styles from .item-image in foundItems.css ...
+.my-item-image { 
+    /* // ... copy styles from .item-image in foundItems.css ... */
 }
 
-// Add styles specific to displaying user role (reporter/claimant)
+/*  Add styles specific to displaying user role (reporter/claimant) */
 .item-role {
     font-size: 14px;
-    color: #007bff; // Example color
+    color: #007bff; 
     margin-top: 5px;
     font-weight: 500;
 }
 
-// Add styles for buttons specific to this page (e.g., Edit, Mark Returned, etc.)
-// Reuse .btn-action classes or define new ones
-*/
+/* // Add styles for buttons specific to this page (e.g., Edit, Mark Returned, etc.) */
+/* // Reuse .btn-action classes or define new ones */

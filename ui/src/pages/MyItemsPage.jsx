@@ -1,8 +1,6 @@
-import React, { useEffect, useState } from 'react'; // Import useState for local pagination
+import React, { useEffect, useState } from 'react'; 
 import { useDispatch, useSelector } from 'react-redux';
-// Import the thunk to fetch my items and the cleanup action
 import { fetchMyItems, clearMyItems } from '../features/items/itemsSlice';
-// Import notification actions
 import { addNotification, NotificationType } from '../features/notifications/notificationsSlice';
 // Import Link for item details navigation and potentially useNavigate
 import { Link, useNavigate } from 'react-router-dom';
@@ -24,7 +22,6 @@ const MyItemsPage = () => {
 
     // Local state for pagination (though Redux state holds the source of truth)
     // We'll use the Redux pagination state directly in the fetch call params and rendering
-    // Local state might be used for filters specific to My Items later, if needed.
 
     // --- Effect to fetch user's items on mount and when pagination changes ---
     useEffect(() => {
@@ -33,7 +30,7 @@ const MyItemsPage = () => {
         dispatch(fetchMyItems({
              page: myItemsPagination.currentPage,
              limit: myItemsPagination.itemsPerPage,
-             // Add filters specific to 'my-items' here if your backend supports them
+             // Add filters specific to 'my-items' here when backend supports them
              // For example, to filter by status:
              // status: 'LOST',
         }));
@@ -44,7 +41,7 @@ const MyItemsPage = () => {
            dispatch(clearMyItems()); // Dispatch the cleanup action
         };
 
-    }, [dispatch, myItemsPagination.currentPage, myItemsPagination.itemsPerPage]); // Re-fetch when page or limit changes
+    }, [dispatch, ]); // Re-fetch when page or limit changes
 
 
      // --- Effect to show error notification ---
@@ -58,7 +55,7 @@ const MyItemsPage = () => {
             }));
              // Optional: clear error state in slice if you add clearMyItemsError reducer
         }
-     }, [myItemsError, dispatch]); // Depend on myItemsError state and dispatch
+     }, [myItemsError, dispatch]); 
 
 
     // Handle pagination click (now updates the current page by triggering a new fetch)
@@ -83,7 +80,7 @@ const MyItemsPage = () => {
 
 
     return (
-        <div className="my-items-container"> {/* Use the container class from CSS */}
+        <div className="my-items-container"> 
             <h1>My Items</h1>
 
             {/* --- LOADING, ERROR, EMPTY, AND ITEM LIST RENDERING --- */}
@@ -98,15 +95,15 @@ const MyItemsPage = () => {
             )}
 
             {!isMyItemsLoading && !myItemsError && itemsToDisplay?.length > 0 && (
-                 <div className="item-list"> {/* Reusing item-list class, adjust CSS if needed */}
+                 <div className="item-list"> 
                      {itemsToDisplay.map(item => (
-                         <div key={item.id} className="item-card"> {/* Reusing item-card class */}
+                         <div key={item.id} className="item-card"> 
                              <h2>{item.title}</h2>
                              {/* Display image if imageUrlFront exists, otherwise use placeholder */}
                              <img
                                 src={item.imageUrlFront || itemPlaceholderImage}
                                 alt={item.title}
-                                className="item-image" // Reusing item-image class
+                                className="item-image" 
                              />
                              <p>
                                  <strong>Status:</strong> {item.status}
@@ -123,7 +120,7 @@ const MyItemsPage = () => {
                              )}
 
                              {/* Link to item detail */}
-                             <Link to={`/items/${item.id}`} className="btn-details"> {/* Reusing btn-details class */}
+                             <Link to={`/items/${item.id}`} className="btn-details"> 
                                  View Details
                              </Link>
 
@@ -131,13 +128,13 @@ const MyItemsPage = () => {
                              {/* Example: Edit button for items YOU reported (if status allows, e.g., LOST or FOUND) */}
                              {isAuthenticated && user?.id === item.reportedById && (item.status === 'LOST' || item.status === 'FOUND') && (
                                   // TODO: Implement Link or onClick handler for Edit page (/my-items/:id/edit or /items/:id/edit)
-                                  <button className="btn-action secondary" /* onClick={() => navigate(`/my-items/${item.id}/edit`)} */>Edit</button>
+                                  <button className="btn-action secondary" onClick={() => navigate(`/my-items/${item.id}/edit`)} >Edit</button>
                              )}
 
                               {/* Example: Mark as Returned for items YOU reported as FOUND that are now CLAIMED */}
                               {isAuthenticated && user?.id === item.reportedById && item.status === 'CLAIMED' && (
                                    // TODO: Implement handleMarkReturned function (dispatch thunk)
-                                   <button className="btn-action success">Mark as Returned</button>
+                                   <button className="btn-action success">Marked as Returned</button>
                               )}
 
                                {/* Example: Confirm Received for items YOU claimed that are now CLAIMED */}
@@ -153,8 +150,7 @@ const MyItemsPage = () => {
                               )}
 
                               {/* Example: Delete button for items YOU reported (if status allows) or if Admin/Super Admin */}
-                              {isAuthenticated && (user?.id === item.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (item.status === 'LOST' || item.status === 'FOUND' || item.status === 'ARCHIVED') && ( // Adjust statuses as needed
-                                   // TODO: Implement handleDelete function (dispatch thunk)
+                              {isAuthenticated && (user?.id === item.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (item.status === 'LOST' || item.status === 'FOUND' || item.status === 'ARCHIVED') && (                                    // TODO: Implement handleDelete function (dispatch thunk)
                                    <button className="btn-action danger">Delete</button>
                               )}
                              {/* ----------------------------------------- */}
@@ -165,15 +161,15 @@ const MyItemsPage = () => {
 
              {/* --- Pagination for My Items --- */}
              {!isMyItemsLoading && !myItemsError && myItemsPagination.totalPages > 1 && (
-                 <div className="pagination"> {/* Reusing pagination class */}
+                 <div className="pagination"> 
                      <nav aria-label="Pagination">
                          <ul>
                              {Array.from({ length: myItemsPagination.totalPages }, (_, i) => i + 1).map((page) => (
                                  <li key={page}>
                                      <button
-                                         onClick={() => paginateMyItems(page)} // Use the specific paginate function
+                                         onClick={() => paginateMyItems(page)} 
                                          className={myItemsPagination.currentPage === page ? 'active' : ''}
-                                         disabled={isMyItemsLoading} // Disable pagination while loading
+                                         disabled={isMyItemsLoading} 
                                      >
                                          {page}
                                      </button>
