@@ -42,6 +42,19 @@ const initialState = {
   claimedItem: null, // Stores the updated item data after a successful claim
   // -----------------------------------
 
+  // --- State for updating an item ---
+
+  isUpdating: false, // State to track if an item is currently being updated
+  updateError: null, // Stores any error message from updating
+  updateSuccess: false, // Flag to indicate successful update
+  updatedItem: null, // Stores the updated item data after a successful update
+
+  // --- State for deleting an item ---
+
+  isDeleting: false, // State to track if an item is currently being deleted
+  deleteError: null, // Stores any error message from deleting
+  deleteSuccess: false, // Flag to indicate successful deletion
+  deletedItemId: null, // Stores the ID of the item successfully deleted
 
   // ------------------------------------------------------
 };
@@ -254,6 +267,105 @@ export const claimItem = createAsyncThunk(
     }
   }
 );
+//-------------------------------------------------------------
+
+// --- Define a new async thunk to update an item ---
+// Expects an object like { itemId, formData } as payload
+export const updateItem = createAsyncThunk(
+  'items/updateItem', // Action type string
+  async ({ itemId, formData }, { rejectWithValue, getState }) => {
+    try {
+      // --- This endpoint requires authentication ---
+      const token = getState().auth.token;
+      if (!token) {
+        return rejectWithValue('Authentication required to update an item.');
+      }
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        // Content-Type will be set automatically for FormData
+      };
+      // ---------------------------------------------
+
+      // Make the API call to update the item (PUT or PATCH /api/items/:id)
+      // Use PUT if sending complete data including files, PATCH if only sending changes
+      // Based on your backend route /api/items/:id expecting PUT with FormData
+      const response = await axios.put(`/api/items/${itemId}`, formData, { headers });
+
+      // Assuming your backend returns the updated item object on success
+      return response.data; // This will be the payload for the 'fulfilled' action (the updated item)
+
+    } catch (error) {
+      let errorMessage = 'Failed to update item.'; // Specific error message
+      if (error.response) {
+        // Check for specific backend validation errors (e.g., unauthorized, invalid data)
+        errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
+        if (error.response.status === 401 || error.response.status === 403) {
+          errorMessage = 'Unauthorized or forbidden to update this item.';
+        } else if (error.response.status === 400) { // Bad Request
+          // Keep backend's specific error message for 400 errors
+          errorMessage = error.response.data?.error || error.response.data?.message || 'Invalid data provided for update.';
+        } else if (error.response.status === 404) { // Not Found
+          errorMessage = 'Item not found.';
+        }
+      } else if (error.request) {
+        errorMessage = 'No response received from server.';
+      } else {
+        errorMessage = `Error sending request: ${error.message}`;
+      }
+      console.error(`Update item ${itemId} API call failed:`, error);
+      return rejectWithValue(errorMessage); // Return the error message
+    }
+  }
+);
+
+
+// --- Define a new async thunk to delete an item ---
+// Expects the item ID as payload
+export const deleteItem = createAsyncThunk(
+  'items/deleteItem', // Action type string
+  async (itemId, { rejectWithValue, getState }) => {
+    try {
+      // --- This endpoint requires authentication ---
+      const token = getState().auth.token;
+      if (!token) {
+        return rejectWithValue('Authentication required to delete an item.');
+      }
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+      // ---------------------------------------------
+
+      // Make the API call to delete the item (DELETE /api/items/:id)
+      const response = await axios.delete(`/api/items/${itemId}`, { headers });
+
+      // Assuming your backend returns a success message or the deleted item ID on success
+      // Returning the deleted item ID is often useful
+      return itemId; // Return the ID of the item that was deleted
+
+    } catch (error) {
+      let errorMessage = 'Failed to delete item.'; // Specific error message
+      if (error.response) {
+        // Check for specific backend validation errors (e.g., unauthorized, not found)
+        errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
+        if (error.response.status === 401 || error.response.status === 403) {
+          errorMessage = 'Unauthorized or forbidden to delete this item.';
+        } else if (error.response.status === 404) { // Not Found
+          errorMessage = 'Item not found.';
+        }
+      } else if (error.request) {
+        errorMessage = 'No response received from server.';
+      } else {
+        errorMessage = `Error sending request: ${error.message}`;
+      }
+      console.error(`Delete item ${itemId} API call failed:`, error);
+      return rejectWithValue(errorMessage); // Return the error message
+    }
+  }
+);
+
+
+
+
 // -----------------------------------------------------
 
 
@@ -288,7 +400,22 @@ const itemsSlice = createSlice({
       state.claimError = null;
       state.claimSuccess = false;
       state.claimedItem = null;
+
+      // Reset update state
+      state.isUpdating = false;
+      state.updateError = null;
+      state.updateSuccess = false;
+      state.updatedItem = null;
+
+      //Reset dete state
+      state.isDeleting = false;
+      state.deleteError = null;
+      state.deleteSuccess = null;
+      state.deletedItemId = null;
+
     },
+
+    //-------------------------
     clearCurrentItem: (state) => {
       state.currentItem = null;
       state.isItemLoading = false;
@@ -315,6 +442,24 @@ const itemsSlice = createSlice({
       state.claimSuccess = false;
       state.claimedItem = null;
     },
+
+    // --- Reducer to clear item update status ---
+    clearUpdateStatus: (state) => {
+      state.isUpdating = false;
+      state.updateError = null;
+      state.updateSuccess = false;
+      state.updatedItem = null; // Clear updated item data too
+    },
+
+    // --- Reducer to calim item delete status
+    clearDeleteStatus: (state) => {
+      state.isDeleting = false;
+      state.deleteError = null;
+      state.deleteSuccess = false;
+      state.deletedItemId = null; // Clear deleted item ID too
+    },
+
+
     // ------------------------------------------
   },
   extraReducers: (builder) => {
@@ -450,6 +595,88 @@ const itemsSlice = createSlice({
         console.error('Item claim failed:', state.claimError);
       })
 
+      // --- Handle state for updateItem thunk
+      .addCase(updateItem.pending, (state) => {
+        state.isUpdating = true; // Use specific loading state for update
+        state.updateError = null; // Clear previous errors
+        state.updateSuccess = false; // Reset success flag
+        state.updatedItem = null; // Clear previous updated item data
+      })
+      .addCase(updateItem.fulfilled, (state, action) => {
+        state.isUpdating = false;
+        state.updateSuccess = true; // Set success flag
+        state.updatedItem = action.payload; // Store the updated item data
+        state.updateError = null; // Clear error on success
+        console.log('Item updated successfully:', action.payload?.title);
+
+        // Optional: Update the item in the main items list if it exists there
+        const index = state.items.findIndex(item => item.id === action.payload.id);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+
+        // Optional: Update the item in myItems list if it exists there
+        const myItemsIndex = state.myItems.findIndex(item => item.id === action.payload.id);
+        if (myItemsIndex !== -1) {
+          state.myItems[myItemsIndex] = action.payload;
+        }
+
+        // If the updated item is the currently viewed item detail, update it too
+        if (state.currentItem && state.currentItem.id === action.payload.id) {
+          state.currentItem = action.payload;
+        }
+
+      })
+      .addCase(updateItem.rejected, (state, action) => {
+        state.isUpdating = false;
+        state.updateSuccess = false; // Update failed
+        state.updatedItem = null; // No item updated
+        state.updateError = action.payload || 'Failed to update item'; // Use the error message
+        console.error('Item update failed:', state.updateError);
+      })
+
+
+      // --- Handle states for deleteItem thunk ---
+      .addCase(deleteItem.pending, (state) => {
+        state.isDeleting = true; // Use specific loading state for deletion
+        state.deleteError = null; // Clear previous errors
+        state.deleteSuccess = false; // Reset success flag
+        state.deletedItemId = null; // Clear previous deleted item ID
+      })
+      .addCase(deleteItem.fulfilled, (state, action) => {
+        state.isDeleting = false;
+        state.deleteSuccess = true; // Set success flag
+        const deletedId = action.payload; // The deleted item ID returned by the thunk
+        state.deletedItemId = deletedId; // Store the deleted item ID
+        state.deleteError = null; // Clear error on success
+        console.log(`Item deleted successfully: ${deletedId}`);
+
+        // --- Remove the item from the lists and current item state ---
+        // Remove from the main items list
+        state.items = state.items.filter(item => item.id !== deletedId);
+        // Remove from the myItems list
+        state.myItems = state.myItems.filter(item => item.id !== deletedId);
+        // If the deleted item was the current item being viewed, clear currentItem
+        if (state.currentItem && state.currentItem.id === deletedId) {
+          state.currentItem = null;
+          state.itemError = 'Item deleted.'; // Set a message indicating it was deleted
+        }
+        // Note: Pagination totals might need recalculation or re-fetching the list
+        // Re-fetching the relevant list (public or my items) is often simpler:
+        // This would require dispatching another thunk here, which is not ideal in reducers.
+        // A component listening to deleteSuccess can trigger the re-fetch.
+        // For now, the item is removed from the current state arrays.
+        // ---------------------------------------------------------------
+      })
+      .addCase(deleteItem.rejected, (state, action) => {
+        state.isDeleting = false;
+        state.deleteSuccess = false; // Deletion failed
+        state.deletedItemId = null; // No item deleted
+        state.deleteError = action.payload || 'Failed to delete item'; // Use the error message
+        console.error('Item deletion failed:', state.deleteError);
+      });
+
+
     // ---------------------------------------------
   },
 });
@@ -457,7 +684,8 @@ const itemsSlice = createSlice({
 // Export the synchronous action creators
 export const { setPagination, clearItems,
   clearCurrentItem, clearItemCreationStatus,
-  clearMyItems, clearClaimStatus, claimedItem } = itemsSlice.actions; // Export clearMyItems
+  clearMyItems, clearClaimStatus, claimedItem,
+  clearUpdateStatus, clearDeleteStatus } = itemsSlice.actions; // Export clearMyItems
 
 // Export the async thunk action creators
 // export { fetchItems, fetchItemById, createItem, fetchMyItems }; // Export fetchMyItems

@@ -11,11 +11,12 @@ import Register from './components/Register';
 import ItemDetail from './pages/ItemDetail';
 
 // Import Redux hooks and the loadAuthState action
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { loadAuthState } from './features/auth/authSlice';
 import ProtectedRoutes from './components/ProtectedRoutes';
 import ReportItem from './pages/ReportItem';
 import MyItemsPage from './pages/MyItemsPage';
+import EditItemPage from './pages/EditItemPage';
 
 
 
@@ -65,6 +66,14 @@ const guide = createBrowserRouter([
         path: '/my-items', element: (
           <ProtectedRoutes>
             <MyItemsPage />
+          </ProtectedRoutes>
+        )
+      },
+
+      {
+        path: 'items/:id/edit', element: (
+          <ProtectedRoutes>
+            <EditItemPage />
           </ProtectedRoutes>
         )
       },
