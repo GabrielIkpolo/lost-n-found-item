@@ -17,7 +17,15 @@ const MyItemsPage = () => {
 
     // Select state for 'my items' from the items slice
     const { myItems, myItemsPagination, isMyItemsLoading, myItemsError,
-        isDeleting, deleteError, deleteSuccess, deletedItemId
+        isDeleting, deleteError, deleteSuccess, deletedItemId,
+        currentItem, isItemLoading, itemError,
+        isClaiming, claimError, claimSuccess, claimedItem,
+        isUpdating, updateError, updateSuccess, updatedItem,
+        // Select new status update states
+        isMarkingReturned, markReturnedError, markReturnedSuccess,
+        isConfirmingReceived, confirmReceivedError, confirmReceivedSuccess,
+        isCancellingClaim, cancelClaimError, cancelClaimSuccess
+
     } = useSelector(state => state.items);
 
     // Select auth state to check user role if needed for specific actions on items
@@ -46,6 +54,136 @@ const MyItemsPage = () => {
     }, [dispatch, myItemsPagination.currentPage, myItemsPagination.itemsPerPage]); // Re-fetch when page or limit changes
 
 
+    //------ Addition -------------------------------------------
+
+    // useEffect(() => {
+    //     if (id) { console.log(`ItemDetail: Fetching item details for ID: ${id}`); dispatch(fetchItemById(id)); }
+    //     return () => {
+    //        console.log('ItemDetail: Clearing all relevant state on unmount.');
+    //        dispatch(clearCurrentItem());
+    //        dispatch(clearClaimStatus());
+    //        dispatch(clearUpdateStatus());
+    //        dispatch(clearDeleteStatus());
+    //        {{ // Clear new status update states on unmount
+    //        dispatch(clearMarkReturnedStatus());
+    //        dispatch(clearConfirmReceivedStatus());
+    //        dispatch(clearCancelClaimStatus());
+    //        }}
+    //     };
+    // }, [id, dispatch]);
+
+
+
+    // Effect for claim success (ensure it calls fetchItemById(id) and clearClaimStatus())
+    //  useEffect(() => {
+    //     if (claimSuccess && claimedItem) {
+    //         console.log('Item claimed successfully:', claimedItem);
+    //         dispatch(addNotification({ message: `Item "${claimedItem.title}" claimed successfully! The reporter has been notified.`, type: NotificationType.SUCCESS, duration: 8000, }));
+    //         dispatch(clearClaimStatus());
+    //         dispatch(fetchItemById(id)); // Re-fetch
+    //     }
+    // }, [claimSuccess, claimedItem, dispatch, navigate, id]);
+
+
+    //   // Effect for claim errors (ensure it calls clearClaimStatus())
+    //   useEffect(() => {
+    //     if (claimError) {
+    //         console.error('Item claim failed:', claimError);
+    //         dispatch(addNotification({ message: `Claim failed: ${claimError}`, type: NotificationType.ERROR, duration: 5000, }));
+    //         dispatch(clearClaimStatus());
+    //     }
+    // }, [claimError, dispatch]);
+
+
+    // Effect for update success (ensure it calls fetchItemById(id) and clearUpdateStatus())
+    // useEffect(() => {
+    //     if (updateSuccess && updatedItem) {
+    //         console.log('Item updated successfully:', updatedItem);
+    //         dispatch(addNotification({ message: `Item "${updatedItem.title || 'Unknown'}" updated successfully!`, type: NotificationType.SUCCESS, duration: 5000, }));
+    //         dispatch(clearUpdateStatus());
+    //         if (updatedItem.id) { dispatch(fetchItemById(updatedItem.id)); }
+    //         else { console.error("EditItemPage: Updated item payload missing ID, cannot re-fetch details."); dispatch(addNotification({ message: 'Item updated, but could not load updated details.', type: NotificationType.WARNING, duration: 5000, })); }
+    //     }
+    // }, [updateSuccess, updatedItem, dispatch, navigate, id]);
+
+
+    // Effect for update errors (ensure it calls clearUpdateStatus())
+    //  useEffect(() => {
+    //     if (updateError) {
+    //         console.error('Item update failed:', updateError);
+    //         dispatch(addNotification({ message: `Update failed: ${updateError}`, type: NotificationType.ERROR, duration: 5000, }));
+    //         dispatch(clearUpdateStatus());
+    //     }
+    // }, [updateError, dispatch]);
+
+
+
+    // // --- Effects for Status Update Success ---
+    // {{
+    //     useEffect(() => {
+    //         if (markReturnedSuccess) {
+    //              console.log('Marked as Returned successful.');
+    //              dispatch(addNotification({ message: 'Item marked as returned.', type: NotificationType.SUCCESS, duration: 5000 }));
+    //              dispatch(clearMarkReturnedStatus());
+    //              dispatch(fetchItemById(id)); // Re-fetch to update UI status
+    //         }
+    //     }, [markReturnedSuccess, dispatch, id]);
+
+    //      useEffect(() => {
+    //          if (confirmReceivedSuccess) {
+    //               console.log('Confirmed Received successful.');
+    //               dispatch(addNotification({ message: 'Item marked as received.', type: NotificationType.SUCCESS, duration: 5000 }));
+    //               dispatch(clearConfirmReceivedStatus());
+    //               dispatch(fetchItemById(id)); // Re-fetch to update UI status
+    //          }
+    //      }, [confirmReceivedSuccess, dispatch, id]);
+
+    //      useEffect(() => {
+    //          if (cancelClaimSuccess) {
+    //               console.log('Claim cancelled successful.');
+    //               dispatch(addNotification({ message: 'Item claim cancelled.', type: NotificationType.SUCCESS, duration: 5000 }));
+    //               dispatch(clearCancelClaimStatus());
+    //               dispatch(fetchItemById(id)); // Re-fetch to update UI status (should go back to FOUND)
+    //          }
+    //      }, [cancelClaimSuccess, dispatch, id]);
+    //     }}
+    //     // ------------------------------------------
+
+
+
+    //  // --- Effects for Status Update Errors ---
+    //  {{
+    //     useEffect(() => {
+    //         if (markReturnedError) {
+    //              console.error('Marked as Returned failed:', markReturnedError);
+    //              dispatch(addNotification({ message: `Failed to mark returned: ${markReturnedError}`, type: NotificationType.ERROR, duration: 5000 }));
+    //              dispatch(clearMarkReturnedStatus());
+    //         }
+    //     }, [markReturnedError, dispatch]);
+
+    //      useEffect(() => {
+    //          if (confirmReceivedError) {
+    //               console.error('Confirmed Received failed:', confirmReceivedError);
+    //               dispatch(addNotification({ message: `Failed to confirm received: ${confirmReceivedError}`, type: NotificationType.ERROR, duration: 5000 }));
+    //               dispatch(clearConfirmReceivedStatus());
+    //          }
+    //      }, [confirmReceivedError, dispatch]);
+
+    //      useEffect(() => {
+    //          if (cancelClaimError) {
+    //               console.error('Claim cancelled failed:', cancelClaimError);
+    //               dispatch(addNotification({ message: `Failed to cancel claim: ${cancelClaimError}`, type: NotificationType.ERROR, duration: 5000 }));
+    //               dispatch(clearCancelClaimStatus());
+    //          }
+    //      }, [cancelClaimError, dispatch]);
+    //     }}
+    //     // ----------------------------------------
+
+
+    // --------- End Addition ----------------------------------------
+
+
+
     // --- Effect to show error notification ---
     useEffect(() => {
         if (myItemsError) {
@@ -57,7 +195,7 @@ const MyItemsPage = () => {
             }));
             // Optional: clear error state in slice if you add clearMyItemsError reducer
         }
-    }, [myItemsError, dispatch]);
+    }, [myItemsError, dispatch, navigate]);
 
 
     // --- Effect 8: Handle successful item deletion ---
@@ -88,8 +226,8 @@ const MyItemsPage = () => {
             // You would need to check if totalItems % itemsPerPage === 0 after deletion
             // and if currentPage > 1, then dispatch fetchMyItems({ page: currentPage - 1, ... })
         }
-    }, [deleteSuccess, deletedItemId, dispatch, myItemsPagination.currentPage, myItemsPagination.itemsPerPage]); // Add dependencies
-
+    }, [deleteSuccess, deletedItemId, dispatch,]);
+    // [deleteSuccess, deletedItemId, dispatch, myItemsPagination.currentPage, myItemsPagination.itemsPerPage]
 
     // --- Effect 9: Handle item deletion errors ---
     useEffect(() => {
@@ -104,6 +242,85 @@ const MyItemsPage = () => {
             dispatch(clearDeleteStatus());
         }
     }, [deleteError, dispatch]);
+
+
+    //=================== Start ================================
+
+    //  // --- Handlers ---
+    //     // Handler for Claim Button Click
+    //     const handleClaimItem = () => {
+    //         if (id && !isClaiming) {
+    //             console.log(`ItemDetail: Attempting to claim item with ID: ${id}`);
+    //             dispatch(claimItem(id));
+    //         }
+    //       };
+
+    //       // Handler for Delete Button Click
+    //       const handleDeleteItem = () => {
+    //           if (id && !isDeleting) {
+    //                const isConfirmed = window.confirm('Are you sure you want to delete this item? This action cannot be undone.');
+    //                if (isConfirmed) {
+    //                    console.log(`ItemDetail: Attempting to delete item with ID: ${id}`);
+    //                    dispatch(deleteItem(id));
+    //                } else { console.log('Item deletion cancelled by user.'); }
+    //           }
+    //       };
+
+    //       // --- Handlers for Status Update Buttons ---
+    //       {{
+    //       const handleMarkReturned = () => {
+    //            if (id && !isMarkingReturned) {
+    //                 console.log(`ItemDetail: Attempting to mark item ${id} as returned.`);
+    //                 dispatch(markItemReturned(id));
+    //            }
+    //       };
+
+    //        const handleConfirmReceived = () => {
+    //            if (id && !isConfirmingReceived) {
+    //                 console.log(`ItemDetail: Attempting to confirm received for item ${id}.`);
+    //                 dispatch(confirmItemReceived(id));
+    //            }
+    //        };
+
+    //        const handleCancelClaim = () => {
+    //            if (id && !isCancellingClaim) {
+    //                 console.log(`ItemDetail: Attempting to cancel claim for item ${id}.`);
+    //                 dispatch(cancelItemClaim(id));
+    //            }
+    //        };
+    //       }}
+    //       // -------------------------------------------
+
+
+    //       // --- Determine if any item action is loading (for disabling buttons) ---
+    //       {{
+    //       const isAnyItemActionLoading = isClaiming || isUpdating || isDeleting || isMarkingReturned || isConfirmingReceived || isCancellingClaim;
+    //       }}
+    //       // ---------------------------------------------------------------------
+
+
+
+    // --- Render Loading/Error/Not Found States ---
+    // // Show loading state for initial fetch OR any item action
+    // if (isItemLoading || {{isAnyItemActionLoading}}) { // Use isAnyItemActionLoading
+    //     return <div style={{ textAlign: 'center', marginTop: '50px' }}>{isAnyItemActionLoading ? 'Processing action...' : 'Loading item details...'}</div>; // Update loading text
+    //   }
+
+    //    // Show error or "not found" message if initial fetch failed OR any action failed
+    //    if (itemError || (!currentItem && !isItemLoading) || {{claimError || updateError || deleteError || markReturnedError || confirmReceivedError || cancelClaimError}}) { // Include all errors
+    //        const displayError = {{claimError || updateError || deleteError || markReturnedError || confirmReceivedError || cancelClaimError}} || itemError || 'Item not found or could not be loaded.'; // Prioritize action errors
+    //        return <div style={{ textAlign: 'center', marginTop: '50px', color: 'red' }}>
+    //            {displayError}
+    //        </div>;
+    //    }
+
+    //  // --- Ensure item data is available before rendering ---
+    //  if (!currentItem) {
+    //      return <div style={{ textAlign: 'center', marginTop: '50px' }}>Item data not available.</div>;
+    //  }
+
+    //====================End ====================================
+
 
 
 

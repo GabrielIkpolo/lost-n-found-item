@@ -3,8 +3,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 // Import fetchItemById, clearCurrentItem, claimItem thunk, and clearClaimStatus action
 import {
-  fetchItemById, clearCurrentItem, claimItem, clearClaimStatus,
-  clearUpdateStatus, clearDeleteStatus, updateItem, deleteItem, 
+  fetchItemById, updateItem, deleteItem, claimItem,
+    markItemReturned, confirmItemReceived, cancelItemClaim, 
+    clearCurrentItem, clearUpdateStatus, clearDeleteStatus, clearClaimStatus, 
+    clearMarkReturnedStatus, clearConfirmReceivedStatus, clearCancelClaimStatus 
 } from '../features/items/itemsSlice';
 import { addNotification, NotificationType } from '../features/notifications/notificationsSlice';
 import { useSelector as useAuthSelector } from 'react-redux';

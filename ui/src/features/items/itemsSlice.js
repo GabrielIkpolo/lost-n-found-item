@@ -56,6 +56,26 @@ const initialState = {
   deleteSuccess: false, // Flag to indicate successful deletion
   deletedItemId: null, // Stores the ID of the item successfully deleted
 
+
+  // --- State for status updates ---
+
+  isMarkingReturned: false,
+  markReturnedError: null,
+  markReturnedSuccess: false,
+
+  isConfirmingReceived: false,
+  confirmReceivedError: null,
+  confirmReceivedSuccess: false,
+
+  isCancellingClaim: false,
+  cancelClaimError: null,
+  cancelClaimSuccess: false,
+
+  // You might also have a general 'isUpdatingStatus' if multiple actions share loading state
+  // isUpdatingStatus: false,
+  // statusUpdateError: null,
+  // statusUpdateSuccess: false, // Could indicate any status update succeeded
+
   // ------------------------------------------------------
 };
 
@@ -365,6 +385,105 @@ export const deleteItem = createAsyncThunk(
 
 
 
+// --- Define new async thunks for status updates ---
+// Thunk to mark an item as RETURNED (typically by the reporter after CLAIMED)
+export const markItemReturned = createAsyncThunk(
+  'items/markItemReturned', // Action type string
+  async (itemId, { rejectWithValue, getState }) => {
+    try {
+      const token = getState().auth.token;
+      if (!token) {
+        return rejectWithValue('Authentication required to mark item as returned.');
+      }
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // Assuming a backend endpoint like PUT /api/items/:id/status/returned
+      // You might need a request body if additional info is sent, but often just ID in URL is enough
+      const response = await axios.put(`/api/items/${itemId}/status/returned`, {}, { headers });
+
+      // Assuming backend returns the updated item object on success
+      return response.data; // The updated item
+
+    } catch (error) {
+      let errorMessage = 'Failed to mark item as returned.';
+      if (error.response) {
+        errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
+        if (error.response.status === 401 || error.response.status === 403) { errorMessage = 'Unauthorized or forbidden to mark this item.'; }
+        else if (error.response.status === 400) { errorMessage = error.response.data?.error || error.response.data?.message || 'Invalid request.'; }
+      } else if (error.request) { errorMessage = 'No response received from server.'; }
+      else { errorMessage = `Error sending request: ${error.message}`; }
+      console.error(`Mark item ${itemId} as returned API call failed:`, error);
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+
+// Thunk to confirm receiving a claimed item (typically by the claimant)
+export const confirmItemReceived = createAsyncThunk(
+  'items/confirmItemReceived', // Action type string
+  async (itemId, { rejectWithValue, getState }) => {
+    try {
+      const token = getState().auth.token;
+      if (!token) {
+        return rejectWithValue('Authentication required to confirm receiving item.');
+      }
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // Assuming a backend endpoint like PUT /api/items/:id/status/received (or similar)
+      const response = await axios.put(`/api/items/${itemId}/status/received`, {}, { headers });
+
+      // Assuming backend returns the updated item object on success
+      return response.data; // The updated item
+
+    } catch (error) {
+      let errorMessage = 'Failed to confirm item received.';
+      if (error.response) {
+        errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
+        if (error.response.status === 401 || error.response.status === 403) { errorMessage = 'Unauthorized or forbidden.'; }
+        else if (error.response.status === 400) { errorMessage = error.response.data?.error || error.response.data?.message || 'Invalid request.'; }
+      } else if (error.request) { errorMessage = 'No response received from server.'; }
+      else { errorMessage = `Error sending request: ${error.message}`; }
+      console.error(`Confirm item ${itemId} received API call failed:`, error);
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+
+// Thunk to cancel a claim on an item (typically by the claimant)
+export const cancelItemClaim = createAsyncThunk(
+  'items/cancelItemClaim', // Action type string
+  async (itemId, { rejectWithValue, getState }) => {
+    try {
+      const token = getState().auth.token;
+      if (!token) {
+        return rejectWithValue('Authentication required to cancel item claim.');
+      }
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // Assuming a backend endpoint like PUT /api/items/:id/status/cancel-claim (or DELETE on claim?)
+      // A PUT to a status endpoint is common.
+      const response = await axios.put(`/api/items/${itemId}/status/cancel-claim`, {}, { headers });
+
+      // Assuming backend returns the updated item object on success (status back to FOUND)
+      return response.data; // The updated item
+
+    } catch (error) {
+      let errorMessage = 'Failed to cancel item claim.';
+      if (error.response) {
+        errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
+        if (error.response.status === 401 || error.response.status === 403) { errorMessage = 'Unauthorized or forbidden.'; }
+        else if (error.response.status === 400) { errorMessage = error.response.data?.error || error.response.data?.message || 'Invalid request.'; }
+      } else if (error.request) { errorMessage = 'No response received from server.'; }
+      else { errorMessage = `Error sending request: ${error.message}`; }
+      console.error(`Cancel item ${itemId} claim API call failed:`, error);
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+
 
 // -----------------------------------------------------
 
@@ -413,6 +532,19 @@ const itemsSlice = createSlice({
       state.deleteSuccess = null;
       state.deletedItemId = null;
 
+      // Reset status update states
+      state.isMarkingReturned = false;
+      state.markReturnedError = null;
+      state.markReturnedSuccess = false;
+
+      state.isConfirmingReceived = false;
+      state.confirmReceivedError = null;
+      state.confirmReceivedSuccess = false;
+
+      state.isCancellingClaim = false;
+      state.cancelClaimError = null;
+      state.cancelClaimSuccess = false;
+
     },
 
     //-------------------------
@@ -459,6 +591,22 @@ const itemsSlice = createSlice({
       state.deletedItemId = null; // Clear deleted item ID too
     },
 
+    // --- Reducers to clear specific status update states ---
+    clearMarkReturnedStatus: (state) => {
+      state.isMarkingReturned = false;
+      state.markReturnedError = null;
+      state.markReturnedSuccess = false;
+    },
+    clearConfirmReceivedStatus: (state) => {
+      state.isConfirmingReceived = false;
+      state.confirmReceivedError = null;
+      state.confirmReceivedSuccess = false;
+    },
+    clearCancelClaimStatus: (state) => {
+      state.isCancellingClaim = false;
+      state.cancelClaimError = null;
+      state.cancelClaimSuccess = false;
+    },
 
     // ------------------------------------------
   },
@@ -635,7 +783,6 @@ const itemsSlice = createSlice({
         console.error('Item update failed:', state.updateError);
       })
 
-
       // --- Handle states for deleteItem thunk ---
       .addCase(deleteItem.pending, (state) => {
         state.isDeleting = true; // Use specific loading state for deletion
@@ -674,7 +821,95 @@ const itemsSlice = createSlice({
         state.deletedItemId = null; // No item deleted
         state.deleteError = action.payload || 'Failed to delete item'; // Use the error message
         console.error('Item deletion failed:', state.deleteError);
-      });
+      })
+
+
+      // --- Handle states for markItemReturned thunk ---
+      .addCase(markItemReturned.pending, (state) => {
+        state.isMarkingReturned = true;
+        state.markReturnedError = null;
+        state.markReturnedSuccess = false;
+      })
+      .addCase(markItemReturned.fulfilled, (state, action) => {
+        state.isMarkingReturned = false;
+        state.markReturnedSuccess = true;
+        const updatedItem = action.payload;
+        state.markReturnedError = null;
+        console.log('Item marked Returned successfully:', updatedItem?.title);
+        // Update item in lists and current item
+        const index = state.items.findIndex(item => item.id === updatedItem.id);
+        if (index !== -1) { state.items[index = updatedItem]; }
+        const myItemsIndex = state.myItems.findIndex(item => item.id === updatedItem.id);
+        if (myItemsIndex !== -1) { state.myItems[myItemsIndex] = updatedItem; }
+        if (state.currentItem && state.currentItem.id === updatedItem.id) {
+          state.currentItem = updatedItem;
+        }
+      })
+      .addCase(markItemReturned.rejected, (state, action) => {
+        state.isMarkingReturned = false;
+        state.markReturnedSuccess = false;
+        state.markReturnedError = action.payload || 'Failed to mark item as returned';
+        console.error('Mark item as returned failed:', state.markReturnedError);
+      })
+      // ------------------------------------------------
+
+      // --- Handle states for confirmItemReceived thunk ---
+      .addCase(confirmItemReceived.pending, (state) => {
+        state.isConfirmingReceived = true;
+        state.confirmReceivedError = null;
+        state.confirmReceivedSuccess = false;
+      })
+      .addCase(confirmItemReceived.fulfilled, (state, action) => {
+        state.isConfirmingReceived = false;
+        state.confirmReceivedSuccess = true;
+        const updatedItem = action.payload;
+        state.confirmReceivedError = null;
+        console.log('Item confirmed received successfully:', updatedItem?.title);
+        // Update item in lists and current item
+        const index = state.items.findIndex(item => item.id === updatedItem.id);
+        if (index !== -1) { state.items[index] = updatedItem; }
+        const myItemsIndex = state.myItems.findIndex(item => item.id === updatedItem.id);
+        if (myItemsIndex !== -1) { state.myItems[myItemsIndex] = updatedItem; }
+        if (state.currentItem && state.currentItem.id === updatedItem.id) {
+          state.currentItem = updatedItem;
+        }
+      })
+      .addCase(confirmItemReceived.rejected, (state, action) => {
+        state.isConfirmingReceived = false;
+        state.confirmReceivedSuccess = false;
+        state.confirmReceivedError = action.payload || 'Failed to confirm item received';
+        console.error('Confirm item received failed:', state.confirmReceivedError);
+      })
+
+      // ---------------------------------------------------
+
+      // --- Handle states for cancelItemClaim thunk ---
+      .addCase(cancelItemClaim.pending, (state) => {
+        state.isCancellingClaim = true;
+        state.cancelClaimError = null;
+        state.cancelClaimSuccess = false;
+      })
+      .addCase(cancelItemClaim.fulfilled, (state, action) => {
+        state.isCancellingClaim = false;
+        state.cancelClaimSuccess = true;
+        const updatedItem = action.payload;
+        state.cancelClaimError = null;
+        console.log('Item claim cancelled successfully:', updatedItem?.title);
+        // Update item in lists and current item
+        const index = state.items.findIndex(item => item.id === updatedItem.id);
+        if (index !== -1) { state.items[index] = updatedItem; }
+        const myItemsIndex = state.myItems.findIndex(item => item.id === updatedItem.id);
+        if (myItemsIndex !== -1) { state.myItems[myItemsIndex] = updatedItem; }
+        if (state.currentItem && state.currentItem.id === updatedItem.id) {
+          state.currentItem = updatedItem;
+        }
+      })
+      .addCase(cancelItemClaim.rejected, (state, action) => {
+        state.isCancellingClaim = false;
+        state.cancelClaimSuccess = false;
+        state.cancelClaimError = action.payload || 'Failed to cancel item claim';
+        console.error('Cancel item claim failed:', state.cancelClaimError);
+      })
 
 
     // ---------------------------------------------
@@ -685,10 +920,11 @@ const itemsSlice = createSlice({
 export const { setPagination, clearItems,
   clearCurrentItem, clearItemCreationStatus,
   clearMyItems, clearClaimStatus, claimedItem,
-  clearUpdateStatus, clearDeleteStatus } = itemsSlice.actions; // Export clearMyItems
+  clearUpdateStatus, clearDeleteStatus,
+  clearMarkReturnedStatus,
+  clearConfirmReceivedStatus,
+  clearCancelClaimStatus } = itemsSlice.actions; // Export clearMyItems
 
-// Export the async thunk action creators
-// export { fetchItems, fetchItemById, createItem, fetchMyItems }; // Export fetchMyItems
 
 // Export the reducer as the default export
 export default itemsSlice.reducer;
