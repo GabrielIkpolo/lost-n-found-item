@@ -47,9 +47,9 @@ This web application provides a platform for managing lost and found items withi
 *   **Image Processing:** sharp (or similar)
 *   **Input Validation:** express-validator 
 *   **Rate Limiting:** express-rate-limit
-*   **Scheduled Tasks:** node-cron (or similar)
+*   **Scheduled Tasks:** node-cron 
 *   **Push Notifications:** Firebase Cloud Messaging (FCM)
-*   **UI Framework/Styling:** TBD (e.g., Tailwind CSS or Vanilla CSS)
+*   **UI Framework/Styling:** Vanilla CSS
 
 ## Project Structure
 
