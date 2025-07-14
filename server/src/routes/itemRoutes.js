@@ -1,5 +1,8 @@
 import express from 'express';
-import { createItem, getItems, getItemDetails, updateItem, deleteItem, claimItem } from '../controllers/itemController.js';
+import {
+    createItem, getItems, getItemDetails, updateItem, deleteItem, claimItem,
+    markItemReturned, confirmItemReceived, cancelItemClaim
+} from '../controllers/itemController.js';
 import { requireSignin, isAdmin, optionalSignin } from '../helpers/authMiddleware.js';
 import { publicApiLimiter, itemActionLimiter } from '../middleware/rateLimiter.js';
 
@@ -41,7 +44,7 @@ const itemRoutes = (upload) => {
             { name: 'imageUrlFront', maxCount: 1 },
             { name: 'imageUrlBack', maxCount: 1 }
         ]),
-        updateItem 
+        updateItem
     );
 
     // Route for deleting an item (DELETE /api/items/:id)
@@ -61,6 +64,29 @@ const itemRoutes = (upload) => {
         claimItem // Controller function to handle the claim logic
     );
 
+    // Endpoint to mark an item as RETURNED (typically by the reporter)
+    router.put(
+        '/:id/status/returned', 
+        requireSignin, 
+        itemActionLimiter, 
+        markItemReturned 
+    );
+
+    // Endpoint to confirm receiving a claimed item (typically by the claimant)
+    router.put(
+        '/:id/status/received', 
+        requireSignin, 
+        itemActionLimiter,
+        confirmItemReceived 
+    );
+
+    // Endpoint to cancel a claim on an item (typically by the claimant)
+    router.put(
+        '/:id/status/cancel-claim', 
+        requireSignin, 
+        itemActionLimiter, 
+        cancelItemClaim 
+    );
 
     return router;
 };

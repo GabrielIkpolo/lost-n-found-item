@@ -1218,3 +1218,379 @@ export const getItems = async (req, res) => {
         return res.status(500).json({ error: "Internal server error while fetching items." });
     }
 };
+
+// --- New Controller function to mark item as RETURNED ---
+export const markItemReturned = async (req, res) => {
+    // Ensure req.user is available from requireSignin middleware
+    if (!req.user) {
+        return res.status(401).json({ error: "Authentication required." });
+    }
+
+    try {
+        const { id } = req.params; // Item ID from URL parameters
+        const userId = req.user.id; // ID of the user attempting the action
+        const userRole = req.user.role; // Role of the user
+
+        // 1. Fetch the item and necessary details
+        const item = await prisma.item.findUnique({
+            where: { id: id },
+            select: {
+                id: true,
+                status: true,
+                reportedById: true, // Need reporter ID
+                claimedById: true,  // Need claimant ID if applicable
+                title: true,
+            },
+        });
+
+        // 2. Validate item existence
+        if (!item) {
+            return res.status(404).json({ error: "Item not found." });
+        }
+
+        // 3. Authorization Check: Only the reportedBy user OR Admin/Super_Admin can mark as RETURNED
+        const isOwner = item.reportedById === userId;
+        const isAdminOrSuperAdmin = userRole === UserRole.ADMIN || userRole === UserRole.SUPER_ADMIN;
+
+        if (!isOwner && !isAdminOrSuperAdmin) {
+            return res.status(403).json({ error: "Forbidden: You do not have permission to mark this item as returned." });
+        }
+
+        // 4. Status Validation: Can only mark as RETURNED if the status is CLAIMED (or maybe LOST if found independently?)
+        // Let's enforce that only CLAIMED items can be marked RETURNED via this endpoint for now.
+        // If a LOST item is found independently, the reporter would likely use the general /items/:id PUT endpoint to update status.
+        if (item.status !== ItemStatus.CLAIMED) {
+            return res.status(400).json({ error: `Item cannot be marked as returned. Current status is ${item.status}.` });
+        }
+
+        // 5. Update the item status to RETURNED
+        const updatedItem = await prisma.item.update({
+            where: { id: id },
+            data: {
+                status: ItemStatus.RETURNED,
+                // Optionally, clear claimedBy here if you want RETURNED items
+                // to no longer be linked to the claimant in the database,
+                // or keep it to show who it was returned to. Let's keep it for now.
+                // claimedBy: { disconnect: true }, // Example to clear claimedBy
+            },
+            select: { // Select fields for response and notifications
+                id: true,
+                title: true,
+                status: true,
+                reportedBy: { select: { id: true, email: true, name: true } },
+                claimedBy: { select: { id: true, email: true, name: true } },
+            }
+        });
+
+        // 6. Create Audit Log
+        try {
+            await prisma.auditLog.create({
+                data: {
+                    userId: userId,
+                    itemId: updatedItem.id,
+                    action: AuditAction.UPDATE_ITEM_STATUS, // Or a new enum like MARK_ITEM_RETURNED
+                    details: `Item "${updatedItem.title}" status changed to RETURNED by user ${userId}.`,
+                    ipAddress: req.ip,
+                    userAgent: req.headers['user-agent'],
+                }
+            });
+        } catch (auditError) {
+            console.error("Failed to create audit log for mark returned:", auditError);
+        }
+
+        // 7. Trigger Notifications
+        // Notify the claimant that the item has been marked as returned by the reporter
+        if (updatedItem.claimedBy && updatedItem.claimedBy.id !== userId) { // Ensure there's a claimant and it's not the user marking it
+            try {
+                await sendNotification({
+                    userId: updatedItem.claimedBy.id, // Notify the claimant
+                    itemId: updatedItem.id,
+                    type: NotificationType.ITEM_UPDATED, // Or a specific type
+                    message: `The item "${updatedItem.title}" you claimed has been marked as RETURNED by the reporter.`,
+                    pushTitle: `Item Returned: "${updatedItem.title}"`,
+                    data: { itemId: updatedItem.id, status: updatedItem.status }
+                });
+                console.log(`Notification triggered to claimant ${updatedItem.claimedBy.id} for item ${updatedItem.id} status RETURNED.`);
+            } catch (notificationError) {
+                console.error("Failed to trigger notification to claimant for mark returned:", notificationError);
+            }
+        }
+        // You might also notify the reporter for confirmation, though less critical
+
+        // 8. Send success response
+        return res.status(200).json({
+            message: "Item marked as returned successfully.",
+            item: { // Return essential info
+                id: updatedItem.id,
+                title: updatedItem.title,
+                status: updatedItem.status,
+                claimedBy: updatedItem.claimedBy ? { id: updatedItem.claimedBy.id, name: updatedItem.claimedBy.name } : null,
+            },
+        });
+
+    } catch (error) {
+        console.error("Error marking item as returned:", error);
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error.code === 'P2025') return res.status(404).json({ error: "Item not found." });
+            if (error.code === 'P2000') return res.status(400).json({ error: "Invalid Item ID format." });
+            // Handle other Prisma errors
+        }
+        return res.status(500).json({ error: "Internal server error while marking item as returned." });
+    }
+};
+
+// --- New Controller function to confirm receiving a claimed item ---
+export const confirmItemReceived = async (req, res) => {
+    // Ensure req.user is available from requireSignin middleware
+    if (!req.user) {
+        return res.status(401).json({ error: "Authentication required." });
+    }
+
+    try {
+        const { id } = req.params; // Item ID
+        const userId = req.user.id; // ID of the user confirming receipt
+
+        // 1. Fetch the item and necessary details
+        const item = await prisma.item.findUnique({
+            where: { id: id },
+            select: {
+                id: true,
+                status: true,
+                reportedById: true, // Need reporter ID
+                claimedById: true,  // Need claimant ID
+                title: true,
+            },
+        });
+
+        // 2. Validate item existence
+        if (!item) {
+            return res.status(404).json({ error: "Item not found." });
+        }
+
+        // 3. Authorization Check: Only the claimedBy user OR Admin/Super_Admin can confirm receipt
+        const isClaimant = item.claimedById === userId;
+        const isAdminOrSuperAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN;
+
+        if (!isClaimant && !isAdminOrSuperAdmin) {
+            return res.status(403).json({ error: "Forbidden: You do not have permission to confirm receipt of this item." });
+        }
+        // Also ensure the item *is* actually claimed by this user if they are the claimant
+        if (isClaimant && item.claimedById !== userId) {
+            // This is a redundant check if isClaimant is true, but defensive
+            return res.status(403).json({ error: "Forbidden: You can only confirm items you have claimed." });
+        }
+
+
+        // 4. Status Validation: Can only confirm receipt if the status is CLAIMED
+        if (item.status !== ItemStatus.CLAIMED) {
+            return res.status(400).json({ error: `Item cannot be confirmed as received. Current status is ${item.status}.` });
+        }
+
+        // 5. Update the item status to RETURNED
+        // NOTE: Confirming receipt by the claimant is equivalent to the item being RETURNED.
+        // The backend should transition to RETURNED status.
+        const updatedItem = await prisma.item.update({
+            where: { id: id },
+            data: {
+                status: ItemStatus.RETURNED,
+                // Keep claimedBy as is
+            },
+            select: { // Select fields for response and notifications
+                id: true,
+                title: true,
+                status: true,
+                reportedBy: { select: { id: true, email: true, name: true } },
+                claimedBy: { select: { id: true, email: true, name: true } },
+            }
+        });
+
+
+        // 6. Create Audit Log
+        try {
+            await prisma.auditLog.create({
+                data: {
+                    userId: userId,
+                    itemId: updatedItem.id,
+                    action: AuditAction.UPDATE_ITEM_STATUS, // Or a new enum like CONFIRM_ITEM_RECEIVED
+                    details: `Item "${updatedItem.title}" status changed to RETURNED (confirmed received) by user ${userId}.`,
+                    ipAddress: req.ip,
+                    userAgent: req.headers['user-agent'],
+                }
+            });
+        } catch (auditError) {
+            console.error("Failed to create audit log for confirm received:", auditError);
+        }
+
+
+        // 7. Trigger Notifications
+        // Notify the reporter that the claimant has confirmed receiving the item
+        if (updatedItem.reportedBy && updatedItem.reportedBy.id !== userId) { // Ensure there's a reporter and it's not the user confirming
+            try {
+                await sendNotification({
+                    userId: updatedItem.reportedBy.id, // Notify the reporter
+                    itemId: updatedItem.id,
+                    type: NotificationType.ITEM_UPDATED, // Or a specific type like ITEM_RECEIPT_CONFIRMED
+                    message: `The item "${updatedItem.title}" has been confirmed as received by the claimant, ${updatedItem.claimedBy?.name || 'the claimant'}.`,
+                    pushTitle: `Item Confirmed Received: "${updatedItem.title}"`,
+                    data: { itemId: updatedItem.id, status: updatedItem.status }
+                });
+                console.log(`Notification triggered to reporter ${updatedItem.reportedBy.id} for item ${updatedItem.id} confirmed received.`);
+            } catch (notificationError) {
+                console.error("Failed to trigger notification to reporter for confirm received:", notificationError);
+            }
+        }
+        // You might also send a confirmation notification to the user who confirmed receipt
+
+        // 8. Send success response
+        return res.status(200).json({
+            message: "Item confirmed as received and marked as returned.",
+            item: { // Return essential info
+                id: updatedItem.id,
+                title: updatedItem.title,
+                status: updatedItem.status,
+                reportedBy: updatedItem.reportedBy ? { id: updatedItem.reportedBy.id, name: updatedItem.reportedBy.name } : null,
+                claimedBy: updatedItem.claimedBy ? { id: updatedItem.claimedBy.id, name: updatedItem.claimedBy.name } : null,
+            },
+        });
+
+    } catch (error) {
+        console.error("Error confirming item received:", error);
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error.code === 'P2025') return res.status(404).json({ error: "Item not found." });
+            if (error.code === 'P2000') return res.status(400).json({ error: "Invalid Item ID format." });
+            // Handle other Prisma errors
+        }
+        return res.status(500).json({ error: "Internal server error while confirming item received." });
+    }
+};
+
+
+// --- New Controller function to cancel a claim on an item ---
+export const cancelItemClaim = async (req, res) => {
+    // Ensure req.user is available from requireSignin middleware
+    if (!req.user) {
+        return res.status(401).json({ error: "Authentication required." });
+    }
+
+    try {
+        const { id } = req.params; // Item ID
+        const userId = req.user.id; // ID of the user cancelling the claim
+
+        // 1. Fetch the item and necessary details
+        const item = await prisma.item.findUnique({
+            where: { id: id },
+            select: {
+                id: true,
+                status: true,
+                reportedById: true, // Need reporter ID
+                claimedById: true,  // Need claimant ID
+                title: true,
+            },
+        });
+
+        // 2. Validate item existence
+        if (!item) {
+            return res.status(404).json({ error: "Item not found." });
+        }
+
+        // 3. Authorization Check: Only the claimedBy user OR Admin/Super_Admin can cancel the claim
+        const isClaimant = item.claimedById === userId;
+        const isAdminOrSuperAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN;
+
+        if (!isClaimant && !isAdminOrSuperAdmin) {
+            return res.status(403).json({ error: "Forbidden: You do not have permission to cancel the claim on this item." });
+        }
+        // Also ensure the item *is* actually claimed by this user if they are the claimant
+        if (isClaimant && item.claimedById !== userId) {
+            // This is a redundant check if isClaimant is true, but defensive
+            return res.status(403).json({ error: "Forbidden: You can only cancel claims on items you have claimed." });
+        }
+
+
+        // 4. Status Validation: Can only cancel a claim if the status is CLAIMED
+        if (item.status !== ItemStatus.CLAIMED) {
+            return res.status(400).json({ error: `Claim cannot be cancelled. Current status is ${item.status}.` });
+        }
+
+        // 5. Update the item status back to FOUND and disconnect claimedBy
+        // When status goes back to FOUND, reset the expiry date.
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 90); // Reset expiry to 90 days from now
+
+        const updatedItem = await prisma.item.update({
+            where: { id: id },
+            data: {
+                status: ItemStatus.FOUND, // Change status back to FOUND
+                claimedBy: { disconnect: true }, // Disconnect the claimant
+                claimedById: null, // Explicitly set claimedById to null (disconnect should handle this, but good practice)
+                expiresAt: expiresAt, // Set new expiry date for FOUND item
+            },
+            select: { // Select fields for response and notifications
+                id: true,
+                title: true,
+                status: true,
+                reportedBy: { select: { id: true, email: true, name: true } },
+                // claimedBy will be null now, but might be needed for notification context
+                // claimedBy: { select: { id: true, email: true, name: true } }, // This would be null
+            }
+        });
+
+
+        // 6. Create Audit Log
+        try {
+            await prisma.auditLog.create({
+                data: {
+                    userId: userId,
+                    itemId: updatedItem.id,
+                    action: AuditAction.UPDATE_ITEM_STATUS, // Or a new enum like CANCEL_ITEM_CLAIM
+                    details: `Claim cancelled for item "${updatedItem.title}" by user ${userId}. Status reset to FOUND.`,
+                    ipAddress: req.ip,
+                    userAgent: req.headers['user-agent'],
+                }
+            });
+        } catch (auditError) {
+            console.error("Failed to create audit log for cancel claim:", auditError);
+        }
+
+
+        // 7. Trigger Notifications
+        // Notify the reporter that the claim has been cancelled
+        if (updatedItem.reportedBy && updatedItem.reportedBy.id !== userId) { // Ensure there's a reporter and it's not the user cancelling
+            try {
+                await sendNotification({
+                    userId: updatedItem.reportedBy.id, // Notify the reporter
+                    itemId: updatedItem.id,
+                    type: NotificationType.ITEM_UPDATED, // Or a specific type like ITEM_CLAIM_CANCELLED
+                    message: `The claim on your reported item "${updatedItem.title}" has been cancelled by the claimant. The item is now available again.`,
+                    pushTitle: `Claim Cancelled: "${updatedItem.title}"`,
+                    data: { itemId: updatedItem.id, status: updatedItem.status }
+                });
+                console.log(`Notification triggered to reporter ${updatedItem.reportedBy.id} for item ${updatedItem.id} claim cancelled.`);
+            } catch (notificationError) {
+                console.error("Failed to trigger notification to reporter for cancel claim:", notificationError);
+            }
+        }
+        // You might also send a confirmation notification to the user who cancelled the claim
+
+        // 8. Send success response
+        return res.status(200).json({
+            message: "Item claim cancelled successfully. Status reset to FOUND.",
+            item: { // Return essential info
+                id: updatedItem.id,
+                title: updatedItem.title,
+                status: updatedItem.status,
+                reportedBy: updatedItem.reportedBy ? { id: updatedItem.reportedBy.id, name: updatedItem.reportedBy.name } : null,
+                claimedBy: null, // Explicitly show claimedBy is null
+            },
+        });
+
+    } catch (error) {
+        console.error("Error cancelling item claim:", error);
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error.code === 'P2025') return res.status(404).json({ error: "Item not found." });
+            if (error.code === 'P2000') return res.status(400).json({ error: "Invalid Item ID format." });
+            // Handle other Prisma errors
+        }
+        return res.status(500).json({ error: "Internal server error while cancelling item claim." });
+    }
+};

@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchMyItems, deleteItem, clearMyItems, clearDeleteStatus } from '../features/items/itemsSlice';
+import {
+    fetchMyItems, deleteItem, clearMyItems, clearDeleteStatus,
+    markItemReturned, confirmItemReceived, cancelItemClaim,
+    clearMarkReturnedStatus, clearConfirmReceivedStatus, clearCancelClaimStatus,
+} from '../features/items/itemsSlice';
 import { addNotification, NotificationType } from '../features/notifications/notificationsSlice';
 // Import Link for item details navigation and potentially useNavigate
 import { Link, useNavigate } from 'react-router-dom';
@@ -8,12 +12,12 @@ import { Link, useNavigate } from 'react-router-dom';
 // Import item placeholder image if needed for list
 import itemPlaceholderImage from '../assets/images/logo-1.png';
 
-import './myItemsPage.css'; // Your CSS file
+import './myItemsPage.css';
 
 
 const MyItemsPage = () => {
     const dispatch = useDispatch();
-    const navigate = useNavigate(); // Get navigate hook
+    const navigate = useNavigate();
 
     // Select state for 'my items' from the items slice
     const { myItems, myItemsPagination, isMyItemsLoading, myItemsError,
@@ -46,145 +50,21 @@ const MyItemsPage = () => {
 
         // Cleanup function: Clear the 'my items' state when the component unmounts
         return () => {
-            console.log('Clearing my items state.');
-            dispatch(clearMyItems()); // Dispatch the cleanup action
+            console.log('Clearing my items state and delete status.');
+            dispatch(clearMyItems());
             dispatch(clearDeleteStatus());
+            // Clear status update statuses too
+            dispatch(clearMarkReturnedStatus());
+            dispatch(clearConfirmReceivedStatus());
+            dispatch(clearCancelClaimStatus());
         };
 
-    }, [dispatch, myItemsPagination.currentPage, myItemsPagination.itemsPerPage]); // Re-fetch when page or limit changes
-
-
-    //------ Addition -------------------------------------------
-
-    // useEffect(() => {
-    //     if (id) { console.log(`ItemDetail: Fetching item details for ID: ${id}`); dispatch(fetchItemById(id)); }
-    //     return () => {
-    //        console.log('ItemDetail: Clearing all relevant state on unmount.');
-    //        dispatch(clearCurrentItem());
-    //        dispatch(clearClaimStatus());
-    //        dispatch(clearUpdateStatus());
-    //        dispatch(clearDeleteStatus());
-    //        {{ // Clear new status update states on unmount
-    //        dispatch(clearMarkReturnedStatus());
-    //        dispatch(clearConfirmReceivedStatus());
-    //        dispatch(clearCancelClaimStatus());
-    //        }}
-    //     };
-    // }, [id, dispatch]);
+    }, [dispatch,]);
+    // myItemsPagination.currentPage, myItemsPagination.itemsPerPage
 
 
 
-    // Effect for claim success (ensure it calls fetchItemById(id) and clearClaimStatus())
-    //  useEffect(() => {
-    //     if (claimSuccess && claimedItem) {
-    //         console.log('Item claimed successfully:', claimedItem);
-    //         dispatch(addNotification({ message: `Item "${claimedItem.title}" claimed successfully! The reporter has been notified.`, type: NotificationType.SUCCESS, duration: 8000, }));
-    //         dispatch(clearClaimStatus());
-    //         dispatch(fetchItemById(id)); // Re-fetch
-    //     }
-    // }, [claimSuccess, claimedItem, dispatch, navigate, id]);
-
-
-    //   // Effect for claim errors (ensure it calls clearClaimStatus())
-    //   useEffect(() => {
-    //     if (claimError) {
-    //         console.error('Item claim failed:', claimError);
-    //         dispatch(addNotification({ message: `Claim failed: ${claimError}`, type: NotificationType.ERROR, duration: 5000, }));
-    //         dispatch(clearClaimStatus());
-    //     }
-    // }, [claimError, dispatch]);
-
-
-    // Effect for update success (ensure it calls fetchItemById(id) and clearUpdateStatus())
-    // useEffect(() => {
-    //     if (updateSuccess && updatedItem) {
-    //         console.log('Item updated successfully:', updatedItem);
-    //         dispatch(addNotification({ message: `Item "${updatedItem.title || 'Unknown'}" updated successfully!`, type: NotificationType.SUCCESS, duration: 5000, }));
-    //         dispatch(clearUpdateStatus());
-    //         if (updatedItem.id) { dispatch(fetchItemById(updatedItem.id)); }
-    //         else { console.error("EditItemPage: Updated item payload missing ID, cannot re-fetch details."); dispatch(addNotification({ message: 'Item updated, but could not load updated details.', type: NotificationType.WARNING, duration: 5000, })); }
-    //     }
-    // }, [updateSuccess, updatedItem, dispatch, navigate, id]);
-
-
-    // Effect for update errors (ensure it calls clearUpdateStatus())
-    //  useEffect(() => {
-    //     if (updateError) {
-    //         console.error('Item update failed:', updateError);
-    //         dispatch(addNotification({ message: `Update failed: ${updateError}`, type: NotificationType.ERROR, duration: 5000, }));
-    //         dispatch(clearUpdateStatus());
-    //     }
-    // }, [updateError, dispatch]);
-
-
-
-    // // --- Effects for Status Update Success ---
-    // {{
-    //     useEffect(() => {
-    //         if (markReturnedSuccess) {
-    //              console.log('Marked as Returned successful.');
-    //              dispatch(addNotification({ message: 'Item marked as returned.', type: NotificationType.SUCCESS, duration: 5000 }));
-    //              dispatch(clearMarkReturnedStatus());
-    //              dispatch(fetchItemById(id)); // Re-fetch to update UI status
-    //         }
-    //     }, [markReturnedSuccess, dispatch, id]);
-
-    //      useEffect(() => {
-    //          if (confirmReceivedSuccess) {
-    //               console.log('Confirmed Received successful.');
-    //               dispatch(addNotification({ message: 'Item marked as received.', type: NotificationType.SUCCESS, duration: 5000 }));
-    //               dispatch(clearConfirmReceivedStatus());
-    //               dispatch(fetchItemById(id)); // Re-fetch to update UI status
-    //          }
-    //      }, [confirmReceivedSuccess, dispatch, id]);
-
-    //      useEffect(() => {
-    //          if (cancelClaimSuccess) {
-    //               console.log('Claim cancelled successful.');
-    //               dispatch(addNotification({ message: 'Item claim cancelled.', type: NotificationType.SUCCESS, duration: 5000 }));
-    //               dispatch(clearCancelClaimStatus());
-    //               dispatch(fetchItemById(id)); // Re-fetch to update UI status (should go back to FOUND)
-    //          }
-    //      }, [cancelClaimSuccess, dispatch, id]);
-    //     }}
-    //     // ------------------------------------------
-
-
-
-    //  // --- Effects for Status Update Errors ---
-    //  {{
-    //     useEffect(() => {
-    //         if (markReturnedError) {
-    //              console.error('Marked as Returned failed:', markReturnedError);
-    //              dispatch(addNotification({ message: `Failed to mark returned: ${markReturnedError}`, type: NotificationType.ERROR, duration: 5000 }));
-    //              dispatch(clearMarkReturnedStatus());
-    //         }
-    //     }, [markReturnedError, dispatch]);
-
-    //      useEffect(() => {
-    //          if (confirmReceivedError) {
-    //               console.error('Confirmed Received failed:', confirmReceivedError);
-    //               dispatch(addNotification({ message: `Failed to confirm received: ${confirmReceivedError}`, type: NotificationType.ERROR, duration: 5000 }));
-    //               dispatch(clearConfirmReceivedStatus());
-    //          }
-    //      }, [confirmReceivedError, dispatch]);
-
-    //      useEffect(() => {
-    //          if (cancelClaimError) {
-    //               console.error('Claim cancelled failed:', cancelClaimError);
-    //               dispatch(addNotification({ message: `Failed to cancel claim: ${cancelClaimError}`, type: NotificationType.ERROR, duration: 5000 }));
-    //               dispatch(clearCancelClaimStatus());
-    //          }
-    //      }, [cancelClaimError, dispatch]);
-    //     }}
-    //     // ----------------------------------------
-
-
-    // --------- End Addition ----------------------------------------
-
-
-
-    // --- Effect to show error notification ---
+    // --- Effect to show error notification for fetching my items ---
     useEffect(() => {
         if (myItemsError) {
             console.error('My items fetch error:', myItemsError);
@@ -193,9 +73,9 @@ const MyItemsPage = () => {
                 type: NotificationType.ERROR,
                 duration: 5000,
             }));
-            // Optional: clear error state in slice if you add clearMyItemsError reducer
+            // Note: Error message is already cleared by fetchMyItems.rejected
         }
-    }, [myItemsError, dispatch, navigate]);
+    }, [myItemsError, dispatch]);
 
 
     // --- Effect 8: Handle successful item deletion ---
@@ -216,7 +96,7 @@ const MyItemsPage = () => {
             // This is important if deletion removes an item and affects the count/pages
             console.log(`MyItemsPage: Re-fetching my items after deletion.`);
             dispatch(fetchMyItems({
-                page: myItemsPagination.currentPage, // Re-fetch the current page
+                page: myItemsPagination.currentPage,
                 limit: myItemsPagination.itemsPerPage,
                 // Include any active filters here
             }));
@@ -244,83 +124,46 @@ const MyItemsPage = () => {
     }, [deleteError, dispatch]);
 
 
-    //=================== Start ================================
 
-    //  // --- Handlers ---
-    //     // Handler for Claim Button Click
-    //     const handleClaimItem = () => {
-    //         if (id && !isClaiming) {
-    //             console.log(`ItemDetail: Attempting to claim item with ID: ${id}`);
-    //             dispatch(claimItem(id));
-    //         }
-    //       };
+    // --- Effects for Status Update Success ---
+    useEffect(() => {
+        // Check if any of the status update success flags are true
+        if (markReturnedSuccess || confirmReceivedSuccess || cancelClaimSuccess) {
+            console.log('MyItemsPage: Status update successful.');
+            // Show a generic success notification (or more specific if needed)
+            dispatch(addNotification({ message: 'Item status updated.', type: NotificationType.SUCCESS, duration: 5000 }));
 
-    //       // Handler for Delete Button Click
-    //       const handleDeleteItem = () => {
-    //           if (id && !isDeleting) {
-    //                const isConfirmed = window.confirm('Are you sure you want to delete this item? This action cannot be undone.');
-    //                if (isConfirmed) {
-    //                    console.log(`ItemDetail: Attempting to delete item with ID: ${id}`);
-    //                    dispatch(deleteItem(id));
-    //                } else { console.log('Item deletion cancelled by user.'); }
-    //           }
-    //       };
+            // Clear all status update flags
+            dispatch(clearMarkReturnedStatus());
+            dispatch(clearConfirmReceivedStatus());
+            dispatch(clearCancelClaimStatus());
 
-    //       // --- Handlers for Status Update Buttons ---
-    //       {{
-    //       const handleMarkReturned = () => {
-    //            if (id && !isMarkingReturned) {
-    //                 console.log(`ItemDetail: Attempting to mark item ${id} as returned.`);
-    //                 dispatch(markItemReturned(id));
-    //            }
-    //       };
-
-    //        const handleConfirmReceived = () => {
-    //            if (id && !isConfirmingReceived) {
-    //                 console.log(`ItemDetail: Attempting to confirm received for item ${id}.`);
-    //                 dispatch(confirmItemReceived(id));
-    //            }
-    //        };
-
-    //        const handleCancelClaim = () => {
-    //            if (id && !isCancellingClaim) {
-    //                 console.log(`ItemDetail: Attempting to cancel claim for item ${id}.`);
-    //                 dispatch(cancelItemClaim(id));
-    //            }
-    //        };
-    //       }}
-    //       // -------------------------------------------
+            // Re-fetch the current page of my items to update the list with the new status
+            console.log(`MyItemsPage: Re-fetching my items after status update.`);
+            dispatch(fetchMyItems({
+                page: myItemsPagination.currentPage,
+                limit: myItemsPagination.itemsPerPage,
+                // Include any active filters
+            }));
+        }
+    }, [markReturnedSuccess, confirmReceivedSuccess, cancelClaimSuccess, dispatch, myItemsPagination.currentPage, myItemsPagination.itemsPerPage]);
 
 
-    //       // --- Determine if any item action is loading (for disabling buttons) ---
-    //       {{
-    //       const isAnyItemActionLoading = isClaiming || isUpdating || isDeleting || isMarkingReturned || isConfirmingReceived || isCancellingClaim;
-    //       }}
-    //       // ---------------------------------------------------------------------
+    // --- Effects for Status Update Errors ---
+    useEffect(() => {
+        // Check if any of the status update error flags are true
+        if (markReturnedError || confirmReceivedError || cancelClaimError) {
+            console.error('MyItemsPage: Status update failed.');
+            // Find the specific error message
+            const errorMsg = markReturnedError || confirmReceivedError || cancelClaimError || 'Failed to update item status.';
+            dispatch(addNotification({ message: `Status update failed: ${errorMsg}`, type: NotificationType.ERROR, duration: 5000 }));
 
-
-
-    // --- Render Loading/Error/Not Found States ---
-    // // Show loading state for initial fetch OR any item action
-    // if (isItemLoading || {{isAnyItemActionLoading}}) { // Use isAnyItemActionLoading
-    //     return <div style={{ textAlign: 'center', marginTop: '50px' }}>{isAnyItemActionLoading ? 'Processing action...' : 'Loading item details...'}</div>; // Update loading text
-    //   }
-
-    //    // Show error or "not found" message if initial fetch failed OR any action failed
-    //    if (itemError || (!currentItem && !isItemLoading) || {{claimError || updateError || deleteError || markReturnedError || confirmReceivedError || cancelClaimError}}) { // Include all errors
-    //        const displayError = {{claimError || updateError || deleteError || markReturnedError || confirmReceivedError || cancelClaimError}} || itemError || 'Item not found or could not be loaded.'; // Prioritize action errors
-    //        return <div style={{ textAlign: 'center', marginTop: '50px', color: 'red' }}>
-    //            {displayError}
-    //        </div>;
-    //    }
-
-    //  // --- Ensure item data is available before rendering ---
-    //  if (!currentItem) {
-    //      return <div style={{ textAlign: 'center', marginTop: '50px' }}>Item data not available.</div>;
-    //  }
-
-    //====================End ====================================
-
+            // Clear all status update flags
+            dispatch(clearMarkReturnedStatus());
+            dispatch(clearConfirmReceivedStatus());
+            dispatch(clearCancelClaimStatus());
+        }
+    }, [markReturnedError, confirmReceivedError, cancelClaimError, dispatch]);
 
 
 
@@ -332,7 +175,7 @@ const MyItemsPage = () => {
             // Dispatch fetchMyItems with the new page number
             dispatch(fetchMyItems({
                 page: pageNumber,
-                limit: myItemsPagination.itemsPerPage, // Use current limit
+                limit: myItemsPagination.itemsPerPage,
                 // Keep any active filters here
             }));
         }
@@ -355,8 +198,62 @@ const MyItemsPage = () => {
     };
 
 
+
+    // --- Handlers for Status Update Buttons ---
+    const handleMarkReturned = (itemId) => {
+        if (itemId && !isMarkingReturned) {
+            console.log(`MyItemsPage: Attempting to mark item ${itemId} as returned.`);
+            dispatch(markItemReturned(itemId));
+        }
+    };
+
+    const handleConfirmReceived = (itemId) => {
+        if (itemId && !isConfirmingReceived) {
+            console.log(`MyItemsPage: Attempting to confirm received for item ${itemId}.`);
+            dispatch(confirmItemReceived(itemId));
+        }
+    };
+
+    const handleCancelClaim = (itemId) => {
+        if (itemId && !isCancellingClaim) {
+            console.log(`MyItemsPage: Attempting to cancel claim for item ${itemId}.`);
+            dispatch(cancelItemClaim(itemId));
+        }
+    };
+
+
+    // --- Determine if any item action is loading (for disabling buttons) ---
+    const isAnyItemActionLoading = isMyItemsLoading || isDeleting || isMarkingReturned || isConfirmingReceived || isCancellingClaim;
+
+    // --- Render Loading/Error/Empty States ---
+    // Show loading state for initial fetch OR any item action
+    if (isMyItemsLoading || isAnyItemActionLoading) {
+        return <div style={{ textAlign: 'center', marginTop: '50px' }}>{isAnyItemActionLoading ? 'Processing action...' : 'Loading your items...'}</div>;
+    }
+
+    // Show error message if initial fetch failed OR any action failed
+    if (myItemsError || deleteError || markReturnedError || confirmReceivedError || cancelClaimError) {
+        const displayError = deleteError || markReturnedError || confirmReceivedError || cancelClaimError || myItemsError || 'Could not load your items.';
+        return <div style={{ textAlign: 'center', marginTop: '50px', color: 'red' }}>
+            {displayError}
+        </div>;
+    }
+
+
+    // Handle empty state *after* checking loading and errors
+    if (!isMyItemsLoading && !myItemsError && myItems?.length === 0) {
+        return (
+            <div className="my-items-container">
+                <h1>My Items</h1>
+                <p style={{ textAlign: 'center', marginTop: '30px' }}>You haven't reported or claimed any items yet.</p>
+            </div>
+        );
+    }
+
+
+
     // Determine items to display - comes from Redux state
-    const itemsToDisplay = myItems;
+    const itemsToDisplay = myItems || [];
     const { totalPages, currentPage } = myItemsPagination;
 
 
@@ -375,7 +272,7 @@ const MyItemsPage = () => {
             )}
 
             {!isMyItemsLoading && !myItemsError && itemsToDisplay?.length > 0 && (
-                <div className="item-list"> {/* Reusing item-list class */}
+                <div className="item-list">
                     {itemsToDisplay.map(item => (
                         <div key={item.id} className="item-card"> {/* Reusing item-card class */}
                             <h2>{item.title}</h2>
@@ -409,7 +306,7 @@ const MyItemsPage = () => {
                                 <Link
                                     to={`/items/${item.id}/edit`}
                                     className="btn-action secondary"
-                                    disabled={isMyItemsLoading || isDeleting}
+                                    disabled={isAnyItemActionLoading}
                                 >
                                     Edit
                                 </Link>
@@ -417,29 +314,38 @@ const MyItemsPage = () => {
 
                             {/* Mark as Returned (for reportedBy user) */}
                             {isAuthenticated && user?.id === item.reportedById && item.status === 'CLAIMED' && (
-                                // TODO: Implement handleMarkReturned function (dispatch thunk)
-                                <button className="btn-action success" disabled={isMyItemsLoading || isDeleting}>Mark as Returned</button>
+                                <button className="btn-action success"
+                                    onClick={() => handleMarkReturned(item.id)}
+                                    disabled={isAnyItemActionLoading}>
+                                    { isMarkingReturned  ? 'Marking...' : 'Mark as Returned'}
+                                </button>
                             )}
                             {/* Confirm Received (for claimedBy user) */}
                             {isAuthenticated && user?.id === item.claimedById && item.status === 'CLAIMED' && (
-                                // TODO: Implement handleConfirmReceived function (dispatch thunk)
-                                <button className="btn-action success" disabled={isMyItemsLoading || isDeleting}>Confirm Received</button>
+                                <button className="btn-action success"
+                                    onClick={() => handleConfirmReceived(item.id)}
+                                    disabled={isAnyItemActionLoading}>
+                                    { isConfirmingReceived  ? 'Confirming...' : 'Confirm Received'}
+                                </button>
                             )}
                             {/* Cancel Claim (for claimedBy user) */}
                             {isAuthenticated && user?.id === item.claimedById && item.status === 'CLAIMED' && (
-                                // TODO: Implement handleCancelClaim function (dispatch thunk)
-                                <button className="btn-action danger" disabled={isMyItemsLoading || isDeleting}>Cancel Claim</button>
+                                <button className="btn-action danger"
+                                    onClick={() => handleCancelClaim(item.id)}
+                                    disabled={isAnyItemActionLoading}>
+                                    { isCancellingClaim  ? 'Cancelling...' : 'Cancel Claim'}
+                                </button>
                             )}
 
                             {/* Delete button */}
                             {/* Show if authenticated, and user is authorized (reporter OR Admin/Super Admin) AND status allows deletion */}
-                            {isAuthenticated && (user?.id === item.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (item.status !== 'CLAIMED' && item.status !== 'RETURNED') && ( // Adjust statuses as needed for deletion permission
+                            {isAuthenticated && (user?.id === item.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (item.status !== 'CLAIMED' && item.status !== 'RETURNED') && ( 
                                 <button
-                                    className="btn-action danger" // Reuse button styling
-                                    onClick={() => handleDeleteItem(item.id)} // Pass item.id to handler
-                                    disabled={isMyItemsLoading || isDeleting} // Disable while items loading or deleting
+                                    className="btn-action danger" 
+                                    onClick={() => handleDeleteItem(item.id)} 
+                                    disabled={isAnyItemActionLoading} 
                                 >
-                                    {isDeleting ? 'Deleting...' : 'Delete'} {/* Change text while deleting */}
+                                   {isDeleting ? 'Deleting...' : 'Delete'}
                                 </button>
                             )}
                             {/* ----------------------------------------- */}
@@ -458,7 +364,7 @@ const MyItemsPage = () => {
                                     <button
                                         onClick={() => paginateMyItems(page)}
                                         className={myItemsPagination.currentPage === page ? 'active' : ''}
-                                        disabled={isMyItemsLoading || isDeleting} // Disable while items loading or deleting
+                                        disabled={isAnyItemActionLoading} 
                                     >
                                         {page}
                                     </button>
