@@ -4,8 +4,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-
- const requireSignin = async (req, res, next) => {
+// Middleware to require authentication (returns 401 if no token or invalid)
+const requireSignin = async (req, res, next) => {
     try {
         // Extract the token from the Authorization header
         const authHeader = req.headers.authorization;
@@ -42,11 +42,6 @@ dotenv.config();
                 return res.status(404).json({ error: "User not found" });
             }
 
-            // Optional: Check if email is verified for certain routes if required
-            // if (!user.emailVerified && req.path !== '/api/auth/verify-email' && req.path !== '/api/auth/resend-verification') {
-            //      return res.status(403).json({ error: "Email not verified" });
-            // }
-
             // Attach the user object (with role) to the request for further processing
             req.user = user;
             next(); // Proceed to the next middleware or route handler
@@ -58,8 +53,56 @@ dotenv.config();
 }
 
 
+// Middleware to attempt authentication but not require it (req.user will be null if no token)
+const optionalSignin = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            req.user = null; // No token provided, proceed with req.user = null
+            return next();
+        }
+
+        const token = authHeader.split(' ')[1];
+
+        jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+            if (err) {
+                console.warn("Optional JWT verification failed (token invalid or expired):", err.message);
+                req.user = null; // Token invalid, proceed with req.user = null
+                return next();
+            }
+
+            const user = await prisma.user.findUnique({
+                where: { id: decoded.userId },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    emailVerified: true,
+                },
+            });
+
+            if (!user) {
+                console.warn(`Optional signin: User with ID ${decoded.userId} not found from token.`);
+                req.user = null; // User not found, proceed with req.user = null
+                return next();
+            }
+
+            req.user = user; // User found and token valid
+            next();
+        });
+    } catch (error) {
+        console.error("Error in optionalSignin middleware: ", error);
+        // Even on unexpected errors, proceed gracefully with req.user = null
+        req.user = null;
+        next();
+    }
+};
+
+
+
 // Middleware to check if authenticated user is an Admin or Super Admin
- const isAdmin = (req, res, next) => {
+const isAdmin = (req, res, next) => {
 
     // We assume requireSignin has already populated  req.user
 
@@ -95,4 +138,4 @@ const isSuperAdmin = async (req, res, next) => {
     }
 }
 
-export { requireSignin, isAdmin, isSuperAdmin }
+export { requireSignin, isAdmin, isSuperAdmin, optionalSignin }

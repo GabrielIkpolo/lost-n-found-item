@@ -1,0 +1,178 @@
+/* Styles for the Item Detail Page */
+.item-detail-container {
+    max-width: 900px; /* Limit max width */
+    margin: 30px auto; /* Center container */
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.item-detail-container h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 28px;
+    font-weight: 700;
+    word-break: break-word; /* Prevent overflow for long titles */
+}
+
+.item-images {
+    display: flex; /* Arrange images side-by-side */
+    gap: 20px; /* Space between images */
+    margin-bottom: 20px;
+    flex-wrap: wrap; /* Allow images to wrap on smaller screens */
+    justify-content: center; /* Center images when wrapped */
+}
+
+.image-wrapper {
+    flex: 1; /* Allow image wrappers to grow */
+    min-width: 250px; /* Minimum width before wrapping */
+    max-width: 400px; /* Maximum width for an image */
+    display: flex;
+    flex-direction: column; /* Stack image and caption */
+    align-items: center; /* Center image and caption */
+}
+
+
+.item-detail-image {
+    width: 100%; /* Make image take full width of its wrapper */
+    height: auto; /* Maintain aspect ratio */
+    max-height: 350px; /* Limit maximum height */
+    object-fit: contain; /* Contain the whole image within bounds */
+    border-radius: 8px;
+    border: 1px solid #eee; /* Subtle border */
+    margin-bottom: 5px; /* Space between image and caption */
+}
+
+.item-detail-image.placeholder {
+    object-fit: cover; /* Cover the area if it's a placeholder */
+    height: 150px; /* Fixed height for placeholders */
+    background-color: #f0f0f0; /* Placeholder background */
+    color: #666;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+}
+
+.image-caption {
+    font-size: 12px;
+    color: #555;
+    text-align: center;
+}
+
+
+.item-info {
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+}
+
+.item-info p {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.item-info strong {
+    color: #333;
+    margin-right: 5px;
+}
+
+.item-actions {
+    margin-top: 25px;
+    display: flex;
+    gap: 15px; /* Space between buttons */
+    flex-wrap: wrap; /* Allow buttons to wrap */
+    justify-content: center; /* Center buttons */
+}
+
+.btn-action {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease, opacity 0.3s ease;
+    text-decoration: none; /* In case Link is used */
+    display: inline-block; /* Needed if Link is used */
+    text-align: center;
+}
+
+/* Button type colors */
+.btn-action.primary { /* e.g., Claim */
+    background-color: #007bff;
+    color: #fff;
+}
+.btn-action.primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-action.secondary { /* e.g., Edit */
+    background-color: #6c757d;
+    color: #fff;
+}
+.btn-action.secondary:hover {
+     background-color: #545b62;
+}
+
+.btn-action.danger { /* e.g., Delete */
+    background-color: #dc3545;
+    color: #fff;
+}
+.btn-action.danger:hover {
+    background-color: #c82333;
+}
+
+.btn-action.success { /* e.g., Mark as Returned */
+    background-color: #28a745;
+    color: #fff;
+}
+.btn-action.success:hover {
+    background-color: #218838;
+}
+
+
+.btn-action:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+
+/* Media query for smaller screens */
+@media (max-width: 600px) {
+    .item-detail-container {
+        margin: 20px; /* Adjust margin */
+        padding: 15px; /* Adjust padding */
+    }
+
+    .item-images {
+         flex-direction: column; /* Stack images vertically */
+         gap: 15px; /* Adjust gap */
+         align-items: center; /* Center stacked images */
+    }
+
+    /* Ensure images take full width on smaller screens within their wrapper */
+    .image-wrapper {
+        min-width: 100%; /* Allow image wrapper to take full width */
+        max-width: 100%; /* Remove max-width constraint */
+    }
+
+    .item-detail-image {
+         max-height: 300px; /* Adjust max height for smaller screens */
+    }
+
+    .item-actions {
+         flex-direction: column; /* Stack buttons vertically */
+         gap: 10px; /* Adjust gap */
+         align-items: stretch; /* Stretch buttons to full width */
+    }
+
+     .btn-action {
+         width: 100%; /* Make buttons full width when stacked */
+     }
+
+}

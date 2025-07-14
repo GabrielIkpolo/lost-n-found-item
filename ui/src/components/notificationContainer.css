@@ -1,0 +1,32 @@
+/* Styles for the container holding all notifications */
+.notification-container {
+    position: fixed; /* Fix the container position */
+    bottom: 20px;    /* Distance from the bottom */
+    right: 20px;     /* Distance from the right */
+    z-index: 1000;   /* Ensure it's above most other content */
+    display: flex;
+    flex-direction: column-reverse; /* Stack notifications from bottom up */
+    align-items: flex-end; /* Align items to the right */
+    pointer-events: none; /* Allow clicks to pass through the container itself */
+}
+
+/* Individual items within the container should be clickable */
+.notification-container .notification-item {
+    pointer-events: auto; /* Make the notification items clickable */
+}
+
+
+/* Media query for smaller screens */
+@media (max-width: 600px) {
+    .notification-container {
+        bottom: 10px; /* Adjust position for small screens */
+        right: 10px;
+        left: 10px; /* Make it span almost full width on small screens */
+        align-items: center; /* Center notifications on small screens */
+    }
+
+    .notification-container .notification-item {
+         max-width: 95%; /* Adjust max-width for small screens */
+         width: 100%; /* Make items take up full width of the container */
+    }
+}

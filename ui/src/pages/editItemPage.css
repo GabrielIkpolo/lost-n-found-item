@@ -1,0 +1,162 @@
+/* Styles for the Edit Item Page */
+
+.report-item-container {
+    max-width: 600px; /* Limit max width of the form container */
+    margin: 40px auto; /* Center container with space above/below */
+    padding: 25px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.report-item-container h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.report-item-container form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Space between form groups */
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group textarea,
+.form-group select {
+    padding: 10px 12px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 100%; /* Make inputs take full width of group */
+    box-sizing: border-box; /* Include padding and border in element's total width */
+}
+
+.form-group textarea {
+    min-height: 100px; /* Give textarea a reasonable default height */
+    resize: vertical; /* Allow vertical resizing only */
+}
+
+
+.form-group input[type="file"] {
+    padding: 10px 0; /* Adjust padding for file input */
+    font-size: 16px;
+}
+
+.form-group input[type="text"]:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    border-color: #007bff; /* Highlight on focus */
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+}
+
+/* Style for displaying selected file name */
+.file-name-display {
+    font-size: 12px;
+    color: #555;
+    margin-top: 5px;
+    word-break: break-all; /* Break long file names */
+}
+
+/* --- Specific styles for Edit Page (Image Previews) --- */
+.current-image-preview {
+    margin-bottom: 10px; /* Space below the preview */
+    border: 1px solid #eee; /* Add a border around the preview area */
+    padding: 5px; /* Add padding inside the border */
+    border-radius: 5px;
+    display: inline-block; /* Or block, depending on desired layout */
+    max-width: 160px; /* Limit preview container width */
+    overflow: hidden; /* Hide anything outside the preview area */
+}
+
+.current-image-preview img {
+    display: block; /* Remove extra space below image */
+}
+
+/* You might want to add styles for the submit button here if they differ from reportItem.css */
+/*
+.report-item-container button[type="submit"] {
+    // ... copy/adapt button styles from reportItem.css ...
+    background-color: #007bff; // Example: Use primary color for 'Save Changes'
+}
+.report-item-container button[type="submit":hover {
+     background-color: #0056b3;
+}
+*/
+/* --- End Specific styles --- */
+
+
+.report-item-container button[type="submit"] {
+    padding: 12px 20px;
+    font-size: 18px;
+    background-color: #28a745; /* Success color for submission */
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, opacity 0.3s ease;
+    margin-top: 10px;
+    font-weight: 600;
+}
+
+.report-item-container button[type="submit"]:hover {
+    background-color: #218838; /* Darker shade on hover */
+}
+
+.report-item-container button[type="submit"]:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Media query for smaller screens */
+@media (max-width: 600px) {
+    .report-item-container {
+        margin: 20px; /* Adjust margin on smaller screens */
+        padding: 20px; /* Adjust padding */
+    }
+
+    .report-item-container h2 {
+        font-size: 20px; /* Reduce heading size */
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        font-size: 13px; /* Reduce label font size */
+    }
+
+    .form-group input[type="text"],
+    .form-group textarea,
+    .form-group select,
+    .form-group input[type="file"] {
+        font-size: 15px; /* Reduce input font size */
+    }
+
+    .report-item-container button[type="submit"] {
+        font-size: 16px; /* Reduce button font size */
+        padding: 10px 15px;
+    }
+
+     .current-image-preview {
+         max-width: 100%; /* Allow preview to take full width on small screens */
+         text-align: center; /* Center content inside preview */
+     }
+      .current-image-preview img {
+          margin: 0 auto; /* Center image */
+      }
+}

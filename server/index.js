@@ -39,10 +39,12 @@ import https from 'https';
 import session from 'express-session';
 import passport from "./src/helpers/passport.js";
 import multer from 'multer'; // Import multer
+import { scheduleArchivalTask } from "./src/tasks/archivalTask.js";
 
 // Defined routes
 import authRoutes from './src/routes/authRoutes.js';
-import itemRoutes from './src/routes/itemRoutes.js'; // Import item routes
+import itemRoutes from './src/routes/itemRoutes.js';
+import userRoutes from './src/routes/userRoutes.js';
 
 dotenv.config();
 const app = express();
@@ -96,11 +98,11 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use('/api/auth', authRoutes);
 
 // Mount item routes
-// Pass the 'upload' middleware instance to the itemRoutes to handle file uploads
+app.use('/api/auth', authRoutes);
 app.use('/api/items', itemRoutes(upload));
+app.use('/api/users', userRoutes);
 
 // Return 404 for non-accounted routes
 app.all('*', (req, res) => {
@@ -124,4 +126,6 @@ app.use((err, req, res, next) => {
 
 app.listen(port, () => {
   console.log(`App is listening on port: ${port} `);
+  // --- Schedule the automated tasks after the server starts ---
+  scheduleArchivalTask(); 
 });
