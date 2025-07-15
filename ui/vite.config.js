@@ -14,7 +14,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: process.env.VITE_REACT_APP_API_BASE_URL, // Replace with your actual API server URL
+        target: process.env.VITE_REACT_APP_API_BASE_URL, 
         changeOrigin: true,
        secure: process.env.SECURE, // Set to true if your API server uses HTTPS
       },
