@@ -85,11 +85,11 @@ export const fetchItems = createAsyncThunk(
   async (params = {}, { rejectWithValue, getState }) => {
     try {
       // This endpoint is public for 'FOUND' items, but might be protected for others
-      // const token = getState().auth.token;
-      // const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const token = getState().auth.token;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       const response = await axios.get('/api/items', {
-        // headers,
+        headers,
         params: {
           page: params.page || initialState.pagination.currentPage,
           limit: params.limit || initialState.pagination.itemsPerPage,

@@ -19,6 +19,18 @@ import MyItemsPage from './pages/MyItemsPage';
 import EditItemPage from './pages/EditItemPage';
 
 
+import AdminDashboard from './pages/AdminDashboard';
+import ManageUsersPage from './pages/ManageUsersPage';
+import ManageItemsPage from './pages/ManageItemsPage';
+// Import ItemStatus enum from backend or define relevant roles here
+// import { UserRole } from '../../server/prisma/client'; 
+// If not importing directly, define locally:
+const UserRole = {
+  USER: 'USER',
+  ADMIN: 'ADMIN',
+  SUPER_ADMIN: 'SUPER_ADMIN'
+};
+
 
 
 const Wrapper = ({ children }) => {
@@ -79,6 +91,26 @@ const guide = createBrowserRouter([
       },
 
 
+      {
+        path: '/admin', element: (
+          <ProtectedRoutes requiredRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]} >
+            <AdminDashboard />
+          </ProtectedRoutes>
+        ),
+        children: [
+          {
+            path: 'users', element: <ManageUsersPage />
+          },
+
+          {
+            path: 'items',
+            element: <ManageItemsPage /> // 
+          },
+        ],
+      },
+
+
+
       { path: '*', element: <ErrorPage /> }
     ]
   }
@@ -87,11 +119,16 @@ const guide = createBrowserRouter([
 
 function App() {
   const dispatch = useDispatch();
+  const {isAuthLoading} = useSelector((state)=> state.auth);
 
   // Effect to load auth state from localStorage on initial render
   useEffect(() => {
     dispatch(loadAuthState());
-  }, [dispatch]); // Only run once on mount
+  }, [dispatch]); 
+
+  if (isAuthLoading) {
+    return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading application...</div>;
+ }
 
   return (
     <>
