@@ -4,12 +4,13 @@ import axios from 'axios';
 
 // Define the initial state for authentication
 const initialState = {
-  user: null, // Stores user information (e.g., { id, name, email, role })
-  token: null, // Stores the access token (JWT)
-  isAuthenticated: false, // Boolean to track authentication status
-  isLoading: false, // State to track if an async operation (like login) is in progress
+  user: null,
+  token: null,
+  isAuthenticated: false,
+  isLoading: false,
+  isAuthLoading: true,
   error: null,
-  registrationSuccess: false, // Stores any error message from async operations
+  registrationSuccess: false,
 };
 
 // Define an async thunk for handling the login API call
@@ -21,16 +22,16 @@ export const loginUser = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
 
     try {
-      const response = await axios.post('/api/auth/login', credentials); // Our server login endpoint
+      const response = await axios.post('/api/auth/login', credentials);
 
       const { accessToken, user } = response.data;
 
       // Optionally, store the token in local storage for persistence across sessions
       // Be mindful of security implications when storing tokens in local storage
       localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('user', JSON.stringify(user)); // Store user details if needed
+      localStorage.setItem('user', JSON.stringify(user));
 
-      return { accessToken, user }; // This will be the payload for the 'fulfilled' action
+      return { accessToken, user };
 
     } catch (error) {
 
@@ -90,7 +91,8 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
-      state.isLoading = false; // Ensure loading state is reset on logout
+      state.isLoading = false;
+      state.isAuthLoading = false;
       state.error = null; // Clear any previous errors
       state.registrationSuccess = false // Also reset registration flag
 
@@ -110,31 +112,34 @@ const authSlice = createSlice({
 
     //Reducer to load initial state from local storage on app start
     loadAuthState: (state) => {
-      const token = localStorage.getItem('accessToken');
-      const userString = localStorage.getItem('user'); // Get user string from local storage
+      try {
+        const token = localStorage.getItem('accessToken');
+        const userString = localStorage.getItem('user');
 
-      if (token && userString) { // Check if both token and user string exist
-        try {
+        if (token && userString) {
+
           state.token = token;
           state.user = JSON.parse(userString); // Parse the user string back into an object
           state.isAuthenticated = true;
-          console.log('Auth state loaded from localStorage.'); // Log success
-        } catch (e) {
-          // Handle potential parsing errors if localStorage data is corrupted
-          console.error('Failed to parse user data from localStorage:', e);
-          // Clear potentially bad data
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('user');
+          console.log('Auth state loaded from localStorage.');
+        } else {
+          // If no token or user data found, ensure state is reset
           state.user = null;
           state.token = null;
           state.isAuthenticated = false;
+          console.log('No auth state found in localStorage.');
         }
-      } else {
-        // If no token or user data found, ensure state is reset
+      } catch (e) {
+        // Handle potential parsing errors if localStorage data is corrupted
+        console.error('Failed to parse user data from localStorage:', e);
+        // Clear potentially bad data
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
-        console.log('No auth state found in localStorage.'); // Log when nothing is loaded
+      } finally {
+        state.isAuthLoading = false;
       }
     }
 
@@ -145,8 +150,9 @@ const authSlice = createSlice({
       // When the async thunk is pending
       .addCase(loginUser.pending, (state) => {
         state.isLoading = true;
-        state.error = null; 
+        state.error = null;
         state.registrationSuccess = false;
+        state.isAuthLoading = false
       })
       // When the async thunk is fulfilled (successful)
       .addCase(loginUser.fulfilled, (state, action) => {
@@ -154,9 +160,10 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.token = action.payload.accessToken;
         state.isAuthenticated = true;
-        state.error = null; 
-        state.registrationSuccess=false;
-        console.log('Login successful:', state.user); // Log successful login
+        state.error = null;
+        state.registrationSuccess = false;
+        state.isAuthLoading = false;
+        console.log('Login successful:', state.user); 
       })
       // When the async thunk is rejected (failed)
       .addCase(loginUser.rejected, (state, action) => {
@@ -165,7 +172,8 @@ const authSlice = createSlice({
         state.token = null;
         state.isAuthenticated = false;
         // The error payload is what was passed to rejectWithValue
-        state.error = action.payload || 'Login failed'; 
+        state.error = action.payload || 'Login failed';
+        state.isAuthLoading = false;
         console.error('Login failed, state updated:', state.error);
       })
 
@@ -174,12 +182,14 @@ const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
         state.registrationSuccess = false;
+        state.isAuthLoading = false;
       })
 
       .addCase(registerUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.error = null;
         state.registrationSuccess = true;
+        state.isAuthLoading = false;
         console.error('Registration successful:', action.payload);
         // The user will typically need to verify email before isAuthenticated becomes true
       })
@@ -188,6 +198,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.registrationSuccess = false;
         state.error = action.payload || 'Registration failed';
+        state.isAuthLoading = false;
         console.error('Registration failed:', state.error);
       });
 
@@ -196,9 +207,6 @@ const authSlice = createSlice({
 
 // Export the synchronous actions
 export const { logout, clearRegistrationSuccess, clearAuthError, loadAuthState } = authSlice.actions;
-
-// Export the async thunk action creators
-// export { loginUser, registerUser };
 
 // Export the reducer as the default export
 export default authSlice.reducer;
