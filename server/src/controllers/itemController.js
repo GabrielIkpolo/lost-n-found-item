@@ -1095,22 +1095,24 @@ export const getItems = async (req, res) => {
 
         const whereConditions = [];// Array to build up conditions
 
+        
         // --- Status Filtering Logic ---
+        //====================
         if (statusFilter) {
-            if (Object.values(ItemStatus).includes(statusFilter)) {
-                whereConditions.push({ status: statusFilter }); // Add valid status filter
-            } else if (isAdminUser && statusFilter === 'ALL') {
-                // Admin requested ALL statuses - do not add a status filter to whereConditions
+            if (isAdminUser && statusFilter === 'ALL') {
+                // If admin and requesting 'ALL', bypass status filtering
+                console.log('Admin requesting all item statuses.');
+            } else if (Object.values(ItemStatus).includes(statusFilter)) {
+
+                whereConditions.push({ status: statusFilter }); 
             } else {
-                // Invalid status provided for a non-admin or status is not 'ALL' for an admin
                 return res.status(400).json({ error: `Invalid status filter: ${statusFilter}. Must be one of ${Object.values(ItemStatus).join(', ')}${isAdminUser ? " or 'ALL' (for admins)." : ""}.` });
             }
         } else {
-            // No status filter provided in the query
-            // Default behavior: Only show 'FOUND' items (for public or if admin doesn't specify)
+            console.log('No status filter provided, defaulting to FOUND.');
             whereConditions.push({ status: ItemStatus.FOUND });
         }
-
+        //====================
 
         // --- Category Filtering ---
         if (category) {
@@ -1170,9 +1172,8 @@ export const getItems = async (req, res) => {
                 createdAt: true,
                 updatedAt: true,
                 expiresAt: true,
-                reportedBy: { select: { id: true, name: true } }, // Minimal info
-                // Consider adding claimedBy if needed in the list view for some roles/contexts
-                // claimedBy: { select: { id: true, name: true } }
+                reportedBy: { select: { id: true, name: true } }, 
+                claimedBy: { select: { id: true, name: true } }
             },
         });
 
@@ -1185,9 +1186,7 @@ export const getItems = async (req, res) => {
             ...item,
             imageUrlFront: getImageUrl(item.imageUrlFront),
             imageUrlBack: getImageUrl(item.imageUrlBack),
-            // Ensure reportedBy is not null before spreading/selecting
-            reportedBy: item.reportedBy ? { id: item.reportedBy.id, name: item.reportedBy.name } : null,
-            // Add claimedBy similarly if selected above
+            // reportedBy: item.reportedBy ? { id: item.reportedBy.id, name: item.reportedBy.name } : null,
             // claimedBy: item.claimedBy ? { id: item.claimedBy.id, name: item.claimedBy.name } : null,
         }));
 
@@ -1199,10 +1198,10 @@ export const getItems = async (req, res) => {
                 totalPages: totalPages,
                 currentPage: page,
                 itemsPerPage: limit,
-                query: searchQuery, // Echo search query
-                statusFilter: statusFilter, // Echo status filter
-                categoryFilter: category, // Echo category filter
-                locationFilter: location, // Echo location filter
+                query: searchQuery, 
+                statusFilter: statusFilter, 
+                categoryFilter: category, 
+                locationFilter: location, 
             },
         });
 
