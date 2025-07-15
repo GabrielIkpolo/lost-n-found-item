@@ -1,6 +1,18 @@
 import bcrypt from "bcrypt";
 import dotenv from 'dotenv';
 import crypto from 'crypto'
+import jwt from 'jsonwebtoken'; 
+
+dotenv.config(); 
+
+
+
+// Helper function to generate JWT access token
+export const generateAccessToken = (userId, role) => {
+    return jwt.sign({ userId: userId, role: role }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION || '15m' 
+    });
+};
 
 
 // hashes password 

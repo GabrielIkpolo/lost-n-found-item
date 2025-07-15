@@ -144,7 +144,7 @@ export const loginUser = async (req, res) => {
 
         res.status(200).json({
             accessToken,
-            user: { // Send some user details back, excluding sensitive info
+            user: { 
                 id: user.id,
                 name: user.name,
                 email: user.email,
@@ -408,14 +408,15 @@ export const refreshAccessToken = async (req, res) => {
 
 
 export const verifyEmail = async (req, res) => {
-    const { token } = req.query; // Assuming token is in query param: /verify-email?token=XYZ
+    // Assuming token is in query param: /verify-email?token=XYZ
+    const { token } = req.query; 
 
     if (!token) {
         return res.status(400).json({ error: "Verification token is missing." });
     }
 
     try {
-        const user = await prisma.user.findFirst({ // findFirst because token *should* be unique if index setup correctly
+        const user = await prisma.user.findFirst({ 
             where: {
                 emailVerificationToken: token,
                 emailVerificationExpires: { gt: new Date() } // Check if token is not expired
@@ -530,7 +531,8 @@ export const forgotPassword = async (req, res) => {
 
 
         // Send reset email (implement sendPasswordResetEmail in emailService.js)
-        const resetUrl = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/api/auth/reset-password/${resetToken}`; // Frontend URL
+        const resetUrl = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/reset-password/${resetToken}`; // Frontend URL
+        
         try {
             await sendPasswordResetEmail(user.email, resetToken, resetUrl);
             return res.status(200).json({ message: "If a user with that email exists, a password reset link has been sent." });
@@ -541,8 +543,8 @@ export const forgotPassword = async (req, res) => {
         }
 
 
-    } catch (error) { // <--- Outer catch block for *any* errors in the outer try
-        console.error("Error in forgotPassword:", error); // <-- Note: The log message here is 'Error in forgotPassword', not 'Error in registerUser' as in some other functions.
+    } catch (error) { 
+        console.error("Error in forgotPassword:", error); 
         // This catch would handle errors from findUnique or prisma.user.update
         return res.status(500).json({ error: "Internal server error during forgot password request." }); // You might want a different message than generic 500
     }

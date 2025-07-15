@@ -11,7 +11,18 @@ const initialState = {
   isAuthLoading: true,
   error: null,
   registrationSuccess: false,
+
+  // -- State for forget password
+  isForgotPasswordLoading: false,
+  forgotPasswordError: null,
+  forgotPasswordSuccess: false,
+
+  // ADDED STATE FOR RESET PASSWORD
+  isResettingPassword: false,
+  resetPasswordError: null,
+  resetPasswordSuccess: false,
 };
+
 
 // Define an async thunk for handling the login API call
 // createAsyncThunk automatically handles pending, fulfilled, and rejected states
@@ -79,6 +90,63 @@ export const registerUser = createAsyncThunk(
 );
 
 
+// Async thunk to request a password reset link
+export const forgotPassword = createAsyncThunk(
+  'auth/forgotPassword', // Action type string
+  async ({ email }, { rejectWithValue }) => {
+    try {
+      // Call the backend endpoint to request a password reset
+      // Assuming endpoint is POST /api/auth/forgot-password
+      const response = await axios.post('/api/auth/forgot-password', { email });
+
+      // Backend should return a success message (even if email not found, for security)
+      return response.data; // Payload might contain { message: "..." }
+
+    } catch (error) {
+      let errorMessage = 'Failed to request password reset.';
+      if (error.response) {
+        // Backend might return specific errors (e.g., invalid email format)
+        errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = 'No response received from server.';
+      } else {
+        errorMessage = `Error sending request: ${error.message}`;
+      }
+      console.error('Forgot password API call failed:', error);
+      return rejectWithValue(errorMessage); // Return the error message
+    }
+  }
+);
+
+
+// Async thunk to reset the password using the token
+export const resetPassword = createAsyncThunk(
+  'auth/resetPassword', // Action type string
+  async ({ token, password }, { rejectWithValue }) => {
+    try {
+      // Call the backend endpoint to reset the password
+      // Assuming endpoint is POST /api/auth/reset-password/:token
+      // Send the new password in the request body
+      const response = await axios.post(`/api/auth/reset-password/${token}`, { password });
+
+      // Backend should return a success message
+      return response.data; // Payload might contain { message: "..." }
+
+    } catch (error) {
+      let errorMessage = 'Failed to reset password.';
+      if (error.response) {
+        // Backend might return specific errors (e.g., invalid/expired token, password validation failed)
+        errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
+      } else if (error.request) {
+        errorMessage = 'No response received from server.';
+      } else {
+        errorMessage = `Error sending request: ${error.message}`;
+      }
+      console.error(`Reset password API call failed for token ${token}:`, error);
+      return rejectWithValue(errorMessage); // Return the error message
+    }
+  }
+);
 
 
 // Create the authentication slice
@@ -109,6 +177,48 @@ const authSlice = createSlice({
       state.error = null;
     },
 
+    // REDUCER TO CLEAR FORGOT PASSWORD STATUS
+    clearForgotPasswordStatus: (state) => {
+      state.isForgotPasswordLoading = false;
+      state.forgotPasswordError = null;
+      state.forgotPasswordSuccess = false;
+    },
+
+
+    // ADDED NEW REDUCER TO CLEAR RESET PASSWORD STATUS
+    clearResetPasswordStatus: (state) => {
+      state.isResettingPassword = false;
+      state.resetPasswordError = null;
+      state.resetPasswordSuccess = false;
+    },
+
+    //-----------------------------------------
+    // NEW REDUCER: To set authentication state directly from external sources(like OAuth callback)
+    // This reducer will be used by AuthCallback.jsx
+    setAuthState: (state, action) => {
+      const { user, token } = action.payload;
+      if (user && token) {
+        state.user = user;
+        state.token = token;
+        state.isAuthenticated = true;
+        state.isAuthLoading = false; // Assume loading is complete once state is set
+        state.error = null; // Clear errors
+        state.isLoading = false; // Clear general loading
+        console.log('Auth state set directly from payload.');
+      } else {
+        // If payload is invalid, log out or reset state
+        console.warn('Attempted to set auth state with invalid payload.');
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+        state.isLoading = false;
+        state.isAuthLoading = false; // Still mark loading complete
+        // Optionally set an error here if needed
+        // state.error = "Invalid authentication data received.";
+      }
+    },
+
+    //-----------------------------------------
 
     //Reducer to load initial state from local storage on app start
     loadAuthState: (state) => {
@@ -163,7 +273,7 @@ const authSlice = createSlice({
         state.error = null;
         state.registrationSuccess = false;
         state.isAuthLoading = false;
-        console.log('Login successful:', state.user); 
+        console.log('Login successful:', state.user)
       })
       // When the async thunk is rejected (failed)
       .addCase(loginUser.rejected, (state, action) => {
@@ -200,13 +310,54 @@ const authSlice = createSlice({
         state.error = action.payload || 'Registration failed';
         state.isAuthLoading = false;
         console.error('Registration failed:', state.error);
+      })
+
+      // extra reducers for forgetPassword
+      .addCase(forgotPassword.pending, (state) => {
+        state.isForgotPasswordLoading = true;
+        state.forgotPasswordError = null; // Clear previous errors
+        state.forgotPasswordSuccess = false; // Reset success flag
+      })
+      .addCase(forgotPassword.fulfilled, (state, action) => {
+        state.isForgotPasswordLoading = false;
+        state.forgotPasswordSuccess = true; // Set success flag
+        // The message can be accessed from action.payload if needed
+        console.log('Forgot password request fulfilled:', action.payload);
+      })
+      .addCase(forgotPassword.rejected, (state, action) => {
+        state.isForgotPasswordLoading = false;
+        state.forgotPasswordSuccess = false; // Request failed
+        state.forgotPasswordError = action.payload || 'Failed to send reset link'; // Use the error message
+        console.error('Forgot password request rejected:', state.forgotPasswordError);
+      })
+
+      // Added new extraReducers for resetPassword thunk
+      .addCase(resetPassword.pending, (state) => {
+        state.isResettingPassword = true;
+        state.resetPasswordError = null; // Clear previous errors
+        state.resetPasswordSuccess = false; // Reset success flag
+      })
+      .addCase(resetPassword.fulfilled, (state, action) => {
+        state.isResettingPassword = false;
+        state.resetPasswordSuccess = true; // Set success flag
+        // The message can be accessed from action.payload if needed
+        console.log('Password reset fulfilled:', action.payload);
+        // Note: User is NOT automatically logged in after reset, they must login
+      })
+      .addCase(resetPassword.rejected, (state, action) => {
+        state.isResettingPassword = false;
+        state.resetPasswordSuccess = false; // Reset failed
+        state.resetPasswordError = action.payload || 'Failed to reset password'; // Use the error message
+        console.error('Password reset rejected:', state.resetPasswordError);
       });
 
   },
 });
 
 // Export the synchronous actions
-export const { logout, clearRegistrationSuccess, clearAuthError, loadAuthState } = authSlice.actions;
+export const { logout, clearRegistrationSuccess, clearAuthError,
+  loadAuthState, clearForgotPasswordStatus, clearResetPasswordStatus,
+  setAuthState } = authSlice.actions;
 
 // Export the reducer as the default export
 export default authSlice.reducer;
