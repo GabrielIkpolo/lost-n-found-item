@@ -49,8 +49,8 @@ export const sendEmail = async (toEmail, subject, text, html) => {
 // Verification email using the generic sendEmail function
 export const sendVerificationEmail = async (toEmail, token) => {
     // For development, you might use a base URL from an env variable
-    // const verificationLink = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/api/auth/verify-email?token=${token}`;
-    const verificationLink = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
+    // const verificationLink = `${process.env.VITE_REACT_APP_API_BASE_URL || 'http://localhost:3000'}/api/auth/verify-email?token=${token}`;
+    const verificationLink = `${process.env.VITE_REACT_APP_API_BASE_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
 
 
     const subject = 'Verify Your Email Address';

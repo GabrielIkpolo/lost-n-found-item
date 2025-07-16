@@ -24,7 +24,7 @@ router.post('/login', authLimiter, loginUser);
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 router.get('/google/callback', passport.authenticate('google', {
-    failureRedirect: `${process.env.APP_BASE_URL}/login`,
+    failureRedirect: `${process.env.VITE_REACT_APP_API_BASE_URL}/login`,
     session: false
 }),
     (req, res) => {
@@ -36,7 +36,7 @@ router.get('/google/callback', passport.authenticate('google', {
             // This case shouldn't typically be reached with session: false and a failureRedirect,
             // but as a safeguard:
             console.error("Google callback successful but req.user is missing!");
-            return res.redirect(`${process.env.APP_BASE_URL}/login?error=auth_failed`);
+            return res.redirect(`${process.env.VITE_REACT_APP_API_BASE_URL}/login?error=auth_failed`);
         }
 
         // Generate JWT for the authenticated user
@@ -56,14 +56,14 @@ router.get('/google/callback', passport.authenticate('google', {
         console.log(`Google login successful, redirecting to frontend callback with token for user ${user.id}`);
 
         // Redirect to frontend callback route with token and user data in query params
-        res.redirect(`${process.env.APP_BASE_URL}/auth/callback?token=${accessToken}&user=${encodedUserData}`);
-        // res.redirect(`${process.env.APP_BASE_URL}`); 
+        res.redirect(`${process.env.VITE_REACT_APP_API_BASE_URL}/auth/callback?token=${accessToken}&user=${encodedUserData}`);
+        // res.redirect(`${process.env.VITE_REACT_APP_API_BASE_URL}`); 
     })
 
 
 router.get('/facebook', passport.authenticate('facebook', { scope: ['email'] }));
 router.get('/facebook/callback', passport.authenticate('facebook', {
-    failureRedirect: `${process.env.APP_BASE_URL}/login`,
+    failureRedirect: `${process.env.VITE_REACT_APP_API_BASE_URL}/login`,
     session: false
 }), (req, res) => {
 
@@ -72,7 +72,7 @@ router.get('/facebook/callback', passport.authenticate('facebook', {
 
     if (!user) {
         console.error("Facebook callback successful but req.user is missing!");
-        return res.redirect(`${process.env.APP_BASE_URL}/login?error=auth_failed`);
+        return res.redirect(`${process.env.VITE_REACT_APP_API_BASE_URL}/login?error=auth_failed`);
     }
 
     // Generate JWT for the authenticated user
@@ -90,8 +90,8 @@ router.get('/facebook/callback', passport.authenticate('facebook', {
     console.log(`Facebook login successful, redirecting to frontend callback with token for user ${user.id}`);
 
     // Redirect to frontend callback route with token and user data in query params
-    res.redirect(`${process.env.APP_BASE_URL}/auth/callback?token=${accessToken}&user=${encodedUserData}`);
-    // res.redirect(`${process.env.APP_BASE_URL}`); 
+    res.redirect(`${process.env.VITE_REACT_APP_API_BASE_URL}/auth/callback?token=${accessToken}&user=${encodedUserData}`);
+    // res.redirect(`${process.env.VITE_REACT_APP_API_BASE_URL}`); 
 });
 
 

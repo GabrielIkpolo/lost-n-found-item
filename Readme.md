@@ -144,7 +144,7 @@ FCM_SERVER_KEY="YOUR_FCM_SERVER_KEY"
 # EMAIL_FROM=...
 
 # Base URL for frontend (used for constructing links in emails etc.)
-CLIENT_URL="http://localhost:5173" # Default Vite port
+VITE_REACT_APP_API_CLIENT_URL="http://localhost:5173" # Default Vite port
 ```
 
 **`ui/.env`:**

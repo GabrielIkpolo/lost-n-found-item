@@ -531,7 +531,7 @@ export const forgotPassword = async (req, res) => {
 
 
         // Send reset email (implement sendPasswordResetEmail in emailService.js)
-        const resetUrl = `${process.env.APP_BASE_URL || 'http://localhost:3000'}/reset-password/${resetToken}`; // Frontend URL
+        const resetUrl = `${process.env.VITE_REACT_APP_API_BASE_URL || 'http://localhost:3000'}/reset-password/${resetToken}`; // Frontend URL
         
         try {
             await sendPasswordResetEmail(user.email, resetToken, resetUrl);
