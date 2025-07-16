@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [react()],
 
   server: {
+    host: true,
     https: {
       key: process.env.SSL_KEY_PATH,
       cert: process.env.SSL_CERT_PATH,
