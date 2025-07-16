@@ -9,15 +9,16 @@ export default defineConfig({
 
   server: {
     host: true,
-    https: {
-      key: process.env.SSL_KEY_PATH,
-      cert: process.env.SSL_CERT_PATH,
-    },
+    // https: {
+    //   key: process.env.SSL_KEY_PATH,
+    //   cert: process.env.SSL_CERT_PATH,
+    // },
     proxy: {
       '/api': {
-        target: process.env.VITE_REACT_APP_API_BASE_URL, 
+        target: process.env.VITE_REACT_APP_API_BASE_URL,
         changeOrigin: true,
-       secure: process.env.SECURE, // Set to true if your API server uses HTTPS
+        //  secure: process.env.SECURE, // Set to true if your API server uses HTTPS
+        secure: process.env.NODE_ENV === 'production'
       },
     },
   },
