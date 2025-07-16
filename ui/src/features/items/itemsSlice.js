@@ -3,8 +3,8 @@ import axios from 'axios';
 
 // Define the initial state for items, including state for my items
 const initialState = {
-  items: [], // Array to hold the fetched items for public lists (Found)
-  pagination: { // State for public list pagination info
+  items: [], 
+  pagination: { 
     totalItems: 0,
     totalPages: 1,
     currentPage: 1,
