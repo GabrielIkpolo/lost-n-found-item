@@ -66,13 +66,16 @@ const Login = () => {
         dispatch(loginUser({ email, password }));
     };
 
+    // The full URL of our backend server
+    const backendUrl = import.meta.env.VITE_REACT_APP_API_BASE_URL;
+
     // Simple handlers for social login buttons (for now, just navigate to backend routes)
     const handleGoogleLogin = () => {
-        window.location.href = '/api/auth/google'; // Navigate to your backend Google auth route
+        window.location.href = `${backendUrl}/api/auth/google`; // Navigate to your backend Google auth route
     };
 
     const handleFacebookLogin = () => {
-        window.location.href = '/api/auth/facebook';
+        window.location.href = `${backendUrl}/api/auth/facebook`;
     };
 
 
@@ -117,12 +120,12 @@ const Login = () => {
 
                 {/* Social Login */}
                 <div className="social-login">
-                    <button className="google-btn" onClick={handleGoogleLogin} disabled={isLoading}> {/* Disable while loading */}
+                    <button className="google-btn" onClick={handleGoogleLogin} disabled={isLoading}> 
                         <i className="fab fa-google"></i> Google Login
                     </button>
-                    <button className="facebook-btn" onClick={handleFacebookLogin} disabled={isLoading}> {/* Disable while loading */}
+                    {/* <button className="facebook-btn" onClick={handleFacebookLogin} disabled={isLoading}> 
                         <i className="fab fa-facebook-f"></i> Facebook Login
-                    </button>
+                    </button> */}
                 </div>
             </div>
         </div>

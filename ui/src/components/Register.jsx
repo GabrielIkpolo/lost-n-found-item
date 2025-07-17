@@ -69,14 +69,15 @@ const Register = () => {
         dispatch(registerUser({ name, email, password }));
     };
 
+    const backendUrl = import.meta.env.VITE_REACT_APP_API_BASE_URL;
 
     // Simple handlers for social login buttons (assuming they lead to registration if user doesn't exist)
     const handleGoogleRegister = () => {
-        window.location.href = '/api/auth/google';
+        window.location.href = `${backendUrl}/api/auth/google`;
     }
 
     const handleFacebookRegister = () => {
-        window.location.href = '/api/auth/facebook';
+        window.location.href = `${backendUrl}/api/auth/facebook`;
     };
 
 
@@ -130,9 +131,9 @@ const Register = () => {
                         <i className="fab fa-google"></i> Register with Google
                     </button>
 
-                    <button className="facebook-btn" disabled={isLoading}>
+                    {/* <button className="facebook-btn" disabled={isLoading}>
                         <i className="fab fa-facebook-f"></i> Register with Facebook
-                    </button>
+                    </button> */}
 
                 </div>
 
