@@ -124,7 +124,7 @@ app.use((err, req, res, next) => {
 
 // const httpsServer = https.createServer(sslOptions, app);
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`App is listening on port: ${port} `);
   // --- Schedule the automated tasks after the server starts ---
   scheduleArchivalTask(); 

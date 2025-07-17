@@ -17,6 +17,12 @@ import { generateAccessToken } from '../helpers/authHelpers.js';
 const router = express.Router();
 dotenv.config();
 
+// Determine the correct client URL based on the environment
+const clientUrl = process.env.NODE_ENV === 'production'
+  ? process.env.VITE_REACT_APP_API_CLIENT_URL
+  : 'http://localhost:5173'; // Force localhost for local dev
+
+
 router.post('/register', authLimiter, registerUser);
 router.post('/login', authLimiter, loginUser);
 
@@ -24,7 +30,7 @@ router.post('/login', authLimiter, loginUser);
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 router.get('/google/callback', passport.authenticate('google', {
-    failureRedirect: `${process.env.VITE_REACT_APP_API_CLIENT_URL}/login`,
+    failureRedirect: `${clientUrl}/login`,
     session: false
 }),
     (req, res) => {
@@ -36,7 +42,7 @@ router.get('/google/callback', passport.authenticate('google', {
             // This case shouldn't typically be reached with session: false and a failureRedirect,
             // but as a safeguard:
             console.error("Google callback successful but req.user is missing!");
-            return res.redirect(`${process.env.VITE_REACT_APP_API_CLIENT_URL}/login?error=auth_failed`);
+            return res.redirect(`${clientUrl}/login?error=auth_failed`);
         }
 
         // Generate JWT for the authenticated user
@@ -56,7 +62,7 @@ router.get('/google/callback', passport.authenticate('google', {
         console.log(`Google login successful, redirecting to frontend callback with token for user ${user.id}`);
 
         // Redirect to frontend callback route with token and user data in query params
-        res.redirect(`${process.env.VITE_REACT_APP_API_CLIENT_URL}/auth/callback?token=${accessToken}&user=${encodedUserData}`);
+        res.redirect(`${clientUrl}/auth/callback?token=${accessToken}&user=${encodedUserData}`);
         // res.redirect(`${process.env.VITE_REACT_APP_API_BASE_URL}`); 
     })
 
