@@ -49,7 +49,7 @@ import userRoutes from './src/routes/userRoutes.js';
 dotenv.config();
 const app = express();
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS;
+const allowedOrigins = process.env.VITE_REACT_APP_API_CLIENT_URL;
 
 // Declared some middleware used
 app.use([express.json(), morgan("dev")]);
