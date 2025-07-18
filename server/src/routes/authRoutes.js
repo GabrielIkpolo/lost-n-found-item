@@ -19,8 +19,16 @@ dotenv.config();
 
 // Determine the correct client URL based on the environment
 const clientUrl = process.env.NODE_ENV === 'production'
-  ? process.env.VITE_REACT_APP_API_CLIENT_URL
-  : 'http://localhost:5173'; // Force localhost for local dev
+    ? process.env.VITE_REACT_APP_API_CLIENT_URL
+    : 'http://localhost:5173'; // Force localhost for local dev
+
+
+// --- THIS IS THE NEW PART ---
+// Make the clientUrl available to all routes handled by this router
+router.use((req, res, next) => {
+    req.app.locals.clientUrl = clientUrl;
+    next();
+});
 
 
 router.post('/register', authLimiter, registerUser);
@@ -100,14 +108,14 @@ router.get('/facebook/callback', passport.authenticate('facebook', {
 });
 
 
-router.get('/verify-email', moderateLimiter, verifyEmail); 
+router.get('/verify-email', moderateLimiter, verifyEmail);
 
 
 router.post('/resend-verification', moderateLimiter, resendVerificationEmail);
 
 // Password Reset Routes
-router.post('/forgot-password', authLimiter, forgotPassword); 
-router.post('/reset-password/:token', authLimiter, resetPassword); 
+router.post('/forgot-password', authLimiter, forgotPassword);
+router.post('/reset-password/:token', authLimiter, resetPassword);
 
 router.post('/logout', logoutUser);
 
