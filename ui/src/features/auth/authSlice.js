@@ -96,11 +96,10 @@ export const forgotPassword = createAsyncThunk(
   async ({ email }, { rejectWithValue }) => {
     try {
       // Call the backend endpoint to request a password reset
-      // Assuming endpoint is POST /api/auth/forgot-password
       const response = await axios.post('/api/auth/forgot-password', { email });
 
       // Backend should return a success message (even if email not found, for security)
-      return response.data; // Payload might contain { message: "..." }
+      return response.data;
 
     } catch (error) {
       let errorMessage = 'Failed to request password reset.';
@@ -130,7 +129,7 @@ export const resetPassword = createAsyncThunk(
       const response = await axios.post(`/api/auth/reset-password/${token}`, { password });
 
       // Backend should return a success message
-      return response.data; // Payload might contain { message: "..." }
+      return response.data; 
 
     } catch (error) {
       let errorMessage = 'Failed to reset password.';
