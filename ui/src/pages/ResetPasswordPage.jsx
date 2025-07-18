@@ -5,10 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { resetPassword, clearResetPasswordStatus } from '../features/auth/authSlice';
 import { addNotification, NotificationType } from '../features/notifications/notificationsSlice';
 
-// Optional: Reuse styles or create a new CSS file
 // import './resetPasswordPage.css';
-// We'll reuse container and form-container from login/register styles.
-
 
 const ResetPasswordPage = () => {
     // Get the reset token from the URL parameters
@@ -21,11 +18,18 @@ const ResetPasswordPage = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
 
     // Select state related to the reset password process
-    const { isResettingPassword, resetPasswordError, resetPasswordSuccess } = useSelector((state) => state.auth);
+    const { isResettingPassword, resetPasswordError,
+        resetPasswordSuccess, isAuthLoading } = useSelector((state) => state.auth);
 
     // --- Effect 1: Basic token validation and cleanup ---
     useEffect(() => {
         // Basic check if token is present in URL
+
+        // Do absolutely nothing until the initial app auth state has been determined.
+        if (isAuthLoading) {
+            return;
+        }
+
         if (!token) {
             console.error('ResetPasswordPage: Reset token missing from URL.');
             dispatch(addNotification({
@@ -39,8 +43,8 @@ const ResetPasswordPage = () => {
 
         // Cleanup function: Clear reset password status state on unmount
         return () => {
-             console.log('ResetPasswordPage: Clearing reset password state on unmount.');
-             dispatch(clearResetPasswordStatus());
+            console.log('ResetPasswordPage: Clearing reset password state on unmount.');
+            dispatch(clearResetPasswordStatus());
         };
     }, [token, navigate, dispatch]); // Re-run if token, navigate, or dispatch changes
 
@@ -82,9 +86,9 @@ const ResetPasswordPage = () => {
 
             // If the error indicates an invalid or expired token, you might redirect
             if (resetPasswordError.toLowerCase().includes('invalid') || resetPasswordError.toLowerCase().includes('expired')) {
-                 console.log('ResetPasswordPage: Invalid/expired token, redirecting to login.');
-                 // Redirect to login after a delay
-                 setTimeout(() => navigate('/login', { replace: true }), 3000);
+                console.log('ResetPasswordPage: Invalid/expired token, redirecting to login.');
+                // Redirect to login after a delay
+                setTimeout(() => navigate('/login', { replace: true }), 3000);
             }
         }
     }, [resetPasswordError, dispatch, navigate]); // Depend on error state, dispatch, navigate
@@ -114,12 +118,12 @@ const ResetPasswordPage = () => {
         }
 
         if (password.length < 6) { // Match backend validation
-             dispatch(addNotification({
-                 message: 'Password must be at least 6 characters.',
-                 type: NotificationType.WARNING,
-                 duration: 3000
-             }));
-             return;
+            dispatch(addNotification({
+                message: 'Password must be at least 6 characters.',
+                type: NotificationType.WARNING,
+                duration: 3000
+            }));
+            return;
         }
 
         // Ensure token is available before dispatching
@@ -130,9 +134,15 @@ const ResetPasswordPage = () => {
             // The effects will handle the outcome
         } else if (!token) {
             // This case should be caught by useEffect 1, but defensive
-             console.error('ResetPasswordPage: Attempted submit without token.');
+            console.error('ResetPasswordPage: Attempted submit without token.');
         }
     };
+
+    
+    // While the main app is loading OR we are actively resetting, show a loading state.
+    if (isAuthLoading || isResettingPassword) {
+        return <div style={{ textAlign: 'center', marginTop: '50px' }}>{isResettingPassword ? 'Resetting password...' : 'Loading...'}</div>;
+    }
 
 
     // While the token is being checked in useEffect 1, or while resetting
@@ -146,9 +156,9 @@ const ResetPasswordPage = () => {
         // Reusing container and form-container classes
         <div className="container">
             <div className="login-header"> {/* Or reuse login-header, or create new */}
-                 {/* You might not need links here, as the user arrived from an email link */}
-                 {/* <Link to="/login">Login</Link> | <Link to="/register">Register</Link> */}
-                 <h2 style={{ margin: 0 }}>Reset Your Password</h2>
+                {/* You might not need links here, as the user arrived from an email link */}
+                {/* <Link to="/login">Login</Link> | <Link to="/register">Register</Link> */}
+                <h2 style={{ margin: 0 }}>Reset Your Password</h2>
             </div>
 
             <div className="form-container"> {/* Or reuse form-container */}
@@ -182,7 +192,7 @@ const ResetPasswordPage = () => {
                 </form>
 
                 <div style={{ marginTop: '15px', fontSize: '0.9em', textAlign: 'center' }}>
-                     <Link to="/login">Back to Login</Link>
+                    <Link to="/login">Back to Login</Link>
                 </div>
             </div>
         </div>
