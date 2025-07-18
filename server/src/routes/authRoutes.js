@@ -63,7 +63,6 @@ router.get('/google/callback', passport.authenticate('google', {
 
         // Redirect to frontend callback route with token and user data in query params
         res.redirect(`${clientUrl}/auth/callback?token=${accessToken}&user=${encodedUserData}`);
-        // res.redirect(`${process.env.VITE_REACT_APP_API_BASE_URL}`); 
     })
 
 
