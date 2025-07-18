@@ -80,6 +80,8 @@ const guide = createBrowserRouter([
 
       { path: '/reset-password/:token', element: <ResetPasswordPage /> },
 
+      { path: '/index.html', element: <AuthCallback /> },
+
       { path: '/auth/callback', element: <AuthCallback /> },
 
 
