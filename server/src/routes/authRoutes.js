@@ -27,6 +27,7 @@ const clientUrl = process.env.NODE_ENV === 'production'
 // Make the clientUrl available to all routes handled by this router
 router.use((req, res, next) => {
     req.app.locals.clientUrl = clientUrl;
+    console.log(`Using client URL: ${clientUrl}`); 
     next();
 });
 

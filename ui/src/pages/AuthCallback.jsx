@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { addNotification, NotificationType } from '../features/notifications/notificationsSlice';
 import { setAuthState } from '../features/auth/authSlice'; 
-import { Navigate } from 'react-router-dom'; // Import the Navigate component
+import { Navigate } from 'react-router-dom'; 
 
 const AuthCallback = () => {
   const location = useLocation();
@@ -41,7 +41,7 @@ const AuthCallback = () => {
           console.error('AuthCallback: Failed to parse user data:', parseError);
           dispatch(addNotification({ message: 'Authentication failed due to a data error.', type: NotificationType.ERROR }));
           setIsProcessing(false);
-          navigate('/login', { replace: true }); // Navigate away on error
+          navigate('/login', { replace: true }); 
         }
       } else {
         // Handle cases where token/user is missing
