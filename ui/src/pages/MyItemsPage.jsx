@@ -13,6 +13,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import itemPlaceholderImage from '../assets/images/logo-1.png';
 
 import './myItemsPage.css';
+import Sidebar from '../components/Sidebar';
 
 
 const MyItemsPage = () => {
@@ -258,6 +259,9 @@ const MyItemsPage = () => {
 
 
     return (
+        <div className='main-container'>
+            <Sidebar />
+            
         <div className="my-items-container">
             <h1>My Items</h1>
 
@@ -375,6 +379,7 @@ const MyItemsPage = () => {
                 </div>
             )}
             {/* ------------------------------- */}
+        </div>
         </div>
     );
 };

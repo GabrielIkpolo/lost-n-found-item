@@ -125,7 +125,30 @@
 }
 
 /* Media query for smaller screens */
+
+
+@media (min-width: 769px) {
+    .main-container{
+        display: flex;
+        flex-direction: row;
+        gap: 20px;
+    }
+}
+
 @media (max-width: 600px) {
+
+    .main-container {
+        display: flex;
+        flex-direction: column;
+    }
+  }
+
+@media (max-width: 600px) {
+
+    .main-container {
+        display: flex;
+        flex-direction: column;
+    }
     .report-item-container {
         margin: 20px; /* Adjust margin on smaller screens */
         padding: 20px; /* Adjust padding */

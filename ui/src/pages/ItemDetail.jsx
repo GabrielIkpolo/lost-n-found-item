@@ -13,6 +13,7 @@ import { useSelector as useAuthSelector } from 'react-redux';
 
 import './itemDetail.css';
 import itemPlaceholderImage from '../assets/images/logo-1.png';
+import Sidebar from '../components/Sidebar';
 
 
 const ItemDetail = () => {
@@ -265,128 +266,133 @@ const ItemDetail = () => {
   const canDelete = isAuthenticated && (user?.id === currentItem.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (currentItem.status !== 'CLAIMED' && currentItem.status !== 'RETURNED');
 
   return (
-    <div className="item-detail-container">
-      <h1>{currentItem.title}</h1>
+    <div  className='main-container'>
 
-      {/* ... existing image and info display ... */}
-      <div className="item-images">
-        {/* Display Front Image */}
-        <div className="image-wrapper">
-          {currentItem.imageUrlFront ? (
-            <img src={currentItem.imageUrlFront} alt={`${currentItem.title} (Front)`} className="item-detail-image" />
-          ) : (
-            <img src={itemPlaceholderImage} alt="No front image available" className="item-detail-image placeholder" />
-          )}
-          {currentItem.imageUrlFront && <div className="image-caption">Front View</div>}
-        </div>
+      <Sidebar />
 
+      <div className="item-detail-container">
+        <h1>{currentItem.title}</h1>
 
-        {/* Display Back Image (only if it exists) */}
-        {currentItem.imageUrlBack && (
+        {/* ... existing image and info display ... */}
+        <div className="item-images">
+          {/* Display Front Image */}
           <div className="image-wrapper">
-            <img src={currentItem.imageUrlBack} alt={`${currentItem.title} (Back)`} className="item-detail-image" />
-            {/* Optional: Caption */}
-            <div className="image-caption">Back View</div>
+            {currentItem.imageUrlFront ? (
+              <img src={currentItem.imageUrlFront} alt={`${currentItem.title} (Front)`} className="item-detail-image" />
+            ) : (
+              <img src={itemPlaceholderImage} alt="No front image available" className="item-detail-image placeholder" />
+            )}
+            {currentItem.imageUrlFront && <div className="image-caption">Front View</div>}
           </div>
-        )}
-      </div>
 
-      <div className="item-info">
-        <p><strong>Status:</strong> {currentItem.status}</p>
-        <p><strong>Category:</strong> {currentItem.category}</p>
-        <p><strong>Location:</strong> {currentItem.location}</p>
-        <p><strong>Description:</strong> {currentItem.description}</p>
-        {currentItem.createdAt && <p><strong>Reported On:</strong> {new Date(currentItem.createdAt).toLocaleDateString()}</p>}
 
-        {/* Display Reported By and Claimed By if available and authorized */}
-        {/* Be mindful of privacy. Only show if the user is the reporter, claimant, or admin */}
-        {isAuthenticated && user && (user.id === currentItem.reportedById || user.id === currentItem.claimedById || user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') && (
-          <>
-            {currentItem.reportedBy && (
-              <p>
-                <strong>Reported By:</strong> {currentItem.reportedBy.name} ({currentItem.reportedBy.email}{currentItem.reportedBy.phone ? `, ${currentItem.reportedBy.phone}` : ''})
-              </p>
+          {/* Display Back Image (only if it exists) */}
+          {currentItem.imageUrlBack && (
+            <div className="image-wrapper">
+              <img src={currentItem.imageUrlBack} alt={`${currentItem.title} (Back)`} className="item-detail-image" />
+              {/* Optional: Caption */}
+              <div className="image-caption">Back View</div>
+            </div>
+          )}
+        </div>
+
+        <div className="item-info">
+          <p><strong>Status:</strong> {currentItem.status}</p>
+          <p><strong>Category:</strong> {currentItem.category}</p>
+          <p><strong>Location:</strong> {currentItem.location}</p>
+          <p><strong>Description:</strong> {currentItem.description}</p>
+          {currentItem.createdAt && <p><strong>Reported On:</strong> {new Date(currentItem.createdAt).toLocaleDateString()}</p>}
+
+          {/* Display Reported By and Claimed By if available and authorized */}
+          {/* Be mindful of privacy. Only show if the user is the reporter, claimant, or admin */}
+          {isAuthenticated && user && (user.id === currentItem.reportedById || user.id === currentItem.claimedById || user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') && (
+            <>
+              {currentItem.reportedBy && (
+                <p>
+                  <strong>Reported By:</strong> {currentItem.reportedBy.name} ({currentItem.reportedBy.email}{currentItem.reportedBy.phone ? `, ${currentItem.reportedBy.phone}` : ''})
+                </p>
+              )}
+              {currentItem.claimedBy && (
+                <p>
+                  <strong>Claimed By:</strong> {currentItem.claimedBy.name} ({currentItem.claimedBy.email}{currentItem.claimedBy.phone ? `, ${currentItem.claimedBy.phone}` : ''})
+                </p>
+              )}
+            </>
+          )}
+
+
+          {/* --- Conditional Buttons (Claim, Edit, Delete, Status Updates) --- */}
+          <div className="item-actions">
+            {/* Claim Button: Show if authenticated, item is FOUND, and user is NOT the reporter */}
+            {/* Ensure user and currentItem are loaded before checking IDs */}
+            {isAuthenticated && currentItem.status === 'FOUND' && user?.id !== currentItem.reportedById && (
+              <button
+                className="btn-action primary"
+                onClick={handleClaimItem}
+                disabled={isAnyItemActionLoading}
+              >
+                {isClaiming ? 'Claiming...' : 'Claim Item'}
+              </button>
             )}
-            {currentItem.claimedBy && (
-              <p>
-                <strong>Claimed By:</strong> {currentItem.claimedBy.name} ({currentItem.claimedBy.email}{currentItem.claimedBy.phone ? `, ${currentItem.claimedBy.phone}` : ''})
-              </p>
+
+            {/* Edit Button: Show if authenticated, and user is the reporter OR is an Admin/Super Admin */}
+            {/* Also check if item data is loaded */}
+            {isAuthenticated && currentItem && (user?.id === currentItem.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && canEdit && ( // Use canEdit check for clarity
+              <Link
+                to={`/items/${currentItem.id}/edit`}
+                className="btn-action secondary"
+                disabled={isAnyItemActionLoading}
+              >
+                Edit Item
+              </Link>
             )}
-          </>
-        )}
 
+            {/* Delete Button: Show if authenticated, and user is authorized (reporter OR Admin/Super Admin) AND status allows deletion */}
+            {/* Also check if item data is loaded */}
+            {isAuthenticated && currentItem && canDelete && (
+              <button
+                className="btn-action danger"
+                onClick={handleDeleteItem}
+                disabled={isAnyItemActionLoading}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Item'}
+              </button>
+            )}
 
-        {/* --- Conditional Buttons (Claim, Edit, Delete, Status Updates) --- */}
-        <div className="item-actions">
-          {/* Claim Button: Show if authenticated, item is FOUND, and user is NOT the reporter */}
-          {/* Ensure user and currentItem are loaded before checking IDs */}
-          {isAuthenticated && currentItem.status === 'FOUND' && user?.id !== currentItem.reportedById && (
-            <button
-              className="btn-action primary"
-              onClick={handleClaimItem}
-              disabled={isAnyItemActionLoading}
-            >
-              {isClaiming ? 'Claiming...' : 'Claim Item'}
-            </button>
-          )}
+            {/* Example: Button to mark as Returned (for reportedBy user) */}
+            {isAuthenticated && user?.id === currentItem.reportedById && currentItem.status === 'CLAIMED' && (
+              <button className="btn-action success"
+                onClick={handleMarkReturned}
+                disabled={isAnyItemActionLoading}>
+                {isMarkingReturned ? 'Marking...' : 'Mark as Returned'}
+              </button>
+            )}
 
-          {/* Edit Button: Show if authenticated, and user is the reporter OR is an Admin/Super Admin */}
-          {/* Also check if item data is loaded */}
-          {isAuthenticated && currentItem && (user?.id === currentItem.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && canEdit && ( // Use canEdit check for clarity
-            <Link
-              to={`/items/${currentItem.id}/edit`}
-              className="btn-action secondary"
-              disabled={isAnyItemActionLoading}
-            >
-              Edit Item
-            </Link>
-          )}
+            {/* Example: Confirm Received for items YOU claimed that are now CLAIMED */}
+            {isAuthenticated && user?.id === currentItem.claimedById && currentItem.status === 'CLAIMED' && (
+              <button className="btn-action success"
+                onClick={handleConfirmReceived}
+                disabled={isAnyItemActionLoading}>
+                {isConfirmingReceived ? 'Confirming...' : 'Confirm Received'}
+              </button>
+            )}
 
-          {/* Delete Button: Show if authenticated, and user is authorized (reporter OR Admin/Super Admin) AND status allows deletion */}
-          {/* Also check if item data is loaded */}
-          {isAuthenticated && currentItem && canDelete && ( 
-            <button
-              className="btn-action danger"
-              onClick={handleDeleteItem}
-              disabled={isAnyItemActionLoading}
-            >
-              {isDeleting ? 'Deleting...' : 'Delete Item'}
-            </button>
-          )}
+            {/* Example: Cancel Claim for items YOU claimed that are still CLAIMED */}
+            {isAuthenticated && user?.id === currentItem.claimedById && currentItem.status === 'CLAIMED' && (
+              <button className="btn-action danger"
+                onClick={handleCancelClaim}
+                disabled={isAnyItemActionLoading}>
+                {isCancellingClaim ? 'Cancelling...' : 'Cancel Claim'}
+              </button>
+            )}
 
-          {/* Example: Button to mark as Returned (for reportedBy user) */}
-          {isAuthenticated && user?.id === currentItem.reportedById && currentItem.status === 'CLAIMED' && (
-            <button className="btn-action success"
-              onClick={handleMarkReturned}
-              disabled={isAnyItemActionLoading}>
-              {isMarkingReturned ? 'Marking...' : 'Mark as Returned'}
-            </button>
-          )}
+            {/* Add more actions based on status and roles */}
 
-          {/* Example: Confirm Received for items YOU claimed that are now CLAIMED */}
-          {isAuthenticated && user?.id === currentItem.claimedById && currentItem.status === 'CLAIMED' && (
-            <button className="btn-action success"
-              onClick={handleConfirmReceived}
-              disabled={isAnyItemActionLoading}>
-              { isConfirmingReceived  ? 'Confirming...' : 'Confirm Received'}
-            </button>
-          )}
+          </div>
+          {/* ------------------------------------------------- */}
 
-          {/* Example: Cancel Claim for items YOU claimed that are still CLAIMED */}
-          {isAuthenticated && user?.id === currentItem.claimedById && currentItem.status === 'CLAIMED' && (
-            <button className="btn-action danger"
-              onClick={handleCancelClaim}
-              disabled={isAnyItemActionLoading}>
-              { isCancellingClaim  ? 'Cancelling...' : 'Cancel Claim'}
-            </button>
-          )}
-
-          {/* Add more actions based on status and roles */}
 
         </div>
-        {/* ------------------------------------------------- */}
-
-
       </div>
     </div>
   );

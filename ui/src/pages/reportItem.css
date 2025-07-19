@@ -1,7 +1,12 @@
 /* Styles for the Report Item Page */
+/* .main-container{
+ width: 100%;
+} */
 .report-item-container {
-    max-width: 600px; /* Limit max width of the form container */
-    margin: 40px auto; /* Center container with space above/below */
+    /* Limit max width of the form container */
+    max-width: 600px;
+    /* Center container with space above/below */
+    margin: 40px auto;
     padding: 25px;
     background-color: #fff;
     border-radius: 8px;
@@ -19,7 +24,8 @@
 .report-item-container form {
     display: flex;
     flex-direction: column;
-    gap: 20px; /* Space between form groups */
+    gap: 20px;
+    /* Space between form groups */
 }
 
 .form-group {
@@ -41,25 +47,31 @@
     font-size: 16px;
     border: 1px solid #ccc;
     border-radius: 5px;
-    width: 100%; /* Make inputs take full width of group */
-    box-sizing: border-box; /* Include padding and border in element's total width */
+    width: 100%;
+    /* Make inputs take full width of group */
+    box-sizing: border-box;
+    /* Include padding and border in element's total width */
 }
 
 .form-group textarea {
-    min-height: 100px; /* Give textarea a reasonable default height */
-    resize: vertical; /* Allow vertical resizing only */
+    min-height: 100px;
+    /* Give textarea a reasonable default height */
+    resize: vertical;
+    /* Allow vertical resizing only */
 }
 
 
 .form-group input[type="file"] {
-    padding: 10px 0; /* Adjust padding for file input */
+    padding: 10px 0;
+    /* Adjust padding for file input */
     font-size: 16px;
 }
 
 .form-group input[type="text"]:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-    border-color: #007bff; /* Highlight on focus */
+    border-color: #007bff;
+    /* Highlight on focus */
     outline: none;
     box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
 }
@@ -69,14 +81,16 @@
     font-size: 12px;
     color: #555;
     margin-top: 5px;
-    word-break: break-all; /* Break long file names */
+    word-break: break-all;
+    /* Break long file names */
 }
 
 
 .report-item-container button[type="submit"] {
     padding: 12px 20px;
     font-size: 18px;
-    background-color: #28a745; /* Success color for submission */
+    background-color: #28a745;
+    /* Success color for submission */
     color: #fff;
     border: none;
     border-radius: 5px;
@@ -87,7 +101,8 @@
 }
 
 .report-item-container button[type="submit"]:hover {
-    background-color: #218838; /* Darker shade on hover */
+    background-color: #218838;
+    /* Darker shade on hover */
 }
 
 .report-item-container button[type="submit"]:disabled {
@@ -97,30 +112,51 @@
 }
 
 /* Media query for smaller screens */
+
+@media (min-width: 769px) {
+    .main-container {
+        display: flex;
+        flex-direction: row;
+        gap: 20px;
+    }
+}
+
 @media (max-width: 600px) {
+
+    .main-container {
+        display: flex;
+        flex-direction: column;
+    }
+
     .report-item-container {
-        margin: 20px; /* Adjust margin on smaller screens */
-        padding: 20px; /* Adjust padding */
+        margin: 20px;
+        /* Adjust margin on smaller screens */
+        padding: 20px;
+        /* Adjust padding */
     }
 
     .report-item-container h2 {
-        font-size: 20px; /* Reduce heading size */
+        font-size: 20px;
+        /* Reduce heading size */
         margin-bottom: 20px;
     }
 
     .form-group label {
-        font-size: 13px; /* Reduce label font size */
+        font-size: 13px;
+        /* Reduce label font size */
     }
 
     .form-group input[type="text"],
     .form-group textarea,
     .form-group select,
     .form-group input[type="file"] {
-        font-size: 15px; /* Reduce input font size */
+        font-size: 15px;
+        /* Reduce input font size */
     }
 
     .report-item-container button[type="submit"] {
-        font-size: 16px; /* Reduce button font size */
+        font-size: 16px;
+        /* Reduce button font size */
         padding: 10px 15px;
     }
 }

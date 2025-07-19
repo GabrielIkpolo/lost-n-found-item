@@ -9,6 +9,7 @@ import { useSelector as useAuthSelector } from 'react-redux'; // Use alias to av
 
 import './editItemPage.css';
 import itemPlaceholderImage from '../assets/images/logo-1.png';
+import Sidebar from '../components/Sidebar';
 
 // Define available categories, locations, and statuses for dropdowns
 // Keep these synced with backend enums and ReportItem.jsx
@@ -295,6 +296,10 @@ const EditItemPage = () => {
 
     // --- Render the Edit Item Form ---
     return (
+        <div className='main-container' >
+
+            <Sidebar />
+            
         <div className="report-item-container"> {/* Reusing report-item-container class */}
             <h2>Edit Item: {currentItem.title}</h2>
             {/* Optional: Display loading/error messages on the form itself for the *update* process */}
@@ -425,6 +430,7 @@ const EditItemPage = () => {
                     {isUpdating ? 'Saving Changes...' : 'Save Changes'} {/* Change text while submitting */}
                 </button>
             </form>
+        </div>
         </div>
     );
 };

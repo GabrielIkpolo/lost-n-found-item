@@ -142,8 +142,21 @@
 }
 
 
+@media (min-width: 769px) {
+    .main-container{
+        display: flex;
+        flex-direction: row;
+        gap: 20px;
+    }
+}
+
 /* Media query for smaller screens */
 @media (max-width: 600px) {
+
+    .main-container {
+        display: flex;
+        flex-direction: column;
+    }
     .item-detail-container {
         margin: 20px; /* Adjust margin */
         padding: 15px; /* Adjust padding */

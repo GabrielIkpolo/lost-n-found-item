@@ -45,3 +45,19 @@
 
 /* // Add styles for buttons specific to this page (e.g., Edit, Mark Returned, etc.) */
 /* // Reuse .btn-action classes or define new ones */
+
+@media (min-width: 769px) {
+    .main-container{
+        display: flex;
+        flex-direction: row;
+        /* gap: 20px; */
+    }
+}
+
+@media (max-width: 600px) {
+
+    .main-container {
+        display: flex;
+        flex-direction: column;
+    }
+  }
