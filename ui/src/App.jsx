@@ -25,6 +25,7 @@ import ManageItemsPage from './pages/ManageItemsPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import AuthCallback from './pages/AuthCallback';
+import LostItemPage from './pages/LostItemPage';
 // Import ItemStatus enum from backend or define relevant roles here
 // import { UserRole } from '../../server/prisma/client'; 
 // If not importing directly, define locally:
@@ -75,6 +76,8 @@ const guide = createBrowserRouter([
           </ProtectedRoutes>
         )
       },
+
+      { path: '/lost-items', element: <LostItemPage /> },
 
       { path: '/forgot-password', element: <ForgotPasswordPage /> },
 

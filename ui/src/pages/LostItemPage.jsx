@@ -3,11 +3,11 @@ import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchItems } from '../features/items/itemsSlice';
 import { addNotification, NotificationType } from '../features/notifications/notificationsSlice';
-import './foundItems.css';
+import './lostItemPage.css'; 
 import itemImage from '../assets/images/logo-1.png';
 import { Link, useNavigate } from 'react-router-dom';
 
-// Sidebar Categories (mapped to ItemCategory enum)
+// Categories can be the same as FoundItems
 const categories = [
   { label: 'Electronics and Gadgets', value: 'ELECTRONICS_GADGETS' },
   { label: 'Personal Items & Accessories', value: 'PERSONAL_ACCESSORIES' },
@@ -17,7 +17,7 @@ const categories = [
   { label: 'Others', value: 'OTHER' },
 ];
 
-const FoundItems = () => {
+const LostItemPage = () => {
   const dispatch = useDispatch();
   const { items, pagination, isLoading, error } = useSelector((state) => state.items);
 
@@ -28,33 +28,29 @@ const FoundItems = () => {
 
   const navigate = useNavigate();
 
-  // --- EFFECT 1: Debounce the search input ---
+  // Debounce the search input
   useEffect(() => {
     const handler = setTimeout(() => {
-      console.log('Debouncing complete, setting search term to:', searchInput);
       setDebouncedSearchTerm(searchInput);
-    }, 500); // 500ms debounce delay
+    }, 500);
 
     return () => {
       clearTimeout(handler);
-      console.log('Debounce timer cleared.');
     };
   }, [searchInput]);
 
-  // --- EFFECT 2: Fetch items based on filters and debounced search term ---
+  // Fetch lost items based on filters and debounced search term
   useEffect(() => {
-    console.log(`Fetching items with params: Page: ${pagination.currentPage}, Category: ${selectedCategory}, Search: "${debouncedSearchTerm}"`);
     dispatch(fetchItems({
       page: pagination.currentPage,
       limit: pagination.itemsPerPage,
       category: selectedCategory,
       search: debouncedSearchTerm,
-      status: 'FOUND',
+      status: 'LOST', // Only show LOST items
     }));
   }, [dispatch, pagination.currentPage, pagination.itemsPerPage, selectedCategory, debouncedSearchTerm]);
 
-
-  // --- SHOW ERROR NOTIFICATION ---
+  // Show error notification
   useEffect(() => {
     if (error) {
       dispatch(addNotification({
@@ -65,17 +61,15 @@ const FoundItems = () => {
     }
   }, [error, dispatch]);
 
-
   const handleCategorySelect = (categoryValue) => {
     if (selectedCategory !== categoryValue) {
       setSelectedCategory(categoryValue);
-      console.log(`Category changed to ${categoryValue}, fetching page 1.`);
       dispatch(fetchItems({
         page: 1, // Reset to page 1
         limit: pagination.itemsPerPage,
         category: categoryValue,
         search: debouncedSearchTerm,
-        status: 'FOUND',
+        status: 'LOST',
       }));
     }
   };
@@ -83,27 +77,23 @@ const FoundItems = () => {
   const handleSearchChange = (event) => {
     const newSearchTerm = event.target.value;
     setSearchInput(newSearchTerm);
-    console.log('Search input changed, resetting to page 1.');
-    // We dispatch fetchItems here to reset pagination immediately when typing starts
-    // The debounced effect will trigger the actual search API call after the pause
     dispatch(fetchItems({
       page: 1, // Reset to page 1
       limit: pagination.itemsPerPage,
       category: selectedCategory,
-      search: newSearchTerm, // Use the immediate newSearchTerm here for the page=1 dispatch
-      status: 'FOUND',
+      search: newSearchTerm,
+      status: 'LOST',
     }));
   };
 
   const paginate = (pageNumber) => {
     if (pageNumber !== pagination.currentPage) {
-      console.log(`Paginating to page ${pageNumber}`);
       dispatch(fetchItems({
         page: pageNumber,
         limit: pagination.itemsPerPage,
         category: selectedCategory,
         search: debouncedSearchTerm,
-        status: 'FOUND',
+        status: 'LOST',
       }));
     }
   };
@@ -119,10 +109,8 @@ const FoundItems = () => {
   const itemsToDisplay = items;
   const { totalPages, currentPage } = pagination;
 
-
   return (
     <div className="main-cover">
-      {/* ... Sidebar JSX ... */}
       {isMobile ? (
         <div className="mobile-sidebar">
           <h2>Search by Category</h2>
@@ -137,7 +125,7 @@ const FoundItems = () => {
               </li>
             ))}
           </ul>
-          <button className="btn-foundItems" onClick={() => handleCategorySelect(null)}>
+          <button className="btn-foundItems" onClick={() => navigate('/')}>
             All Found Items
           </button>
 
@@ -146,9 +134,8 @@ const FoundItems = () => {
           </button>
 
           <button className="btn-foundItems" onClick={() => navigate('/report')}>
-            Report Item (Lost | Found)
+            Report Item (Lost | Found )
           </button>
-
         </div>
       ) : (
         <aside className="sidebar">
@@ -164,7 +151,7 @@ const FoundItems = () => {
               </li>
             ))}
           </ul>
-          <button className="btn-foundItems" onClick={() => handleCategorySelect(null)}>
+          <button className="btn-foundItems" onClick={() => navigate('/')}>
             All Found Items
           </button>
 
@@ -173,34 +160,29 @@ const FoundItems = () => {
           </button>
 
           <button className="btn-foundItems" onClick={() => navigate('/report')}>
-            Report Item (Lost | Found)
+            Report Item (Lost | Found )
           </button>
-
         </aside>
       )}
 
-
-      {/* Main Content */}
       <main className="main-content">
         <h1 className="headerOne">
-          Found items within the University Campus
+          Lost items within the University Campus
         </h1>
 
-        {/* Search Bar */}
         <div className="search-bar">
           <input
             type="text"
             placeholder="Search by Name or Description"
-            value={searchInput} // Bind to searchInput
-            onChange={handleSearchChange} // Update searchInput
+            value={searchInput}
+            onChange={handleSearchChange}
             className="input-search"
           />
         </div>
 
-        {/* --- LOADING, ERROR, AND ITEM LIST RENDERING --- */}
         {isLoading && <p style={{ textAlign: 'center' }}>Loading items...</p>}
         {!isLoading && itemsToDisplay.length === 0 && !error && (
-          <p style={{ textAlign: 'center' }}>No items found matching your criteria.</p>
+          <p style={{ textAlign: 'center' }}>No lost items found matching your criteria.</p>
         )}
 
         {!isLoading && !error && itemsToDisplay.length > 0 && (
@@ -219,7 +201,6 @@ const FoundItems = () => {
                 <p>{item.description}</p>
                 <p><strong>Category:</strong> {item.category}</p>
                 <p><strong>Location:</strong> {item.location}</p>
-                {/* Make the button a Link */}
                 <Link to={`/items/${item.id}`} className="btn-details">
                   View Details
                 </Link>
@@ -227,10 +208,7 @@ const FoundItems = () => {
             ))}
           </div>
         )}
-        {/* --------------------------------------------- */}
 
-
-        {/* Pagination - Only show if there are items and more than one page */}
         {!isLoading && !error && totalPages > 1 && (
           <div className="pagination">
             <nav aria-label="Pagination">
@@ -255,4 +233,4 @@ const FoundItems = () => {
   );
 };
 
-export default FoundItems;
+export default LostItemPage;

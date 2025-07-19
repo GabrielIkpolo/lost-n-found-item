@@ -11,7 +11,7 @@ import './assets/css/color.css';
 import { Provider } from 'react-redux';
 import { store } from './store'; // Assuming store.js is in src/ directory
 
-axios.defaults.baseURL = import.meta.env.VITE_REACT_APP_API_BASE_URL
+// axios.defaults.baseURL = import.meta.env.VITE_REACT_APP_API_BASE_URL
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
