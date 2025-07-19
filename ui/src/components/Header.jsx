@@ -51,7 +51,7 @@ const Header = () => {
         </div>
 
         {/* Title - stays centered in desktop view */}
-        <h1 className="title">Lost and Found Items</h1>
+        <h1 className="title" onClick={()=> navigate('/')}>Lost and Found Items</h1>
 
         {/* Mobile Menu Button */}
         <button
