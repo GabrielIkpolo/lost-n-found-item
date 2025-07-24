@@ -4,8 +4,8 @@ import { axiosInstance } from '../../util/axiosInstance';
 
 // Define the initial state for items, including state for my items
 const initialState = {
-  items: [], 
-  pagination: { 
+  items: [],
+  pagination: {
     totalItems: 0,
     totalPages: 1,
     currentPage: 1,
@@ -72,10 +72,6 @@ const initialState = {
   cancelClaimError: null,
   cancelClaimSuccess: false,
 
-  // You might also have a general 'isUpdatingStatus' if multiple actions share loading state
-  // isUpdatingStatus: false,
-  // statusUpdateError: null,
-  // statusUpdateSuccess: false, // Could indicate any status update succeeded
 
   // ------------------------------------------------------
 };
@@ -95,7 +91,8 @@ export const fetchItems = createAsyncThunk(
           page: params.page || initialState.pagination.currentPage,
           limit: params.limit || initialState.pagination.itemsPerPage,
           category: params.category || undefined,
-          search: params.search || undefined,
+          // search: params.search || undefined,
+          q: params.search || undefined,
           status: params.status || 'FOUND',
         },
       });
