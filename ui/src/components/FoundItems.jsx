@@ -28,20 +28,24 @@ const FoundItems = () => {
 
   const navigate = useNavigate();
 
-  // --- EFFECT 1: Debounce the search input ---
+ // The debounce effect to handle non-empty searches
   useEffect(() => {
+    if (searchInput.trim() === '') return;
+
     const handler = setTimeout(() => {
-      console.log('Debouncing complete, setting search term to:', searchInput);
-      setDebouncedSearchTerm(searchInput);
-    }, 500); // 500ms debounce delay
+      dispatch(fetchItems({
+        page: 1, // Reset to page 1
+        limit: pagination.itemsPerPage,
+        category: selectedCategory,
+        search: searchInput.trim(),
+        status: 'FOUND',
+      }));
+    }, 500);
 
-    return () => {
-      clearTimeout(handler);
-      console.log('Debounce timer cleared.');
-    };
-  }, [searchInput]);
+    return () => clearTimeout(handler);
+  }, [searchInput, dispatch]);
 
-  // --- EFFECT 2: Fetch items based on filters and debounced search term ---
+   // --- EFFECT 2: Fetch items based on filters and debounced search term ---
   useEffect(() => {
     console.log(`Fetching items with params: Page: ${pagination.currentPage}, Category: ${selectedCategory}, Search: "${debouncedSearchTerm}"`);
     dispatch(fetchItems({
@@ -81,18 +85,20 @@ const FoundItems = () => {
   };
 
   const handleSearchChange = (event) => {
-    const newSearchTerm = event.target.value;
+    const newSearchTerm = event.target.value.trim();
     setSearchInput(newSearchTerm);
     console.log('Search input changed, resetting to page 1.');
-    // We dispatch fetchItems here to reset pagination immediately when typing starts
-    // The debounced effect will trigger the actual search API call after the pause
-    dispatch(fetchItems({
-      page: 1, // Reset to page 1
-      limit: pagination.itemsPerPage,
-      category: selectedCategory,
-      search: newSearchTerm, // Use the immediate newSearchTerm here for the page=1 dispatch
-      status: 'FOUND',
-    }));
+    // Only dispatch fetchItems immediately if the search term is empty (to clear)
+    if (newSearchTerm === '') {
+      dispatch(fetchItems({
+        page: 1, // Reset to page 1
+        limit: pagination.itemsPerPage,
+        category: selectedCategory,
+        search: newSearchTerm,
+        status: 'FOUND',
+      }));
+
+    }
   };
 
   const paginate = (pageNumber) => {

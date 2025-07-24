@@ -56,7 +56,7 @@ const allowedOrigins = [
   'http://localhost:4173',
   'https://localhost:5173',
   'https://localhost:5173',
-   '0.0.0.0'
+  '*',
   ];
 
   const corsOptions = {

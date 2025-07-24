@@ -81,6 +81,7 @@ model Item {
   // Relations
   notifications Notification[] // Notifications related to this item
   auditLogs     AuditLog[] // Audit trail for this item
+  
   // Add text index for full-text search if using MongoDB Atlas Search
   // @@fulltext([title, description, category, location]) 
 
@@ -88,6 +89,9 @@ model Item {
   @@index([category])
   @@index([location])
   @@index([createdAt])
+
+  @@index([title, description], type: "text")
+  @@index([category, location], type: "text")
 }
 
 enum ItemStatus {

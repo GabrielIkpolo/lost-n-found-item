@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchItems } from '../features/items/itemsSlice';
 import { addNotification, NotificationType } from '../features/notifications/notificationsSlice';
-import './lostItemPage.css'; 
+import './lostItemPage.css';
 import itemImage from '../assets/images/logo-1.png';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -28,16 +28,22 @@ const LostItemPage = () => {
 
   const navigate = useNavigate();
 
-  // Debounce the search input
-  useEffect(() => {
+   useEffect(() => {
+    if (searchInput.trim() === '') return;
+
     const handler = setTimeout(() => {
-      setDebouncedSearchTerm(searchInput);
+      dispatch(fetchItems({
+        page: 1, // Reset to page 1
+        limit: pagination.itemsPerPage,
+        category: selectedCategory,
+        search: searchInput.trim(),
+        status: 'LOST',
+      }));
     }, 500);
 
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [searchInput]);
+    return () => clearTimeout(handler);
+  }, [searchInput, dispatch]);
+
 
   // Fetch lost items based on filters and debounced search term
   useEffect(() => {
@@ -74,16 +80,32 @@ const LostItemPage = () => {
     }
   };
 
+  // const handleSearchChange = (event) => {
+  //   const newSearchTerm = event.target.value;
+  //   setSearchInput(newSearchTerm);
+  //   dispatch(fetchItems({
+  //     page: 1, // Reset to page 1
+  //     limit: pagination.itemsPerPage,
+  //     category: selectedCategory,
+  //     search: newSearchTerm,
+  //     status: 'LOST',
+  //   }));
+  // };
+
+
   const handleSearchChange = (event) => {
-    const newSearchTerm = event.target.value;
+    const newSearchTerm = event.target.value.trim();
     setSearchInput(newSearchTerm);
-    dispatch(fetchItems({
-      page: 1, // Reset to page 1
-      limit: pagination.itemsPerPage,
-      category: selectedCategory,
-      search: newSearchTerm,
-      status: 'LOST',
-    }));
+    console.log('Search input changed, resetting to page 1.');
+    if (newSearchTerm === '') {
+      dispatch(fetchItems({
+        page: 1, // Reset to page 1
+        limit: pagination.itemsPerPage,
+        category: selectedCategory,
+        search: newSearchTerm,
+        status: 'FOUND',
+      }));
+    }
   };
 
   const paginate = (pageNumber) => {

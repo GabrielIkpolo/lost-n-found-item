@@ -1095,7 +1095,7 @@ export const getItems = async (req, res) => {
 
         const whereConditions = [];// Array to build up conditions
 
-        
+
         // --- Status Filtering Logic ---
         //====================
         if (statusFilter) {
@@ -1104,7 +1104,7 @@ export const getItems = async (req, res) => {
                 console.log('Admin requesting all item statuses.');
             } else if (Object.values(ItemStatus).includes(statusFilter)) {
 
-                whereConditions.push({ status: statusFilter }); 
+                whereConditions.push({ status: statusFilter });
             } else {
                 return res.status(400).json({ error: `Invalid status filter: ${statusFilter}. Must be one of ${Object.values(ItemStatus).join(', ')}${isAdminUser ? " or 'ALL' (for admins)." : ""}.` });
             }
@@ -1135,24 +1135,41 @@ export const getItems = async (req, res) => {
 
 
         // --- Search Query ---
-        if (searchQuery) {
-            const searchCondition = {
-                OR: [
-                    { title: { contains: searchQuery, mode: 'insensitive' } },
-                    { description: { contains: searchQuery, mode: 'insensitive' } },
-                    { category: { contains: searchQuery, mode: 'insensitive' } },
-                    { location: { contains: searchQuery, mode: 'insensitive' } },
-                ]
-            };
-            whereConditions.push(searchCondition); // Add the search condition
-        }
+        // if (searchQuery) {
+        //     const searchCondition = {
+        //         OR: [
+        //             { title: { contains: searchQuery, mode: 'insensitive' } },
+        //             { description: { contains: searchQuery, mode: 'insensitive' } },
+        //             { category: { contains: searchQuery, mode: 'insensitive' } },
+        //             { location: { contains: searchQuery, mode: 'insensitive' } },
+        //         ]
+        //     };
+        //     whereConditions.push(searchCondition); 
+        // }
 
-        // Combine all conditions using AND if there's more than one condition
-        // If there's only one condition (or none if status='ALL' and no other filters),
-        // Prisma uses it directly without needing `AND`.
+
         const finalWhere = whereConditions.length > 0 ? { AND: whereConditions } : {};
-        // If statusFilter was 'ALL' and no other filters were provided, whereConditions will be empty, resulting in {} which is correct for fetching all items.
+        //===Intro
 
+        if (searchQuery) {
+            whereConditions.push({
+                OR: [
+                    {
+                        title: {
+                            contains: searchQuery,
+                            mode: 'insensitive'
+                        }
+                    },
+                    {
+                        description: {
+                            contains: searchQuery,
+                            mode: 'insensitive'
+                        }
+                    }
+                ]
+            });
+        }
+        //==========Outro
 
         // Fetch items with pagination, filtering, and sorting
         const items = await prisma.item.findMany({
@@ -1172,7 +1189,7 @@ export const getItems = async (req, res) => {
                 createdAt: true,
                 updatedAt: true,
                 expiresAt: true,
-                reportedBy: { select: { id: true, name: true } }, 
+                reportedBy: { select: { id: true, name: true } },
                 claimedBy: { select: { id: true, name: true } }
             },
         });
@@ -1198,10 +1215,10 @@ export const getItems = async (req, res) => {
                 totalPages: totalPages,
                 currentPage: page,
                 itemsPerPage: limit,
-                query: searchQuery, 
-                statusFilter: statusFilter, 
-                categoryFilter: category, 
-                locationFilter: location, 
+                query: searchQuery,
+                statusFilter: statusFilter,
+                categoryFilter: category,
+                locationFilter: location,
             },
         });
 
