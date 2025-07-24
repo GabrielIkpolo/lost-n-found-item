@@ -49,7 +49,35 @@ import userRoutes from './src/routes/userRoutes.js';
 dotenv.config();
 const app = express();
 
-const allowedOrigins = process.env.VITE_REACT_APP_API_CLIENT_URL;
+const allowedOrigins = [process.env.VITE_REACT_APP_API_CLIENT_URL, '0.0.0.0'];
+
+
+// const corsOptions = {
+//   origin: function (origin, callback) {
+//     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+//   credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+// };
+
+// app.use(cors(corsOptions));
+
+const corsOptions = {
+  origin: process.env.VITE_REACT_APP_API_CLIENT_URL, // Frontend URL
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+
+// app.use(cors("*"));
+
 
 // Declared some middleware used
 app.use([express.json(), morgan("dev")]);
@@ -80,7 +108,6 @@ const storage = multer.diskStorage({
 // Create the multer instance
 const upload = multer({ storage: storage });
 
-app.use(cors("*"));
 
 // Serve static image files
 app.use('/api/images', express.static(imageStoragePath));
@@ -103,6 +130,7 @@ app.use(passport.session());
 app.use('/api/auth', authRoutes);
 app.use('/api/items', itemRoutes(upload));
 app.use('/api/users', userRoutes);
+
 
 // Return 404 for non-accounted routes
 app.all('*', (req, res) => {

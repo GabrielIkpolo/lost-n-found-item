@@ -23,8 +23,6 @@ const clientUrl = process.env.NODE_ENV === 'production'
     : 'http://localhost:5173'; // Force localhost for local dev
 
 
-// --- THIS IS THE NEW PART ---
-// Make the clientUrl available to all routes handled by this router
 router.use((req, res, next) => {
     req.app.locals.clientUrl = clientUrl;
     console.log(`Using client URL: ${clientUrl}`); 

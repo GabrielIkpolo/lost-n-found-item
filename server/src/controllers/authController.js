@@ -47,6 +47,7 @@ export const registerUser = async (req, res) => {
         // Hash the password
         const hashedPassword = await hashPassword(password);
         const verificationToken = generateVerificationToken();
+        const hashedToken = await bcrypt.hash(verificationToken, 12);
         const verificationTokenExpires = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
 
         // Create user in the database
@@ -57,7 +58,7 @@ export const registerUser = async (req, res) => {
                 password: hashedPassword,
                 provider: 'LOCAL',
                 role: 'USER',
-                emailVerificationToken: verificationToken,
+                emailVerificationToken: hashedToken,
                 emailVerificationExpires: verificationTokenExpires,
                 emailVerified: false,
             },
@@ -408,7 +409,6 @@ export const refreshAccessToken = async (req, res) => {
 
 
 export const verifyEmail = async (req, res) => {
-    // Assuming token is in query param: /verify-email?token=XYZ
     const { token } = req.query;
 
     if (!token) {
@@ -416,23 +416,29 @@ export const verifyEmail = async (req, res) => {
     }
 
     try {
-        const user = await prisma.user.findFirst({
+        // Find all users with unexpired verification tokens
+        const users = await prisma.user.findMany({
             where: {
-                emailVerificationToken: token,
                 emailVerificationExpires: { gt: new Date() } // Check if token is not expired
             }
         });
 
+        let user = null;
+        // Compare the token with each user's hashed token
+        for (const u of users) {
+            if (u.emailVerificationToken && await bcrypt.compare(token, u.emailVerificationToken)) {
+                user = u;
+                break;
+            }
+        }
+
         if (!user) {
-            // Potentially redirect to a frontend page:
-            // return res.redirect('https://yourfrontend.com/verification-failed?reason=invalid_or_expired');
             return res.status(400).json({ error: "Invalid or expired verification token." });
         }
 
         if (user.emailVerified) {
-            // Potentially redirect to a frontend page:
-            // return res.redirect('https://yourfrontend.com/login?message=already_verified');
-            return res.status(400).json({ error: "Email already verified." });
+            res.status(400).json({ error: "Email already verified." });
+            return res.redirect(`${process.env.VITE_REACT_APP_API_CLIENT_URL}/login?verified=true`);
         }
 
         // Mark email as verified and clear token fields
@@ -440,24 +446,21 @@ export const verifyEmail = async (req, res) => {
             where: { id: user.id },
             data: {
                 emailVerified: true,
-                //emailVerifiedAt: new Date(), // Optional: store verification time
+                emailVerifiedAt: new Date(), // Optional: store verification time
                 emailVerificationToken: null, // Invalidate the token
                 emailVerificationExpires: null
             }
         });
 
-        // Optional: Log the user in automatically here by generating JWTs
-        // Or redirect to a success page that instructs them to log in.
-        // For API:
-        return res.status(200).json({ message: "Email verified successfully. You can now log in." });
-        // For web redirect:
-        // return res.redirect('https://yourfrontend.com/login?message=email_verified_success');
+        //  Redirect to frontend login with success message
+        res.redirect(`${req.app.locals.clientUrl}/login?verified=true`);
 
 
     } catch (error) {
         console.error("Error in email verification:", error);
         // return res.redirect('https://yourfrontend.com/verification-failed?reason=server_error');
-        return res.status(500).json({ error: "Internal server error during email verification." });
+        res.status(500).json({ error: "Internal server error during email verification." });
+        return res.redirect(`${req.app.locals.clientUrl}/login?verified=false`);
     }
 };
 
@@ -536,7 +539,7 @@ export const forgotPassword = async (req, res) => {
         const resetUrl = `${req.app.locals.clientUrl}/reset-password/${resetToken}`;
         console.log(`Generated password reset URL: ${resetUrl}`);  // Add logging
 
-        
+
         try {
             await sendPasswordResetEmail(user.email, resetToken, resetUrl);
             return res.status(200).json({ message: "If a user with that email exists, a password reset link has been sent." });

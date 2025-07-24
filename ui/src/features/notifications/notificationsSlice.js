@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { v4 as uuidv4 } from "uuid" // Needed to generate unique IDs
 
+
 // Define the Notification types enum
 export const NotificationType = {
     INFO: 'info',       // Blue/Gray (default)

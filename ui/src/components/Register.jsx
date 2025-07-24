@@ -127,7 +127,7 @@ const Register = () => {
                 {/* TODO: Add Google/Facebook registration if different from login, otherwise omit */}
                 <div className="social-login">
 
-                    <button className="google-btn" disabled={isLoading}>
+                    <button className="google-btn" onClick={handleGoogleRegister} disabled={isLoading}>
                         <i className="fab fa-google"></i> Register with Google
                     </button>
 

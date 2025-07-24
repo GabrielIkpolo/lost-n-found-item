@@ -2,7 +2,8 @@ import passport from "passport";
 import GoogleStrategy from 'passport-google-oauth20';
 import FacebookStrategy from 'passport-facebook';
 import prisma from "./prisma.js";
-import { hashPassword } from "./authHelpers.js";
+import { generateVerificationToken, hashPassword } from "./authHelpers.js";
+import { sendVerificationEmail } from "../services/emailService.js";
 
 passport.serializeUser((user, done) => {
     console.log("SerializeUser called with user:", user); // Add log
@@ -83,14 +84,26 @@ passport.use('google', new GoogleStrategy({
                     passwordResetToken: null, // Explicitly null
                     passwordResetExpires: null, // Explicitly null
                     fcmToken: null, // Explicitly null for other optional fields
-                    lastFcmUpdate: null // Explicitly null
-                    // password field will be null for OAuth users
+                    lastFcmUpdate: null, // Explicitly null
+                    emailVerified: true,
+                    emailVerifiedAt: new Date()
                 }
             });
             console.log("Google Strategy - New user created:", user);
         }
 
-        return done(null, user); // Pass the user object to Passport
+
+        try {
+            const verificationToken = generateVerificationToken();
+            await sendVerificationEmail(user.email, verificationToken)
+            console.log("Verification email sent to Google user: ",user.email );
+        } catch (emailError) {
+            console.error("Failed to send varification to google user: ", emailError);
+        }
+
+
+
+        return done(null, user);
     } catch (error) {
         console.error("Google Strategy - Catch Block Error:", error);
         return done(error, null); // Pass the error to Passport
@@ -117,7 +130,7 @@ passport.use('facebook', new FacebookStrategy({ // Name the strategy 'facebook'
             // Option 1: Deny login/registration
             console.error("Facebook Strategy Error: No email found in Facebook profile. User might have denied permission or has no primary email.");
             return done(new Error("An email is required from Facebook to register/login. Please ensure your Facebook account has a primary email and you grant permission."), null);
-            
+
         }
         console.log("Facebook Strategy - Extracted email:", email);
 
@@ -158,7 +171,9 @@ passport.use('facebook', new FacebookStrategy({ // Name the strategy 'facebook'
                     passwordResetToken: null,
                     passwordResetExpires: null,
                     fcmToken: null,
-                    lastFcmUpdate: null
+                    lastFcmUpdate: null,
+                    emailVerified: true,
+                    emailVerifiedAt: new Date()
                 }
             });
             console.log("Facebook Strategy - New user created:", user);

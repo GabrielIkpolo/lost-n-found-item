@@ -17,8 +17,9 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_REACT_APP_API_BASE_URL,
         changeOrigin: true,
-        //  secure: process.env.SECURE, // Set to true if your API server uses HTTPS
-        secure: process.env.NODE_ENV === 'production'
+         secure: process.env.SECURE, // Set to true if your API server uses HTTPS
+        // secure: process.env.NODE_ENV === 'production'
+        // rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },

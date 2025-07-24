@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { createBrowserRouter, RouterProvider, Link, Outlet } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Link, Outlet, Navigate } from "react-router-dom";
 import './App.css'
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -86,6 +86,8 @@ const guide = createBrowserRouter([
       { path: '/index.html', element: <AuthCallback /> },
 
       { path: '/auth/callback', element: <AuthCallback /> },
+
+      {path: '/verify-email', element: <Navigate to="/login" replace />},
 
 
       {

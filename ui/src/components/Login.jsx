@@ -27,13 +27,8 @@ const Login = () => {
                 type: NotificationType.SUCCESS
             }));
 
-           
+
         }
-
-
-        // We don't need to add `dispatch` or `navigate` to the dependency array
-        // because `dispatch` is stable and `navigate` is also stable.
-        // `isAuthenticated` is the only state that changes and should trigger this effect.
     }, [isAuthenticated, navigate, dispatch]); // Add dispatch and navigate to dependencies for best practice
 
     // Effect to show error notifications
@@ -46,7 +41,25 @@ const Login = () => {
                 duration: 5000
             }));
         }
-    }, [error, dispatch]); // Re-run effect if error state or dispatch changes
+    }, [error, dispatch]);
+
+
+    // On email varification success for google strategy
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('verified')) {
+            dispatch(addNotification({
+                message: 'Email verified successfully! You can now log in.',
+                type: NotificationType.SUCCESS
+            }));
+            // Optionally clear the query parameter after showing the notification
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, [dispatch]);
+
+
+
+
 
 
     const handleSubmit = (e) => {
@@ -61,7 +74,6 @@ const Login = () => {
             }));
             return;
         }
-
         // Dispatch the loginUser async thunk with credentials
         dispatch(loginUser({ email, password }));
     };
@@ -120,7 +132,7 @@ const Login = () => {
 
                 {/* Social Login */}
                 <div className="social-login">
-                    <button className="google-btn" onClick={handleGoogleLogin} disabled={isLoading}> 
+                    <button className="google-btn" onClick={handleGoogleLogin} disabled={isLoading}>
                         <i className="fab fa-google"></i> Google Login
                     </button>
                     {/* <button className="facebook-btn" onClick={handleFacebookLogin} disabled={isLoading}> 

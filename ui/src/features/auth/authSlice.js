@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { axiosInstance } from '../../util/axiosInstance';
 
 
 // Define the initial state for authentication
