@@ -212,6 +212,9 @@ const FoundItems = () => {
                   src={item.imageUrlFront || itemImage}
                   alt={item.title}
                   className="item-image"
+                  onError={(e) => {
+                    e.target.src = itemImage;
+                  }}
                 />
                 <p>
                   <strong>Status:</strong> {item.status}

@@ -49,35 +49,36 @@ import userRoutes from './src/routes/userRoutes.js';
 dotenv.config();
 const app = express();
 
-const allowedOrigins = [process.env.VITE_REACT_APP_API_CLIENT_URL, '0.0.0.0'];
+const allowedOrigins = [
+  process.env.VITE_REACT_APP_API_CLIENT_URL,
+  'https://lost-and-found-items.onrender.com',
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'https://localhost:5173',
+  'https://localhost:5173',
+   '0.0.0.0'
+  ];
 
-
-// const corsOptions = {
-//   origin: function (origin, callback) {
-//     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-//       callback(null, true);
-//     } else {
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   credentials: true, // Allow credentials (cookies, authorization headers, etc.)
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization'],
-// };
-
-// app.use(cors(corsOptions));
-
-const corsOptions = {
-  origin: process.env.VITE_REACT_APP_API_CLIENT_URL, // Frontend URL
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
-
+  const corsOptions = {
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.some(allowed => 
+        origin === allowed || 
+        origin.startsWith(allowed.replace('*', '')) ||
+        new RegExp(allowed.replace('.', '\.').replace('*', '.*')).test(origin)
+      )) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  };
+  
 app.use(cors(corsOptions));
-
-// app.use(cors("*"));
-
 
 // Declared some middleware used
 app.use([express.json(), morgan("dev")]);
@@ -110,7 +111,18 @@ const upload = multer({ storage: storage });
 
 
 // Serve static image files
-app.use('/api/images', express.static(imageStoragePath));
+const staticOptions = {
+  setHeaders: (res, path) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    // Cache control for production
+    if (process.env.NODE_ENV === 'production') {
+      res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  }
+};
+
+app.use('/api/images', express.static(imageStoragePath, staticOptions));
 
 const port = process.env.PORT || 3000;
 
