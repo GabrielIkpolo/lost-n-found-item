@@ -441,15 +441,6 @@ export const updateItem = async (req, res) => {
         const userRole = req.user.role; // User role from requireSignin
 
 
-        // Validate ID format if necessary (optional if Prisma handles it sufficiently)
-        // if (!ObjectId.isValid(id)) {
-        //      // Clean up newly uploaded files on invalid ID
-        //      if (newFiles?.imageUrlFront?.[0]?.path) deleteFile(newFiles.imageUrlFront[0.path);
-        //      if (newFiles?.imageUrlBack?.[0]?.path) deleteFile(newFiles.imageUrlBack[0].path);
-        //      return res.status(400).json({ error: "Invalid Item ID format." });
-        // }
-
-
         // 1. Fetch the existing item to check ownership, get current image paths, and current status
         const existingItem = await prisma.item.findUnique({
             where: { id: id },
@@ -1133,23 +1124,7 @@ export const getItems = async (req, res) => {
             }
         }
 
-
-        // --- Search Query ---
-        // if (searchQuery) {
-        //     const searchCondition = {
-        //         OR: [
-        //             { title: { contains: searchQuery, mode: 'insensitive' } },
-        //             { description: { contains: searchQuery, mode: 'insensitive' } },
-        //             { category: { contains: searchQuery, mode: 'insensitive' } },
-        //             { location: { contains: searchQuery, mode: 'insensitive' } },
-        //         ]
-        //     };
-        //     whereConditions.push(searchCondition); 
-        // }
-
-
         const finalWhere = whereConditions.length > 0 ? { AND: whereConditions } : {};
-        //===Intro
 
         if (searchQuery) {
             whereConditions.push({
@@ -1169,7 +1144,6 @@ export const getItems = async (req, res) => {
                 ]
             });
         }
-        //==========Outro
 
         // Fetch items with pagination, filtering, and sorting
         const items = await prisma.item.findMany({
