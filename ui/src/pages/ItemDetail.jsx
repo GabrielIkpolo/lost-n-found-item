@@ -337,7 +337,7 @@ const ItemDetail = () => {
 
             {/* Edit Button: Show if authenticated, and user is the reporter OR is an Admin/Super Admin */}
             {/* Also check if item data is loaded */}
-            {isAuthenticated && currentItem && (user?.id === currentItem.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && canEdit && ( // Use canEdit check for clarity
+            {isAuthenticated && currentItem && (user?.id === currentItem.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && canEdit && ( 
               <Link
                 to={`/items/${currentItem.id}/edit`}
                 className="btn-action secondary"

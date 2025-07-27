@@ -12,6 +12,8 @@ const ResetPasswordPage = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
+    const [isTokenValid, setIsTokenValid] = useState(false);
+
     const {
         isResettingPassword,
         resetPasswordError,
@@ -36,6 +38,7 @@ const ResetPasswordPage = () => {
                 type: NotificationType.ERROR,
             }));
             navigate('/login', { replace: true });
+            return;
         }
 
         // 3. Handle successful password reset
@@ -55,6 +58,7 @@ const ResetPasswordPage = () => {
             }
         }
 
+        setIsTokenValid(true); //
         // 5. Cleanup function: This will run when the component unmounts.
         return () => {
             dispatch(clearResetPasswordStatus());
