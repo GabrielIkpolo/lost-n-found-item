@@ -57,10 +57,26 @@ export const sendVerificationEmail = async (toEmail, token) => {
 };
 
 // Password reset email using the generic sendEmail function
+// export const sendPasswordResetEmail = async (toEmail, token, resetUrl) => {
+//     const subject = 'Password Reset Request';
+//     const text = `Hello,\n\nYou requested a password reset. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link is valid for 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nThanks,\nThe Your App Team`;
+//     const html = `<p>Hello,</p><p>You requested a password reset. Click the link below to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link is valid for 15 minutes.</p><p>If you did not request this, please ignore this email.</p><p>Thanks,<br/>LAFI Team</p>`;
+
+//     return sendEmail(toEmail, subject, text, html);
+// };
+
+
 export const sendPasswordResetEmail = async (toEmail, token, resetUrl) => {
+    // Ensure the reset URL uses the correct client URL
+    const clientUrl = process.env.NODE_ENV === 'production'
+        ? process.env.VITE_REACT_APP_API_CLIENT_URL
+        : 'http://localhost:5173';
+    
+    const fullResetUrl = `${clientUrl}/reset-password/${token}`;
+    
     const subject = 'Password Reset Request';
-    const text = `Hello,\n\nYou requested a password reset. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link is valid for 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nThanks,\nThe Your App Team`;
-    const html = `<p>Hello,</p><p>You requested a password reset. Click the link below to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link is valid for 15 minutes.</p><p>If you did not request this, please ignore this email.</p><p>Thanks,<br/>LAFI Team</p>`;
+    const text = `Hello,\n\nYou requested a password reset. Click the link below to reset your password:\n\n${fullResetUrl}\n\nThis link is valid for 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nThanks,\nThe Your App Team`;
+    const html = `<p>Hello,</p><p>You requested a password reset. Click the link below to reset your password:</p><p><a href="${fullResetUrl}">${fullResetUrl}</a></p><p>This link is valid for 15 minutes.</p><p>If you did not request this, please ignore this email.</p><p>Thanks,<br/>LAFI Team</p>`;
 
     return sendEmail(toEmail, subject, text, html);
 };

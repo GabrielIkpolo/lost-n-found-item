@@ -80,19 +80,7 @@ const LostItemPage = () => {
     }
   };
 
-  // const handleSearchChange = (event) => {
-  //   const newSearchTerm = event.target.value;
-  //   setSearchInput(newSearchTerm);
-  //   dispatch(fetchItems({
-  //     page: 1, // Reset to page 1
-  //     limit: pagination.itemsPerPage,
-  //     category: selectedCategory,
-  //     search: newSearchTerm,
-  //     status: 'LOST',
-  //   }));
-  // };
-
-
+ 
   const handleSearchChange = (event) => {
     const newSearchTerm = event.target.value.trim();
     setSearchInput(newSearchTerm);

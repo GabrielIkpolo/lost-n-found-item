@@ -39,16 +39,20 @@ const AuthCallback = () => {
 
         } catch (parseError) {
           console.error('AuthCallback: Failed to parse user data:', parseError);
-          dispatch(addNotification({ message: 'Authentication failed due to a data error.', type: NotificationType.ERROR }));
+          dispatch(addNotification({
+             message: 'Authentication failed due to a data error.', 
+             type: NotificationType.ERROR 
+            }));
           setIsProcessing(false);
           navigate('/login', { replace: true }); 
         }
       } else {
         // Handle cases where token/user is missing
         console.warn('AuthCallback: Page accessed without expected parameters.');
-        dispatch(addNotification({ message: 'Invalid authentication callback.', type: NotificationType.ERROR }));
+        // dispatch(addNotification({ message: 'Invalid authentication callback.', type: NotificationType.ERROR }));
         setIsProcessing(false);
-        navigate('/login', { replace: true }); // Navigate away on error
+        // navigate('/login', { replace: true }); // Navigate away on error
+        return <Navigate to='/' replace />
       }
     }
   }, [isProcessing, location, dispatch, navigate]);

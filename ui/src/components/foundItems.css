@@ -190,11 +190,7 @@ body {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   overflow: hidden;
 
-  /* display: flex; Added flex to stack content */
-  /* flex-direction: column; Stack children vertically */
-  /* height: 100%; */
-
-}
+ }
 
 .item-card:hover {
   transform: translateY(-5px);
@@ -213,7 +209,7 @@ body {
   /* height: auto; */
   height: 150px; /* Set a fixed height for consistency */
   /* object-fit: contain; */
-  object-fit: cover; /* Crop image to cover the area */
+  object-fit: contain; 
   border-radius: 8px;
   margin-bottom: 10px;
   flex-shrink: 0; /* Prevent image from shrinking */

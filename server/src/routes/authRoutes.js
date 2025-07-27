@@ -114,8 +114,17 @@ router.post('/resend-verification', moderateLimiter, resendVerificationEmail);
 
 // Password Reset Routes
 router.post('/forgot-password', authLimiter, forgotPassword);
-router.post('/reset-password/:token', authLimiter, resetPassword);
+// router.post('/reset-password/:token', authLimiter, resetPassword);
 
+router.post('/reset-password/:token', authLimiter, (req, res, next) => {
+    // Ensure client URL is properly set for production
+    req.app.locals.clientUrl = process.env.NODE_ENV === 'production' 
+      ? process.env.VITE_REACT_APP_API_CLIENT_URL 
+      : 'http://localhost:5173';
+    next();
+  }, resetPassword);
+
+  
 router.post('/logout', logoutUser);
 
 //Google Login: http://localhost:3000/api/auth/google  // No deed for registering
