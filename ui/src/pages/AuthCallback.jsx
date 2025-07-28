@@ -49,8 +49,7 @@ const AuthCallback = () => {
         console.warn('AuthCallback: Page accessed without expected parameters.');
         // dispatch(addNotification({ message: 'Invalid authentication callback.', type: NotificationType.ERROR }));
         setIsProcessing(false);
-        // navigate('/login', { replace: true }); // Navigate away on error
-        return <Navigate to='/' replace />
+        return navigate('/', { replace: true }); // Navigate away on error
       }
     }
   }, [isProcessing, location, dispatch, navigate]);
