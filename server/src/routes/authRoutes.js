@@ -69,7 +69,8 @@ router.get('/google/callback', passport.authenticate('google', {
         console.log(`Google login successful, redirecting to frontend callback with token for user ${user.id}`);
 
         // Redirect to frontend callback route with token and user data in query params
-        res.redirect(`${clientUrl}/auth/callback?token=${accessToken}&user=${encodedUserData}`);
+        // res.redirect(`${clientUrl}/auth/callback?token=${accessToken}&user=${encodedUserData}`);
+        res.redirect(`${clientUrl}/#token=${accessToken}&user=${encodedUserData}`);
     })
 
 
@@ -102,8 +103,9 @@ router.get('/facebook/callback', passport.authenticate('facebook', {
     console.log(`Facebook login successful, redirecting to frontend callback with token for user ${user.id}`);
 
     // Redirect to frontend callback route with token and user data in query params
-    res.redirect(`${process.env.VITE_REACT_APP_API_CLIENT_URL}/auth/callback?token=${accessToken}&user=${encodedUserData}`);
+    // res.redirect(`${process.env.VITE_REACT_APP_API_CLIENT_URL}/auth/callback?token=${accessToken}&user=${encodedUserData}`);
     // res.redirect(`${process.env.VITE_REACT_APP_API_BASE_URL}`); 
+    res.redirect(`${clientUrl}/#token=${accessToken}&user=${encodedUserData}`);
 });
 
 

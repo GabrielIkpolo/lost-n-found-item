@@ -24,8 +24,11 @@ import ManageUsersPage from './pages/ManageUsersPage';
 import ManageItemsPage from './pages/ManageItemsPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
-import AuthCallback from './pages/AuthCallback';
+// import AuthCallback from './pages/AuthCallback';
 import LostItemPage from './pages/LostItemPage';
+import { setAuthState } from './features/auth/authSlice'; 
+
+
 // Import ItemStatus enum from backend or define relevant roles here
 // import { UserRole } from '../../server/prisma/client'; 
 // If not importing directly, define locally:
@@ -85,7 +88,7 @@ const guide = createBrowserRouter([
 
       // { path: '/index.html', element: <AuthCallback /> },
 
-      { path: '/auth/callback', element: <AuthCallback /> },
+      // { path: '/auth/callback', element: <AuthCallback /> },
 
       {path: '/verify-email', element: <Navigate to="/login" replace />},
 
@@ -141,6 +144,38 @@ function App() {
   useEffect(() => {
     dispatch(loadAuthState());
   }, [dispatch]); 
+
+
+  useEffect(() => {
+    // Check if there is a hash in the URL
+    if (window.location.hash.includes('token')) {
+      // Use URLSearchParams to easily parse the parameters from the hash
+      const params = new URLSearchParams(window.location.hash.substring(1)); // remove the '#'
+      const token = params.get('token');
+      const userDataString = params.get('user');
+
+      if (token && userDataString) {
+        try {
+          const user = JSON.parse(decodeURIComponent(userDataString));
+          
+          // Dispatch the action to set the auth state in Redux
+          dispatch(setAuthState({ user, token }));
+
+          // Store in localStorage for persistence
+          localStorage.setItem('accessToken', token);
+          localStorage.setItem('user', JSON.stringify(user));
+
+          // Clean the URL by removing the hash, so it doesn't get processed again on refresh
+          window.history.replaceState({}, document.title, window.location.pathname);
+
+        } catch (error) {
+          console.error('Failed to parse user data from URL hash:', error);
+          // Clean the URL even if parsing fails
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    }
+  }, [dispatch])
 
   if (isAuthLoading) {
     return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading application...</div>;
