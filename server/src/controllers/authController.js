@@ -501,7 +501,9 @@ export const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
 
-        const clientUrl = req.app.locals.clientUrl;
+        const clientUrl = req.app.locals.clientUrl|| 
+        process.env.VITE_REACT_APP_API_CLIENT_URL || 
+        'http://localhost:5173';
 
         if (!email) {
             return res.status(400).json({ error: "Email is required." });
@@ -611,8 +613,8 @@ export const resetPassword = async (req, res) => {
             },
         });
 
-        return res.status(200).json({ message: "Password has been reset successfully." });
-
+        // res.status(200).json({ message: "Password has been reset successfully." });
+        return res.redirect(`${req.app.locals.clientUrl}/login?reset=success`);
     } catch (error) {
         console.error("Error in resetPassword:", error);
         return res.status(500).json({ error: "Internal server error during password reset." });

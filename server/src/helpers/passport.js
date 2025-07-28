@@ -80,7 +80,7 @@ passport.use('google', new GoogleStrategy({
                     providerId: profile.id,
                     role: 'USER',
                     password: null, // Explicitly null for OAuth
-                    phone: null,    // Explicitly null if not provided
+                    phone: null,    
                     passwordResetToken: null, // Explicitly null
                     passwordResetExpires: null, // Explicitly null
                     fcmToken: null, // Explicitly null for other optional fields
@@ -95,10 +95,10 @@ passport.use('google', new GoogleStrategy({
 
         try {
             const verificationToken = generateVerificationToken();
-            await sendVerificationEmail(user.email, verificationToken)
-            console.log("Verification email sent to Google user: ",user.email );
+            // await sendVerificationEmail(user.email, verificationToken)
+            // console.log("Verification email sent to Google user: ",user.email );
         } catch (emailError) {
-            console.error("Failed to send varification to google user: ", emailError);
+            // console.error("Failed to send varification to google user: ", emailError);
         }
 
 

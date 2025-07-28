@@ -9,10 +9,8 @@ const AuthCallback = () => {
   const location = useLocation();
   const dispatch = useDispatch();
   const navigate = useNavigate(); // We still need navigate for error cases
-
   // Get isAuthenticated from Redux state
   const { isAuthenticated } = useSelector(state => state.auth);
-  
   // Local state to track if we have processed the URL
   const [isProcessing, setIsProcessing] = useState(true);
 
@@ -57,7 +55,6 @@ const AuthCallback = () => {
     }
   }, [isProcessing, location, dispatch, navigate]);
 
-  // --- This is the key change ---
   // If the state has updated and the user is now authenticated,
   // declaratively navigate to the home page.
   if (isAuthenticated) {

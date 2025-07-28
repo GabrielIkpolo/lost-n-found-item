@@ -120,7 +120,7 @@ const guide = createBrowserRouter([
 
           {
             path: 'items',
-            element: <ManageItemsPage /> // 
+            element: <ManageItemsPage /> 
           },
         ],
       },
