@@ -70,29 +70,29 @@ const guide = createBrowserRouter([
     errorElement: <RootErrorBoundary />,
     children: [
       { path: '/', element: <Home /> },
-      { path: '/login', element: <Login /> },
-      { path: '/register', element: <Register /> },
-      { path: '/items/:id', element: <ItemDetail /> },
+      { path: 'login', element: <Login /> },
+      { path: 'register', element: <Register /> },
+      { path: 'items/:id', element: <ItemDetail /> },
 
       {
-        path: '/report', element: (
+        path: 'report', element: (
           <ProtectedRoutes >
             <ReportItem />
           </ProtectedRoutes>
         )
       },
 
-      { path: '/lost-items', element: <LostItemPage /> },
+      { path: 'lost-items', element: <LostItemPage /> },
 
-      { path: '/forgot-password', element: <ForgotPasswordPage /> },
+      { path: 'forgot-password', element: <ForgotPasswordPage /> },
 
-      { path: '/reset-password/:token', element: <ResetPasswordPage /> },
+      { path: 'reset-password/:token', element: <ResetPasswordPage /> },
 
       // { path: '/index.html', element: <AuthCallback /> },
 
       // { path: '/auth/callback', element: <AuthCallback /> },
 
-      {path: '/verify-email', element: <Navigate to="/login" replace />},
+      {path: 'verify-email', element: <Navigate to="/login" replace />},
 
 
       {
@@ -113,7 +113,7 @@ const guide = createBrowserRouter([
 
 
       {
-        path: '/admin', element: (
+        path: 'admin', element: (
           <ProtectedRoutes requiredRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]} >
             <AdminDashboard />
           </ProtectedRoutes>
