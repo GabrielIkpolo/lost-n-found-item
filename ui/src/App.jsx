@@ -27,6 +27,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 // import AuthCallback from './pages/AuthCallback';
 import LostItemPage from './pages/LostItemPage';
 import { setAuthState } from './features/auth/authSlice'; 
+import RootErrorBoundary from './pages/RootErrorBoundary';
 
 
 // Import ItemStatus enum from backend or define relevant roles here
@@ -66,6 +67,7 @@ const HeadAndFooter = () => {
 const guide = createBrowserRouter([
   {
     path: '/', element: <HeadAndFooter />,
+    errorElement: <RootErrorBoundary />,
     children: [
       { path: '/', element: <Home /> },
       { path: '/login', element: <Login /> },
