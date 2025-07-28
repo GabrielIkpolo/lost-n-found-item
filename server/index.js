@@ -78,6 +78,9 @@ const allowedOrigins = [
     allowedHeaders: ['Content-Type', 'Authorization'],
   };
   
+
+
+
 app.use(cors(corsOptions));
 
 // Declared some middleware used
@@ -140,13 +143,6 @@ app.use(session({
   }
 }));
 
-
-// app.use(session({
-//   secret: process.env.SESSION_SECRET,
-//   resave: false,
-//   saveUninitialized: false,
-//   // cookie: { secure: process.env.NODE_ENV === 'production' } // Enable for HTTPS
-// }));
 
 // Initialize Passport with the configuration
 app.use(passport.initialize());
