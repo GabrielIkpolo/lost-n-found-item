@@ -64,7 +64,7 @@ const HeadAndFooter = () => {
 
 
 // The guide 
-const guide = createHashRouter([
+const guide = createBrowserRouter([
   {
     path: '/', element: <HeadAndFooter />,
     errorElement: <RootErrorBoundary />,
