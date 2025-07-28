@@ -126,12 +126,27 @@ app.use('/api/images', express.static(imageStoragePath, staticOptions));
 
 const port = process.env.PORT || 3000;
 
+app.set('trust proxy', 1);
+
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  // cookie: { secure: process.env.NODE_ENV === 'production' } // Enable for HTTPS
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', 
+    httpOnly: true, // Good security practice
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-site, 'lax' for local
+    maxAge: 7 * 24 * 60 * 60 * 1000 // e.g., 7 days
+  }
 }));
+
+
+// app.use(session({
+//   secret: process.env.SESSION_SECRET,
+//   resave: false,
+//   saveUninitialized: false,
+//   // cookie: { secure: process.env.NODE_ENV === 'production' } // Enable for HTTPS
+// }));
 
 // Initialize Passport with the configuration
 app.use(passport.initialize());
