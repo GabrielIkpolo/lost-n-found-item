@@ -613,7 +613,7 @@ export const resetPassword = async (req, res) => {
             },
         });
 
-        return res.status(200).json({ message: "Password has been reset successfully." });
+        res.status(200).json({ message: "Password has been reset successfully." });
         // return res.redirect(`${req.app.locals.clientUrl}/login?reset=success`);
     } catch (error) {
         console.error("Error in resetPassword:", error);
