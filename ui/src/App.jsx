@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { createBrowserRouter, RouterProvider, Link, Outlet, Navigate } from "react-router-dom";
+import { createBrowserRouter, createHashRouter,RouterProvider, Link, Outlet, Navigate } from "react-router-dom";
 import './App.css'
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -64,7 +64,7 @@ const HeadAndFooter = () => {
 
 
 // The guide 
-const guide = createBrowserRouter([
+const guide = createHashRouter([
   {
     path: '/', element: <HeadAndFooter />,
     errorElement: <RootErrorBoundary />,
