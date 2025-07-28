@@ -64,7 +64,7 @@ const HeadAndFooter = () => {
 
 
 // The guide 
-const guide = createBrowserRouter([
+const routerConfig = [
   {
     path: '/', element: <HeadAndFooter />,
     errorElement: <RootErrorBoundary />,
@@ -135,12 +135,14 @@ const guide = createBrowserRouter([
       { path: '*', element: <ErrorPage /> }
     ]
   }
-]);
+];
 
 
 function App() {
   const dispatch = useDispatch();
   const {isAuthLoading} = useSelector((state)=> state.auth);
+
+  const router = createBrowserRouter(routerConfig);
 
   // Effect to load auth state from localStorage on initial render
   useEffect(() => {
@@ -185,7 +187,7 @@ function App() {
 
   return (
     <>
-      <RouterProvider router={guide} />
+      <RouterProvider router={router} />
     </>
   )
 }
