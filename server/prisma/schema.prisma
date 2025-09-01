@@ -62,21 +62,25 @@ enum UserRole {
 }
 
 model Item {
-  id            String       @id @default(auto()) @map("_id") @db.ObjectId
-  title         String
-  description   String
-  category      ItemCategory // Enum for category
-  location      ItemLocation // Enum for location
-  imageUrlFront String?
-  imageUrlBack  String?
-  status        ItemStatus   @default(LOST) // Enum: LOST, FOUND, CLAIMED, RETURNED, ARCHIVED
-  reportedBy    User         @relation("UserItems", fields: [reportedById], references: [id])
-  reportedById  String       @db.ObjectId
-  claimedBy     User?        @relation("ClaimedItems", fields: [claimedById], references: [id])
-  claimedById   String?      @db.ObjectId
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  expiresAt     DateTime? // For automatic archival of FOUND items
+  id                     String       @id @default(auto()) @map("_id") @db.ObjectId
+  title                  String
+  description            String
+  category               ItemCategory // Enum for category
+  location               ItemLocation // Enum for location
+  imageUrlFront          String?
+  imageUrlBack           String?
+  imageUrlFrontPublicId  String?
+  imageUrlBackPublicId   String?
+  imageUrlFrontLocalPath String?
+  imageUrlBackLocalPath  String?
+  status                 ItemStatus   @default(LOST) // Enum: LOST, FOUND, CLAIMED, RETURNED, ARCHIVED
+  reportedBy             User         @relation("UserItems", fields: [reportedById], references: [id])
+  reportedById           String       @db.ObjectId
+  claimedBy              User?        @relation("ClaimedItems", fields: [claimedById], references: [id])
+  claimedById            String?      @db.ObjectId
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  expiresAt              DateTime? // For automatic archival of FOUND items
 
   // Relations
   notifications Notification[] // Notifications related to this item
@@ -183,4 +187,13 @@ enum AuditAction {
   MANAGE_USER_ROLE
   DELETE_USER
   // etc.
+}
+
+model File {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  filename   String
+  url        String? // Cloudinary URL
+  type       String // 'local' or 'cloudinary'
+  providerId String?
+  uploadedAt DateTime @default(now())
 }

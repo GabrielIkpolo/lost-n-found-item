@@ -57,27 +57,27 @@ const allowedOrigins = [
   'https://localhost:5173',
   'https://localhost:5173',
   '*',
-  ];
+];
 
-  const corsOptions = {
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.some(allowed => 
-        origin === allowed || 
-        origin.startsWith(allowed.replace('*', '')) ||
-        new RegExp(allowed.replace('.', '\.').replace('*', '.*')).test(origin)
-      )) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  };
-  
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.some(allowed =>
+      origin === allowed ||
+      origin.startsWith(allowed.replace('*', '')) ||
+      new RegExp(allowed.replace('.', '\.').replace('*', '.*')).test(origin)
+    )) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
 
 
 
@@ -110,7 +110,12 @@ const storage = multer.diskStorage({
 });
 
 // Create the multer instance
-const upload = multer({ storage: storage });
+// const upload = multer({ storage: storage });
+
+
+const upload = multer({ 
+  dest: path.join(__dirname, 'temp-uploads') // Temporary directory for uploads
+});
 
 
 // Serve static image files
@@ -125,7 +130,10 @@ const staticOptions = {
   }
 };
 
-app.use('/api/images', express.static(imageStoragePath, staticOptions));
+
+if (process.env.STORAGE_TYPE === 'local') {
+  app.use('/api/images', express.static(imageStoragePath, staticOptions));
+}
 
 const port = process.env.PORT || 3000;
 
@@ -136,7 +144,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', 
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true, // Good security practice
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-site, 'lax' for local
     maxAge: 7 * 24 * 60 * 60 * 1000 // e.g., 7 days
@@ -175,8 +183,23 @@ app.use((err, req, res, next) => {
 
 // const httpsServer = https.createServer(sslOptions, app);
 
+// Cloudinary
+// import { v2 as cloudinary } from "cloudinary"
+// cloudinary.config({
+//   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+//   api_key: process.env.CLOUDINARY_API_KEY,
+//   api_secret: process.env.CLOUDINARY_API_SECRET,
+// });
+
+// // Optional: Test the connection
+// cloudinary.api.ping()
+//   .then(() => console.log('✅ Cloudinary connected successfully!'))
+//   .catch(err => console.error('❌ Cloudinary connection failed:', err));
+
+
 app.listen(port, '0.0.0.0', () => {
   console.log(`App is listening on port: ${port} `);
   // --- Schedule the automated tasks after the server starts ---
-  scheduleArchivalTask(); 
+  scheduleArchivalTask();
+
 });

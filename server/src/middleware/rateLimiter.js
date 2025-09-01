@@ -17,7 +17,7 @@ export const authLimiter = rateLimit({
 // Moderate rate limit for less sensitive actions (e.g., verify email, resend verification)
 export const moderateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 50, // Limit each IP to 50 requests per windowMs
+    max: 100, // Limit each IP to 50 requests per windowMs
     message: 'Too many requests from this IP, please try again after 15 minutes',
     standardHeaders: true,
     legacyHeaders: false,
@@ -29,7 +29,7 @@ export const moderateLimiter = rateLimit({
 // More lenient rate limit for general browsing (GET requests)
 export const publicApiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
+    max: 150, // Limit each IP to 100 requests per windowMs
     message: 'Too many requests from this IP, please try again after 15 minutes',
     standardHeaders: true,
     legacyHeaders: false,
