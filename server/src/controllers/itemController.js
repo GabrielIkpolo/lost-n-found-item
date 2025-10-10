@@ -4,7 +4,7 @@ import fs from 'fs';
 import { Prisma, ItemCategory, ItemLocation, ItemStatus, UserRole, NotificationType, AuditAction } from '@prisma/client';
 import { sendNotification } from '../services/notificationService.js';
 import { getImageUrl, deleteFile } from '../helpers/imageHelper.js';
-
+import { uploadFile } from '../services/storageService.js';
 
 
 export const createItem = async (req, res) => {
@@ -59,8 +59,26 @@ export const createItem = async (req, res) => {
         // }
 
         // Process uploaded files
-        const imageUrlFrontPath = req.files?.imageUrlFront?.[0]?.path || null; // Use path saved by multer
-        const imageUrlBackPath = req.files?.imageUrlBack?.[0]?.path || null;
+        // const imageUrlFrontPath = req.files?.imageUrlFront?.[0]?.path || null; // Use path saved by multer
+        // const imageUrlBackPath = req.files?.imageUrlBack?.[0]?.path || null;
+
+        // Process uploaded files using uploadFile
+        let imageUrlFrontPath = null;
+        let imageUrlBackPath = null;
+
+
+        if (req.files?.imageUrlFront?.[0]) {
+            const result = await uploadFile(req.files.imageUrlFront[0], 'items');
+            // `filePath` is the relative path that Prisma stores (e.g. "fileStorage/images/1698765432100-front.jpg")
+            imageUrlFrontPath = result.filePath || null;
+            console.log('🔼 Uploaded front image →', result);
+        }
+        // Back image (optional)
+        if (req.files?.imageUrlBack?.[0]) {
+            const result = await uploadFile(req.files.imageUrlBack[0], 'items');
+            imageUrlBackPath = result.filePath || null;
+            console.log('🔼 Uploaded back image  →', result);
+        }
 
         // Calculate expiry date for FOUND items
         let expiresAt = null;
@@ -131,8 +149,8 @@ export const createItem = async (req, res) => {
         // Optionally, return the public URLs in the response
         const responseItem = {
             ...newItem,
-            imageUrlFront: getImageUrl(newItem.imageUrlFront),
-            imageUrlBack: getImageUrl(newItem.imageUrlBack),
+            imageUrlFront: getImageUrl(newItem.imageUrlFront, req),
+            imageUrlBack: getImageUrl(newItem.imageUrlBack, req),
             // Ensure reportedBy is not null before selecting
             reportedBy: newItem.reportedBy ? { id: newItem.reportedBy.id, name: newItem.reportedBy.name } : null,
         };
@@ -583,27 +601,45 @@ export const updateItem = async (req, res) => {
 
         // Handle Image Updates/Removal
         // Front Image
-        if (newFiles?.imageUrlFront?.[0]?.path) {
-            // New front image uploaded, mark old one for deletion if it exists
-            if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
-            updateData.imageUrlFront = newFiles.imageUrlFront[0].path; // Store new internal path
-        } else if (removeImageUrlFront === 'true') { // Explicit request to remove front image
-            // Mark old one for deletion if it exists, set field to null
-            if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
-            updateData.imageUrlFront = null;
-        }
-        // Note: If neither a new file is uploaded nor remove flag is true, the existing imageUrlFront remains untouched.
+        // if (newFiles?.imageUrlFront?.[0]?.path) {
+        //     // New front image uploaded, mark old one for deletion if it exists
+        //     if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
+        //     updateData.imageUrlFront = newFiles.imageUrlFront[0].path; // Store new internal path
+        // } else if (removeImageUrlFront === 'true') { // Explicit request to remove front image
+        //     // Mark old one for deletion if it exists, set field to null
+        //     if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
+        //     updateData.imageUrlFront = null;
+        // }
+        // // Note: If neither a new file is uploaded nor remove flag is true, the existing imageUrlFront remains untouched.
 
-        // Back Image
-        if (newFiles?.imageUrlBack?.[0]?.path) {
-            // New back image uploaded, mark old one for deletion if it exists
-            if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
-            updateData.imageUrlBack = newFiles.imageUrlBack[0].path; // Store new internal path
-        } else if (removeImageUrlBack === 'true') { // Explicit request to remove back image
-            // Mark old one for deletion if it exists, set field to null
-            if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
-            updateData.imageUrlBack = null;
+        // // Back Image
+        // if (newFiles?.imageUrlBack?.[0]?.path) {
+        //     // New back image uploaded, mark old one for deletion if it exists
+        //     if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
+        //     updateData.imageUrlBack = newFiles.imageUrlBack[0].path; // Store new internal path
+        // } else if (removeImageUrlBack === 'true') { // Explicit request to remove back image
+        //     // Mark old one for deletion if it exists, set field to null
+        //     if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
+        //     updateData.imageUrlBack = null;
+        // }
+
+
+        // Process new files
+        if (req.files?.imageUrlFront?.[0]) {
+            if (existingItem.imageUrlFront) await deleteFile(existingItem.imageUrlFront);
+            const result = await uploadFile(req.files.imageUrlFront[0], 'items');
+            updateData.imageUrlFront = result.filePath;
+            console.log('🔼 Updated front image →', result);
         }
+
+        if (req.files?.imageUrlBack?.[0]) {
+            if (existingItem.imageUrlBack) await deleteFile(existingItem.imageUrlBack);
+            const result = await uploadFile(req.files.imageUrlBack[0], 'items');
+            updateData.imageUrlBack = result.filePath;
+            console.log('🔼 Updated back image  →', result);
+        }
+
+
         // Note: If neither a new file is uploaded nor remove flag is true, the existing imageUrlBack remains untouched.
         // If no fields are provided for update, return a 400 or 200 with a message
         if (Object.keys(updateData).length === 0) {
@@ -788,8 +824,8 @@ export const updateItem = async (req, res) => {
         // 6. Format response with public image URLs and potentially censor user info
         const responseItem = {
             ...updatedItem,
-            imageUrlFront: getImageUrl(updatedItem.imageUrlFront),
-            imageUrlBack: getImageUrl(updatedItem.imageUrlBack),
+            imageUrlFront: getImageUrl(updatedItem.imageUrlFront, req),
+            imageUrlBack: getImageUrl(updatedItem.imageUrlBack, req),
             // Censor reportedBy/claimedBy info if needed for privacy in the response
             reportedBy: updatedItem.reportedBy ? { // Ensure reportedBy exists
                 id: updatedItem.reportedBy.id, name: updatedItem.reportedBy.name, email: updatedItem.reportedBy.email, phone: updatedItem.reportedBy.phone

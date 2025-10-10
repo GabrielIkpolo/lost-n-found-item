@@ -1,6 +1,6 @@
 import { PrismaClient, Provider } from "@prisma/client";
 import { saveLocal } from "../helpers/localStorage.js";
-import { saveClodinary, saveClodinaryFromPath } from "../helpers/cloudinaryStorage.js";
+import { saveCloudinary, saveCloudinaryFromPath } from "../helpers/cloudinaryStorage.js";
 import { cloudinary } from "../helpers/cloudinary.js";
 import prisma from "../helpers/prisma.js";
 
@@ -27,12 +27,13 @@ export const uploadFile = async (re, res, next) => {
 
             //if using memnoryStorage(recommended)
             if (req.file.buffer) {
-                stored = await saveClodinary(req.file)
+                stored = await saveCloudinary(req.file)
             } else if (req.file.path) {
                 // If you decided to keep diskStorage for all
-                stored = await saveClodinaryFromPath(req.file.path);
+                stored = await saveCloudinaryFromPath(req.file.path);
             } else {
-                throw new error('Missing file buffer/path for cloudinary')
+                console.log('Missing file buffer/path for cloudinary');
+                throw new error('Missing file buffer/path for cloudinary');
             }
 
 
@@ -97,7 +98,7 @@ export const deleteAFile = async (req, res, next) => {
         const file = await prisma.file.findUnique({where: {id}});
         if (!file) return res.status(404).json({error: 'File not found'})
 
-        if(file.type =='clodinary' && file.ProviderId){
+        if(file.type =='cloudinary' && file.ProviderId){
             await cloudinary.uploader.destroy(file.ProviderId);
         }
 

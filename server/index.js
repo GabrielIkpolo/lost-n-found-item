@@ -40,11 +40,13 @@ import session from 'express-session';
 import passport from "./src/helpers/passport.js";
 import multer from 'multer'; // Import multer
 import { scheduleArchivalTask } from "./src/tasks/archivalTask.js";
+import fileRoutes from './src/routes/fileRoutes.js'
 
 // Defined routes
 import authRoutes from './src/routes/authRoutes.js';
 import itemRoutes from './src/routes/itemRoutes.js';
 import userRoutes from './src/routes/userRoutes.js';
+
 
 dotenv.config();
 const app = express();
@@ -90,32 +92,33 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Static files configuration
-const imageStoragePath = path.join(__dirname, 'fileStorage', 'images');
+// const imageStoragePath = path.join(__dirname, 'fileStorage', 'images');
 
 // Ensure the directory exists
-if (!fs.existsSync(imageStoragePath)) {
-  fs.mkdirSync(imageStoragePath, { recursive: true });
-}
+// if (!fs.existsSync(imageStoragePath)) {
+//   fs.mkdirSync(imageStoragePath, { recursive: true });
+// }
 
 // Configure multer storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, imageStoragePath); // Save files to the imageStoragePath
-  },
-  filename: function (req, file, cb) {
-    // Use the original file extension and add a timestamp to prevent name conflicts
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + Date.now() + ext);
-  }
-});
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, imageStoragePath); // Save files to the imageStoragePath
+//   },
+//   filename: function (req, file, cb) {
+//     // Use the original file extension and add a timestamp to prevent name conflicts
+//     const ext = path.extname(file.originalname);
+//     cb(null, file.fieldname + '-' + Date.now() + ext);
+//   }
+// });
 
 // Create the multer instance
 // const upload = multer({ storage: storage });
 
 
-const upload = multer({ 
-  dest: path.join(__dirname, 'temp-uploads') // Temporary directory for uploads
-});
+// const upload = multer({ 
+//   dest: path.join(__dirname, 'temp-uploads') // Temporary directory for uploads
+// });
+
 
 
 // Serve static image files
@@ -131,9 +134,24 @@ const staticOptions = {
 };
 
 
-if (process.env.STORAGE_TYPE === 'local') {
-  app.use('/api/images', express.static(imageStoragePath, staticOptions));
-}
+// if (process.env.STORAGE_TYPE === 'local') {
+//   app.use('/api/images', express.static(imageStoragePath, staticOptions));
+// }
+
+
+// ======================junk=======================
+// Static: serve local uploads
+
+const fileStoragePath = path.join(process.cwd(), 'fileStorage');
+app.use('/uploads', express.static(fileStoragePath));
+
+// Routes
+app.use('/api', fileRoutes);
+
+
+// ============================================
+
+
 
 const port = process.env.PORT || 3000;
 
@@ -159,7 +177,7 @@ app.use(passport.session());
 
 // Mount item routes
 app.use('/api/auth', authRoutes);
-app.use('/api/items', itemRoutes(upload));
+// app.use('/api/items', itemRoutes(upload));
 app.use('/api/users', userRoutes);
 
 

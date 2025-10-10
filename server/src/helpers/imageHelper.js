@@ -1,50 +1,27 @@
-// import { fileURLToPath } from 'url';
-// import fs from 'fs';
-// import path from "path";
-// import dotenv from 'dotenv';
+import { getImageUrl as _getImageUrl, uploadFile, deleteFile } from "../services/storageService.js"
+import path from "path";
+ 
+
+export const getImageUrl = (filePath, req) => {
+  if (!filePath) return null;
+
+  // Use the original helper to get the *relative* part (`/api/images/<file>`).
+  const relative = _getImageUrl(filePath);
+
+  // If the relative helper already returned a full URL (Cloudinary case) just return it.
+  if (relative && (relative.startsWith('http://') || relative.startsWith('https://'))) {
+    return relative;
+  }
+
+  // Determine the base URL.
+  const baseFromEnv = process.env.SERVER_URL?.replace(/\/$/, '');
+  const baseFromReq = req ? `${req.protocol}://${req.get('host')}` : null;
+  const base = baseFromEnv || baseFromReq || '';
+
+  // Ensure we don’t double‑slash the path.
+  return `${base}${relative}`;
+};
+
+export { uploadFile, deleteFile };
 
 
-
-
-// dotenv.config();
-
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
-// const imageStoragePath = path.join(__dirname, '../../fileStorage', 'images');
-
-
-// export const getImageUrl = (filePath, req) => {
-//     if (!filePath) return null;
-
-//     const fileName = path.basename(filePath);
-
-//     let baseUrl = process.env.VITE_REACT_APP_API_BASE_URL;
-
-//     if (!baseUrl && req) {
-//         baseUrl = `${req.protocol}://${req.get('host')}`;
-//     }
-
-//     return `${baseUrl || ''}/api/images/${fileName}`;
-// };
-
-
-
-
-// // Helper to delete a file if it exists
-// export const deleteFile = (filePath) => {
-//     if (filePath && fs.existsSync(filePath)) {
-//         try {
-//             fs.unlinkSync(filePath);
-//             console.log(`Successfully deleted file: ${filePath}`);
-//         } catch (e) {
-//             console.error(`Error deleting file: ${filePath}`, e);
-//             // Continue execution even if file deletion fails
-//         }
-//     }
-// };
-
-
-import { getImageUrl, uploadFile, deleteFile } from "../services/storageService.js"
-
-
-export { getImageUrl, uploadFile, deleteFile }
