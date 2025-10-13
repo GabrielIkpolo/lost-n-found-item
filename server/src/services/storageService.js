@@ -143,7 +143,8 @@ export const getImageUrl = (filePath, publicId = null) => {
 
   //For local storage
   return filePath
-    ? `/api/images/${path.basename(filePath)}`
+    // ? `/api/images/${path.basename(filePath)}`
+    ? `/uploads/${path.basename(filePath)}`
     : null
 };
 
@@ -168,19 +169,21 @@ export const uploadFile = async (file, folder = 'items') => {
     };
   }
 
-  // Local storage implementation
-  const fileName = `${Date.now()}-${file.originalname}`;
-  const filePath = path.join(UPLOAD_DIR, fileName);
+  if (STORAGE_TYPE === 'local') {
+    const fileName = path.basename(file.path); 
+    const relativePath = path.join('fileStorage', 'images', fileName);
 
-  // Move file from temp upload to permanent location
-  fs.renameSync(file.path, filePath);
+    return {
+      url: `/uploads/${fileName}`,
+      filePath: relativePath, 
+      publicId: null,
+    };
+  }
 
-  return {
-    url: `/api/images/${fileName}`,
-    filePath: path.join('fileStorage', 'images', fileName), // Store relative path
-    publicId: null,
-  };
+  throw new Error('Invalid storage type or file configuration in uploadFile.');
 };
+
+
 
 
 

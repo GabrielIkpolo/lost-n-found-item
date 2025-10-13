@@ -39,6 +39,7 @@ import https from 'https';
 import session from 'express-session';
 import passport from "./src/helpers/passport.js";
 import multer from 'multer'; // Import multer
+import { makeUploader } from "./src/helpers/fileupload.js";
 import { scheduleArchivalTask } from "./src/tasks/archivalTask.js";
 import fileRoutes from './src/routes/fileRoutes.js'
 
@@ -142,7 +143,12 @@ const staticOptions = {
 // ======================junk=======================
 // Static: serve local uploads
 
-const fileStoragePath = path.join(process.cwd(), 'fileStorage');
+
+// Determine storage type and create multer instance
+const STORAGE_TYPE = (process.env.STORAGE_TYPE || 'local').toLowerCase();
+const upload = makeUploader(STORAGE_TYPE); 
+
+const fileStoragePath = path.join(process.cwd(), 'fileStorage', 'images');
 app.use('/uploads', express.static(fileStoragePath));
 
 // Routes
@@ -177,7 +183,7 @@ app.use(passport.session());
 
 // Mount item routes
 app.use('/api/auth', authRoutes);
-// app.use('/api/items', itemRoutes(upload));
+app.use('/api/items', itemRoutes(upload));
 app.use('/api/users', userRoutes);
 
 
@@ -190,6 +196,7 @@ app.all('*', (req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
+  console.error(err);
   res.status(500).json({ message: "Something broke!" });
 });
 

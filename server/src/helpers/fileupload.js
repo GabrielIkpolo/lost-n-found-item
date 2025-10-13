@@ -5,7 +5,7 @@ import { application } from 'express';
 
 
 
-const uploadDir = path.join(process.cwd(), 'fileStorage');
+const uploadDir = path.join(process.cwd(), 'fileStorage', 'images');
 
 if (!fs.existsSync(uploadDir)) {
    fs.mkdirSync(uploadDir, { recursive: true });
@@ -17,7 +17,7 @@ const diskStorage = multer.diskStorage({
    filename: (req, file, cb) => {
       const ext = path.extname(file.originalname);
       const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-      cd(null, filename);
+      cb(null, filename);
    },
 });
 
@@ -29,7 +29,7 @@ const fileFilter = (req, file, cb) => {
    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
 
    if (allowed.includes(file.mimetype)) return cb(null, true);
-   cd(Object.assign(new Error('Unsupported file type'), { status: 400 }))
+   cb(Object.assign(new Error('Unsupported file type'), { status: 400 }))
 };
 
 

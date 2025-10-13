@@ -63,22 +63,24 @@ export const createItem = async (req, res) => {
         // const imageUrlBackPath = req.files?.imageUrlBack?.[0]?.path || null;
 
         // Process uploaded files using uploadFile
-        let imageUrlFrontPath = null;
-        let imageUrlBackPath = null;
+        let imageUrlFrontIdentifier = null; 
+        let imageUrlBackIdentifier = null;
 
 
         if (req.files?.imageUrlFront?.[0]) {
             const result = await uploadFile(req.files.imageUrlFront[0], 'items');
-            // `filePath` is the relative path that Prisma stores (e.g. "fileStorage/images/1698765432100-front.jpg")
-            imageUrlFrontPath = result.filePath || null;
+            imageUrlFrontIdentifier = result.filePath || result.publicId || null;
             console.log('🔼 Uploaded front image →', result);
         }
+
         // Back image (optional)
         if (req.files?.imageUrlBack?.[0]) {
             const result = await uploadFile(req.files.imageUrlBack[0], 'items');
-            imageUrlBackPath = result.filePath || null;
+            // FIX: Store the primary identifier (local path or public ID)
+            imageUrlBackIdentifier = result.filePath || result.publicId || null;
             console.log('🔼 Uploaded back image  →', result);
         }
+
 
         // Calculate expiry date for FOUND items
         let expiresAt = null;
@@ -97,8 +99,8 @@ export const createItem = async (req, res) => {
                 location, // Ensure these match the Prisma enum values
                 status,   // Ensure these match the Prisma enum values
                 reportedBy: { connect: { id: userId } },
-                imageUrlFront: imageUrlFrontPath, // Store the internal file path
-                imageUrlBack: imageUrlBackPath,   // Store the internal file path
+                imageUrlFront: imageUrlFrontIdentifier, // Store the internal file path
+                imageUrlBack: imageUrlBackIdentifier,   // Store the internal file path
                 expiresAt: expiresAt, // Set expiry for found items
                 // claimedById will be null initially
             },
@@ -151,7 +153,6 @@ export const createItem = async (req, res) => {
             ...newItem,
             imageUrlFront: getImageUrl(newItem.imageUrlFront, req),
             imageUrlBack: getImageUrl(newItem.imageUrlBack, req),
-            // Ensure reportedBy is not null before selecting
             reportedBy: newItem.reportedBy ? { id: newItem.reportedBy.id, name: newItem.reportedBy.name } : null,
         };
 
@@ -600,44 +601,29 @@ export const updateItem = async (req, res) => {
 
 
         // Handle Image Updates/Removal
-        // Front Image
-        // if (newFiles?.imageUrlFront?.[0]?.path) {
-        //     // New front image uploaded, mark old one for deletion if it exists
-        //     if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
-        //     updateData.imageUrlFront = newFiles.imageUrlFront[0].path; // Store new internal path
-        // } else if (removeImageUrlFront === 'true') { // Explicit request to remove front image
-        //     // Mark old one for deletion if it exists, set field to null
-        //     if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
-        //     updateData.imageUrlFront = null;
-        // }
-        // // Note: If neither a new file is uploaded nor remove flag is true, the existing imageUrlFront remains untouched.
-
-        // // Back Image
-        // if (newFiles?.imageUrlBack?.[0]?.path) {
-        //     // New back image uploaded, mark old one for deletion if it exists
-        //     if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
-        //     updateData.imageUrlBack = newFiles.imageUrlBack[0].path; // Store new internal path
-        // } else if (removeImageUrlBack === 'true') { // Explicit request to remove back image
-        //     // Mark old one for deletion if it exists, set field to null
-        //     if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
-        //     updateData.imageUrlBack = null;
-        // }
-
-
-        // Process new files
         if (req.files?.imageUrlFront?.[0]) {
-            if (existingItem.imageUrlFront) await deleteFile(existingItem.imageUrlFront);
+            if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
             const result = await uploadFile(req.files.imageUrlFront[0], 'items');
-            updateData.imageUrlFront = result.filePath;
+            updateData.imageUrlFront = result.filePath || result.publicId;
             console.log('🔼 Updated front image →', result);
+        } else if (removeImageUrlFront === 'true') { 
+            if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
+            updateData.imageUrlFront = null;
         }
 
+        // Back Image
         if (req.files?.imageUrlBack?.[0]) {
-            if (existingItem.imageUrlBack) await deleteFile(existingItem.imageUrlBack);
+            if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
             const result = await uploadFile(req.files.imageUrlBack[0], 'items');
-            updateData.imageUrlBack = result.filePath;
+            updateData.imageUrlBack = result.filePath || result.publicId;
             console.log('🔼 Updated back image  →', result);
+        } else if (removeImageUrlBack === 'true') { 
+            if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
+            updateData.imageUrlBack = null;
         }
+
+
+      
 
 
         // Note: If neither a new file is uploaded nor remove flag is true, the existing imageUrlBack remains untouched.
