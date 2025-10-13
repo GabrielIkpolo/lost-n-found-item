@@ -6,6 +6,7 @@ import { addNotification, NotificationType } from '../features/notifications/not
 import './foundItems.css';
 import itemImage from '../assets/images/logo-1.png';
 import { Link, useNavigate } from 'react-router-dom';
+import { getImageUrl } from '../util/axiosInstance'; // rough
 
 // Sidebar Categories (mapped to ItemCategory enum)
 const categories = [
@@ -21,41 +22,38 @@ const FoundItems = () => {
   const dispatch = useDispatch();
   const { items, pagination, isLoading, error } = useSelector((state) => state.items);
 
+  console.log(items);
+
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
+  // FIX: Use local state to manage the page number, which then triggers the fetch effect
+  const [currentPage, setCurrentPage] = useState(1);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   const navigate = useNavigate();
 
- // The debounce effect to handle non-empty searches
+  // --- EFFECT 1: Debounce search input and update fetching state ---
   useEffect(() => {
-    if (searchInput.trim() === '') return;
-
     const handler = setTimeout(() => {
-      dispatch(fetchItems({
-        page: 1, // Reset to page 1
-        limit: pagination.itemsPerPage,
-        category: selectedCategory,
-        search: searchInput.trim(),
-        status: 'FOUND',
-      }));
+      setDebouncedSearchTerm(searchInput);
+      setCurrentPage(1); // Reset page to 1 on new search term
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [searchInput, dispatch]);
+  }, [searchInput]);
 
-   // --- EFFECT 2: Fetch items based on filters and debounced search term ---
+  // --- EFFECT 2: Fetch items based on filters and debounced search term ---
+  // FIX: Depend on local state variables (currentPage, debouncedSearchTerm, selectedCategory)
   useEffect(() => {
-    console.log(`Fetching items with params: Page: ${pagination.currentPage}, Category: ${selectedCategory}, Search: "${debouncedSearchTerm}"`);
     dispatch(fetchItems({
-      page: pagination.currentPage,
+      page: currentPage,
       limit: pagination.itemsPerPage,
       category: selectedCategory,
       search: debouncedSearchTerm,
       status: 'FOUND',
     }));
-  }, [dispatch, pagination.currentPage, pagination.itemsPerPage, selectedCategory, debouncedSearchTerm]);
+  }, [dispatch, currentPage, pagination.itemsPerPage, selectedCategory, debouncedSearchTerm]);
 
 
   // --- SHOW ERROR NOTIFICATION ---
@@ -73,44 +71,19 @@ const FoundItems = () => {
   const handleCategorySelect = (categoryValue) => {
     if (selectedCategory !== categoryValue) {
       setSelectedCategory(categoryValue);
-      console.log(`Category changed to ${categoryValue}, fetching page 1.`);
-      dispatch(fetchItems({
-        page: 1, // Reset to page 1
-        limit: pagination.itemsPerPage,
-        category: categoryValue,
-        search: debouncedSearchTerm,
-        status: 'FOUND',
-      }));
+      setCurrentPage(1); // Reset page to 1
     }
   };
 
   const handleSearchChange = (event) => {
-    const newSearchTerm = event.target.value.trim();
-    setSearchInput(newSearchTerm);
-    console.log('Search input changed, resetting to page 1.');
-    // Only dispatch fetchItems immediately if the search term is empty (to clear)
-    if (newSearchTerm === '') {
-      dispatch(fetchItems({
-        page: 1, // Reset to page 1
-        limit: pagination.itemsPerPage,
-        category: selectedCategory,
-        search: newSearchTerm,
-        status: 'FOUND',
-      }));
-
-    }
+    // FIX: Only update the input state, let useEffect handle debouncing and fetching
+    setSearchInput(event.target.value);
   };
 
   const paginate = (pageNumber) => {
-    if (pageNumber !== pagination.currentPage) {
-      console.log(`Paginating to page ${pageNumber}`);
-      dispatch(fetchItems({
-        page: pageNumber,
-        limit: pagination.itemsPerPage,
-        category: selectedCategory,
-        search: debouncedSearchTerm,
-        status: 'FOUND',
-      }));
+    // FIX: Use local state for the current page
+    if (pageNumber !== currentPage) {
+      setCurrentPage(pageNumber);
     }
   };
 
@@ -123,8 +96,7 @@ const FoundItems = () => {
   }, []);
 
   const itemsToDisplay = items;
-  const { totalPages, currentPage } = pagination;
-
+  const { totalPages } = pagination; // Read totalPages from Redux
 
   return (
     <div className="main-cover">
@@ -215,13 +187,18 @@ const FoundItems = () => {
               <div key={item.id} className="item-card">
                 <h2>{item.title}</h2>
                 <img
-                  src={item.imageUrlFront || itemImage}
+                  src={getImageUrl(item.imageUrlFront || itemImage)}
+                  // src={item.imageUrlFront || itemImage}
                   alt={item.title}
                   className="item-image"
                   onError={(e) => {
                     e.target.src = itemImage;
                   }}
                 />
+
+                {console.log('Image URL:', item.imageUrlFront)}
+
+
                 <p>
                   <strong>Status:</strong> {item.status}
                 </p>
@@ -248,7 +225,7 @@ const FoundItems = () => {
                   <li key={page}>
                     <button
                       onClick={() => paginate(page)}
-                      className={currentPage === page ? 'active' : ''}
+                      className={currentPage === page ? 'active' : ''} // Use local state
                       disabled={isLoading}
                     >
                       {page}

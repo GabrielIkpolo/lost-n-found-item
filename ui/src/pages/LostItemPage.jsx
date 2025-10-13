@@ -6,6 +6,7 @@ import { addNotification, NotificationType } from '../features/notifications/not
 import './lostItemPage.css';
 import itemImage from '../assets/images/logo-1.png';
 import { Link, useNavigate } from 'react-router-dom';
+import { getImageUrl } from '../util/axiosInstance'; // rough
 
 // Categories can be the same as FoundItems
 const categories = [
@@ -24,37 +25,34 @@ const LostItemPage = () => {
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
+  // FIX: Use local state to manage the page number, which then triggers the fetch effect
+  const [currentPage, setCurrentPage] = useState(1);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   const navigate = useNavigate();
 
-   useEffect(() => {
-    if (searchInput.trim() === '') return;
-
+  // --- EFFECT 1: Debounce search input and update fetching state ---
+  useEffect(() => {
     const handler = setTimeout(() => {
-      dispatch(fetchItems({
-        page: 1, // Reset to page 1
-        limit: pagination.itemsPerPage,
-        category: selectedCategory,
-        search: searchInput.trim(),
-        status: 'LOST',
-      }));
+      setDebouncedSearchTerm(searchInput);
+      setCurrentPage(1); // Reset page to 1 on new search term
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [searchInput, dispatch]);
+  }, [searchInput]);
 
 
   // Fetch lost items based on filters and debounced search term
   useEffect(() => {
+    // FIX: Depend on local state variables (currentPage, debouncedSearchTerm, selectedCategory)
     dispatch(fetchItems({
-      page: pagination.currentPage,
+      page: currentPage,
       limit: pagination.itemsPerPage,
       category: selectedCategory,
       search: debouncedSearchTerm,
       status: 'LOST', // Only show LOST items
     }));
-  }, [dispatch, pagination.currentPage, pagination.itemsPerPage, selectedCategory, debouncedSearchTerm]);
+  }, [dispatch, currentPage, pagination.itemsPerPage, selectedCategory, debouncedSearchTerm]);
 
   // Show error notification
   useEffect(() => {
@@ -70,41 +68,20 @@ const LostItemPage = () => {
   const handleCategorySelect = (categoryValue) => {
     if (selectedCategory !== categoryValue) {
       setSelectedCategory(categoryValue);
-      dispatch(fetchItems({
-        page: 1, // Reset to page 1
-        limit: pagination.itemsPerPage,
-        category: categoryValue,
-        search: debouncedSearchTerm,
-        status: 'LOST',
-      }));
+      setCurrentPage(1); // Reset page to 1
     }
   };
 
- 
+
   const handleSearchChange = (event) => {
-    const newSearchTerm = event.target.value.trim();
-    setSearchInput(newSearchTerm);
-    console.log('Search input changed, resetting to page 1.');
-    if (newSearchTerm === '') {
-      dispatch(fetchItems({
-        page: 1, // Reset to page 1
-        limit: pagination.itemsPerPage,
-        category: selectedCategory,
-        search: newSearchTerm,
-        status: 'FOUND',
-      }));
-    }
+    // FIX: Only update the input state, let useEffect handle debouncing and fetching
+    setSearchInput(event.target.value);
   };
 
   const paginate = (pageNumber) => {
-    if (pageNumber !== pagination.currentPage) {
-      dispatch(fetchItems({
-        page: pageNumber,
-        limit: pagination.itemsPerPage,
-        category: selectedCategory,
-        search: debouncedSearchTerm,
-        status: 'LOST',
-      }));
+    // FIX: Use local state for the current page
+    if (pageNumber !== currentPage) {
+      setCurrentPage(pageNumber);
     }
   };
 
@@ -117,7 +94,7 @@ const LostItemPage = () => {
   }, []);
 
   const itemsToDisplay = items;
-  const { totalPages, currentPage } = pagination;
+  const { totalPages } = pagination; // Read totalPages from Redux
 
   return (
     <div className="main-cover">
@@ -201,7 +178,8 @@ const LostItemPage = () => {
               <div key={item.id} className="item-card">
                 <h2>{item.title}</h2>
                 <img
-                  src={item.imageUrlFront || itemImage}
+                  src={getImageUrl(item.imageUrlFront || itemImage)}
+                  // src={item.imageUrlFront || itemImage}
                   alt={item.title}
                   className="item-image"
                 />
@@ -227,7 +205,7 @@ const LostItemPage = () => {
                   <li key={page}>
                     <button
                       onClick={() => paginate(page)}
-                      className={currentPage === page ? 'active' : ''}
+                      className={currentPage === page ? 'active' : ''} // Use local state
                       disabled={isLoading}
                     >
                       {page}

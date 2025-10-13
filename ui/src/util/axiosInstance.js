@@ -17,3 +17,10 @@ axiosInstance.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Helper to resolve image URLs
+export const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path; // Already absolute
+  return `${import.meta.env.VITE_REACT_APP_API_BASE_URL}${path}`;
+};
