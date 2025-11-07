@@ -92,36 +92,6 @@ app.use([express.json(), morgan("dev")]);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Static files configuration
-// const imageStoragePath = path.join(__dirname, 'fileStorage', 'images');
-
-// Ensure the directory exists
-// if (!fs.existsSync(imageStoragePath)) {
-//   fs.mkdirSync(imageStoragePath, { recursive: true });
-// }
-
-// Configure multer storage
-// const storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, imageStoragePath); // Save files to the imageStoragePath
-//   },
-//   filename: function (req, file, cb) {
-//     // Use the original file extension and add a timestamp to prevent name conflicts
-//     const ext = path.extname(file.originalname);
-//     cb(null, file.fieldname + '-' + Date.now() + ext);
-//   }
-// });
-
-// Create the multer instance
-// const upload = multer({ storage: storage });
-
-
-// const upload = multer({ 
-//   dest: path.join(__dirname, 'temp-uploads') // Temporary directory for uploads
-// });
-
-
-
 // Serve static image files
 const staticOptions = {
   setHeaders: (res, path) => {
