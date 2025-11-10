@@ -1,9 +1,14 @@
-import { PrismaClient, Provider } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { saveLocal } from "../helpers/localStorage.js";
 import { saveCloudinary, saveCloudinaryFromPath } from "../helpers/cloudinaryStorage.js";
 import { cloudinary } from "../helpers/cloudinary.js";
 import prisma from "../helpers/prisma.js";
+import fs from 'fs';
+import path from "path";
+import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const buildAbsoluteLocalUrl = (req, filename) => {
 
@@ -41,7 +46,7 @@ export const uploadFile = async (re, res, next) => {
         } else if (STORAGE_TYPE === 'local') {
             // Ensure absolute URL for client display
             const url = buildAbsoluteLocalUrl(req, req.file.filename);
-            stored = { url, type: 'local', ProviderId: req.file.filename };
+            stored = { url, type: 'local', providerId: req.file.filename };
         } else {
             return res.status(400).json({ error: ' Invalid STORAGE_TYPE. Use "local" or "cloudinary" ' })
         }
@@ -53,7 +58,7 @@ export const uploadFile = async (re, res, next) => {
                 filename: req.file.originalname,
                 url: stored.url,
                 type: stored.type,
-                ProviderId: stored.ProviderId,
+                providerId: stored.providerId,
                 uplaodedAt: new Date(),
             }
         });
@@ -82,7 +87,6 @@ export const getAllFiles = async (req, res, next) => {
                 uplaodedAt: 'desc'
             }
         })
-
         res.json(files)
     } catch (err) {
         console.log(err)
@@ -94,17 +98,21 @@ export const getAllFiles = async (req, res, next) => {
 
 export const deleteAFile = async (req, res, next) => {
     try {
-        const {id} = req.params;
-        const file = await prisma.file.findUnique({where: {id}});
-        if (!file) return res.status(404).json({error: 'File not found'})
+        const { id } = req.params;
+        const file = await prisma.file.findUnique({ where: { id } });
+        if (!file) return res.status(404).json({ error: 'File not found' })
 
-        if(file.type =='cloudinary' && file.ProviderId){
-            await cloudinary.uploader.destroy(file.ProviderId);
+        if (file.type === 'local' && file.providerId) {
+            const filePath = path.join(__dirname, "..", "..", "..", 'fileStorage', 'images', file.providerId);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         }
 
-        await prisma.file.delete({where: {id}})
-        res.json({message: 'File deleted successfully'})
+        if (file.type === 'cloudinary' && file.providerId) {
+            await cloudinary.uploader.destroy(file.providerId);
+        }
 
+        await prisma.file.delete({ where: { id } });
+        res.json({ message: 'File deleted successfully' });
     } catch (err) {
         console.log(err)
         next(err)

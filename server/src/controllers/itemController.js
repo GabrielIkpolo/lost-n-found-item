@@ -7,6 +7,12 @@ import { getImageUrl, deleteFile } from '../helpers/imageHelper.js';
 import { uploadFile } from '../services/storageService.js';
 
 
+const buildAbsoluteLocalUrl = (req, filename) => {
+  const base = process.env.SERVER_URL?.replace(/\/$/, '') || `${req.protocol}://${req.get('host')}`;
+  return `${base}/uploads/${filename}`;
+};
+
+
 export const createItem = async (req, res) => {
     try {
         // req.body contains text fields
