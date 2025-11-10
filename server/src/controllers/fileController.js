@@ -17,7 +17,7 @@ const buildAbsoluteLocalUrl = (req, filename) => {
 }
 
 
-export const uploadFile = async (re, res, next) => {
+export const uploadFile = async (req, res, next) => {
 
     try {
 
@@ -59,7 +59,7 @@ export const uploadFile = async (re, res, next) => {
                 url: stored.url,
                 type: stored.type,
                 providerId: stored.providerId,
-                uplaodedAt: new Date(),
+                uploadedAt: new Date(),
             }
         });
 
@@ -103,7 +103,7 @@ export const deleteAFile = async (req, res, next) => {
         if (!file) return res.status(404).json({ error: 'File not found' })
 
         if (file.type === 'local' && file.providerId) {
-            const filePath = path.join(__dirname, "..", "..", "..", 'fileStorage', 'images', file.providerId);
+            const filePath = path.join(__dirname, "..", "..", 'fileStorage', 'images', file.providerId);
             if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         }
 

@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 
 
 
-const uploadDir = path.join(__dirname, "..", "..", "..",'fileStorage','images');
+const uploadDir = path.join(__dirname, "..", "..",'fileStorage','images');
 
 if (!fs.existsSync(uploadDir)) {
    fs.mkdirSync(uploadDir, { recursive: true });
