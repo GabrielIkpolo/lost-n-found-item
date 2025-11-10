@@ -105,20 +105,13 @@ const staticOptions = {
 };
 
 
-// if (process.env.STORAGE_TYPE === 'local') {
-//   app.use('/api/images', express.static(imageStoragePath, staticOptions));
-// }
-
-
-// ======================junk=======================
-// Static: serve local uploads
 
 
 // Determine storage type and create multer instance
 const STORAGE_TYPE = (process.env.STORAGE_TYPE || 'local').toLowerCase();
 const upload = makeUploader(STORAGE_TYPE); 
 
-const fileStoragePath = path.join(process.cwd(), 'fileStorage', 'images');
+const fileStoragePath = path.join(__dirname, 'fileStorage', 'images');
 app.use('/uploads', express.static(fileStoragePath));
 
 // Routes
@@ -148,7 +141,7 @@ app.use(session({
 
 // Initialize Passport with the configuration
 app.use(passport.initialize());
-app.use(passport.session());
+app.use(passport.session());                  
 
 
 // Mount item routes
