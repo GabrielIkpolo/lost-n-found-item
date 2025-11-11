@@ -3,10 +3,6 @@ import path from 'path';
 import fs from 'fs';
 import { Prisma, ItemCategory, ItemLocation, ItemStatus, UserRole, NotificationType, AuditAction } from '@prisma/client';
 import { sendNotification } from '../services/notificationService.js';
-// import { getImageUrl, deleteFile } from '../helpers/imageHelper.js';
-// import { uploadFile } from '../services/storageService.js';
-
-import { cloudinary } from '../helpers/cloudinary.js'
 import { fileURLToPath } from 'url';
 import { uploadAndCreateFileRecord, deleteFileAndRecord } from '../services/fileService.js';
 
@@ -301,13 +297,6 @@ export const updateItem = async (req, res) => {
         });
 
         // Handle item not found
-        // if (!existingItem) {
-        //     // Clean up any newly uploaded files if the item doesn't exist
-        //     if (newFiles?.imageUrlFront?.[0]?.path) deleteFile(newFiles.imageUrlFront[0].path);
-        //     if (newFiles?.imageUrlBack?.[0]?.path) deleteFile(newFiles.imageUrlBack[0].path);
-        //     return res.status(404).json({ error: "Item not found." });
-        // }
-
         if (!existingItem) {
             // Clean up any newly uploaded files if the item doesn't exist
             // This assumes multer uses diskStorage. If memoryStorage, there's no file to clean.
@@ -322,13 +311,6 @@ export const updateItem = async (req, res) => {
         const isAdminOrSuperAdmin = userRole === UserRole.ADMIN || userRole === UserRole.SUPER_ADMIN;
 
         // Owners can update their items, Admins can update any item
-        // if (!isOwner && !isAdminOrSuperAdmin) {
-        //     // Clean up any newly uploaded files if authorization fails
-        //     if (newFiles?.imageUrlFront?.[0]?.path) deleteFile(newFiles.imageUrlFront[0].path);
-        //     if (newFiles?.imageUrlBack?.[0]?.path) deleteFile(newFiles.imageUrlBack[0].path);
-        //     return res.status(403).json({ error: "Forbidden: You do not have permission to update this item." });
-        // }
-
         if (!isOwner && !isAdminOrSuperAdmin) {
             if (req.files?.imageUrlFront?.[0]?.path) fs.unlinkSync(req.files.imageUrlFront[0].path);
             if (req.files?.imageUrlBack?.[0]?.path) fs.unlinkSync(req.files.imageUrlBack[0].path);
@@ -340,46 +322,6 @@ export const updateItem = async (req, res) => {
         const updateData = {};
         const fileIdsToDelete = []; // Array to store paths of old files to delete AFTER db update
 
-        //==============================Play==========================
-
-        // // Status change logic (refined for notifications)
-        // const oldStatus = existingItem.status;
-        // let newStatus = oldStatus; // Default new status to old status
-        // if (status !== undefined) {
-        //     if (Object.values(ItemStatus).includes(status)) {
-        //         newStatus = status; // Update new status if provided and valid
-        //         updateData.status = newStatus;
-
-        //         // Recalculate expiresAt if status changes to FOUND
-        //         if (newStatus === ItemStatus.FOUND && oldStatus !== ItemStatus.FOUND) {
-        //             updateData.expiresAt = new Date();
-        //             updateData.expiresAt.setDate(updateData.expiresAt.getDate() + 90);
-        //         }
-        //         // If status changes FROM FOUND to something else, clear expiresAt
-        //         if (oldStatus === ItemStatus.FOUND && newStatus !== ItemStatus.FOUND) {
-        //             updateData.expiresAt = null;
-        //         }
-
-        //         // Handle claimedBy update if status changes to CLAIMED - primarily via /claim/:id route
-        //         // If an admin *forces* status to CLAIMED via update without specifying claimedById
-        //         // (which isn't allowed in the current updateData structure anyway), claimedById wouldn't change.
-        //         // If status changes FROM CLAIMED, maybe clear claimedBy?
-        //         if (oldStatus === ItemStatus.CLAIMED && newStatus !== ItemStatus.CLAIMED) {
-        //             // This depends on your desired workflow. E.g., if RETURNED items *should* still show who claimed them, don't clear.
-        //             // If clearing unclaimed items, this might happen in archive.
-        //             // Let's leave claimedBy as is on status change from CLAIMED for now.
-        //         }
-
-
-        //     } else {
-        //         // Clean up newly uploaded files before returning error
-        //         if (newFiles?.imageUrlFront?.[0]?.path) deleteFile(newFiles.imageUrlFront[0].path);
-        //         if (newFiles?.imageUrlBack?.[0]?.path) deleteFile(newFiles.imageUrlBack[0].path);
-        //         return res.status(400).json({ error: `Invalid status: ${status}. Must be one of ${Object.values(Prisma.ItemStatus).join(', ')}` });
-        //     }
-        // }
-
-        //===========================End Play============================
 
         const oldStatus = existingItem.status;
         let newStatus = oldStatus;
@@ -445,27 +387,6 @@ export const updateItem = async (req, res) => {
         }
 
 
-        // Handle Image Updates/Removal
-        // if (req.files?.imageUrlFront?.[0]) {
-        //     if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
-        //     const result = await uploadFile(req.files.imageUrlFront[0], 'items');
-        //     updateData.imageUrlFront = result.filePath || result.publicId;
-        //     console.log('🔼 Updated front image →', result);
-        // } else if (removeImageUrlFront === 'true') {
-        //     if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
-        //     updateData.imageUrlFront = null;
-        // }
-
-        // // Back Image
-        // if (req.files?.imageUrlBack?.[0]) {
-        //     if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
-        //     const result = await uploadFile(req.files.imageUrlBack[0], 'items');
-        //     updateData.imageUrlBack = result.filePath || result.publicId;
-        //     console.log('🔼 Updated back image  →', result);
-        // } else if (removeImageUrlBack === 'true') {
-        //     if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
-        //     updateData.imageUrlBack = null;
-        // }
 
         if (req.files?.imageUrlFront?.[0]) {
             if (existingItem.imageUrlFrontId) {
@@ -543,9 +464,6 @@ export const updateItem = async (req, res) => {
         for (const fileId of fileIdsToDelete) {
             await deleteFileAndRecord(fileId);
         }
-
-
-        // To Review Start ============START=====================
 
         // Create Audit Log for UPDATE_ITEM action
         try {
@@ -664,6 +582,7 @@ export const updateItem = async (req, res) => {
                     console.error("Failed to trigger notification for item status ARCHIVED to reporter:", notificationError);
                 }
             }
+
             // You might also want to notify the reporter if their FOUND item is updated by an admin (e.g., description refined, image added/removed)
             // if (isOwner && oldStatus === newStatus && changedFields.length > 0 && updatedItem.reportedBy) {
             //      try {
@@ -684,23 +603,8 @@ export const updateItem = async (req, res) => {
 
         }
 
-        // To Review ============END==================================
-
 
         // 6. Format response with public image URLs and potentially censor user info
-        // const responseItem = {
-        //     ...updatedItem,
-        //     imageUrlFront: getImageUrl(updatedItem.imageUrlFront, req),
-        //     imageUrlBack: getImageUrl(updatedItem.imageUrlBack, req),
-        //     // Censor reportedBy/claimedBy info if needed for privacy in the response
-        //     reportedBy: updatedItem.reportedBy ? { // Ensure reportedBy exists
-        //         id: updatedItem.reportedBy.id, name: updatedItem.reportedBy.name, email: updatedItem.reportedBy.email, phone: updatedItem.reportedBy.phone
-        //     } : null,
-        //     claimedBy: updatedItem.claimedBy ? { // Ensure claimedBy exists
-        //         id: updatedItem.claimedBy.id, name: updatedItem.claimedBy.name, email: updatedItem.claimedBy.email, phone: updatedItem.claimedBy.phone
-        //     } : null,
-        // };
-
         const responseItem = {
             ...updatedItem,
             imageUrlFront: updatedItem.imageUrlFront ? updatedItem.imageUrlFront.url : null,
