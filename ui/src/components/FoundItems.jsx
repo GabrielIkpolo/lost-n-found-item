@@ -6,7 +6,6 @@ import { addNotification, NotificationType } from '../features/notifications/not
 import './foundItems.css';
 import itemImage from '../assets/images/logo-1.png';
 import { Link, useNavigate } from 'react-router-dom';
-import { getImageUrl } from '../util/axiosInstance'; // rough
 
 // Sidebar Categories (mapped to ItemCategory enum)
 const categories = [
@@ -187,8 +186,7 @@ const FoundItems = () => {
               <div key={item.id} className="item-card">
                 <h2>{item.title}</h2>
                 <img
-                  src={getImageUrl(item.imageUrlFront || itemImage)}
-                  // src={item.imageUrlFront || itemImage}
+                  src={item.imageUrlFront || itemImage}
                   alt={item.title}
                   className="item-image"
                   onError={(e) => {
