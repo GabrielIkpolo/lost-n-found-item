@@ -3,14 +3,15 @@ import path from 'path';
 import fs from 'fs';
 import { Prisma, ItemCategory, ItemLocation, ItemStatus, UserRole, NotificationType, AuditAction } from '@prisma/client';
 import { sendNotification } from '../services/notificationService.js';
-import { getImageUrl, deleteFile } from '../helpers/imageHelper.js';
-import { uploadFile } from '../services/storageService.js';
+// import { getImageUrl, deleteFile } from '../helpers/imageHelper.js';
+// import { uploadFile } from '../services/storageService.js';
 
+import { cloudinary } from '../helpers/cloudinary.js'
+import { fileURLToPath } from 'url';
+import { uploadAndCreateFileRecord, deleteFileAndRecord } from '../services/fileService.js';
 
-const buildAbsoluteLocalUrl = (req, filename) => {
-  const base = process.env.SERVER_URL?.replace(/\/$/, '') || `${req.protocol}://${req.get('host')}`;
-  return `${base}/uploads/${filename}`;
-};
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 
 export const createItem = async (req, res) => {
@@ -57,34 +58,19 @@ export const createItem = async (req, res) => {
             return res.status(400).json({ error: `Invalid status: ${status}. Must be one of ${validStatuses.join(', ')}` });
         }
 
-        // Yet to test this terse validation logic
-        // if (!title || !description || !category || !location || !validCategories.includes(category) || !validLocations.includes(location) || !validStatuses.includes(status)) {
-        //     if (req.files?.imageUrlFront?.[0]?.path) fs.unlinkSync(req.files.imageUrlFront[0].path);
-        //     if (req.files?.imageUrlBack?.[0]?.path) fs.unlinkSync(req.files.imageUrlBack[0].path);
-        //     return res.status(400).json({ error: "Missing or invalid required fields." });
-        // }
-
-        // Process uploaded files
-        // const imageUrlFrontPath = req.files?.imageUrlFront?.[0]?.path || null; // Use path saved by multer
-        // const imageUrlBackPath = req.files?.imageUrlBack?.[0]?.path || null;
 
         // Process uploaded files using uploadFile
-        let imageUrlFrontIdentifier = null; 
-        let imageUrlBackIdentifier = null;
+        let fileRecordFront = null;
+        let fileRecordBack = null;
 
 
         if (req.files?.imageUrlFront?.[0]) {
-            const result = await uploadFile(req.files.imageUrlFront[0], 'items');
-            imageUrlFrontIdentifier = result.filePath || result.publicId || null;
-            console.log('🔼 Uploaded front image →', result);
+            fileRecordFront = await uploadAndCreateFileRecord(req, req.files.imageUrlFront[0]);
+            console.log('🔼 Uploaded front image record →', fileRecordFront);
         }
-
-        // Back image (optional)
         if (req.files?.imageUrlBack?.[0]) {
-            const result = await uploadFile(req.files.imageUrlBack[0], 'items');
-            // FIX: Store the primary identifier (local path or public ID)
-            imageUrlBackIdentifier = result.filePath || result.publicId || null;
-            console.log('🔼 Uploaded back image  →', result);
+            fileRecordBack = await uploadAndCreateFileRecord(req, req.files.imageUrlBack[0]);
+            console.log('🔼 Uploaded back image record →', fileRecordBack);
         }
 
 
@@ -96,25 +82,53 @@ export const createItem = async (req, res) => {
             expiresAt.setDate(expiresAt.getDate() + 90); // 90 days from now
         }
 
+        // Prepare data for item creation, connecting the new file records via their IDs
+        const newItemData = {
+            title,
+            description,
+            category,
+            location,
+            status,
+            reportedBy: { connect: { id: userId } },
+            expiresAt,
+        };
+
+        if (fileRecordFront) {
+             newItemData.imageUrlFront = { connect: { id: fileRecordFront.id } };
+        }
+        if (fileRecordBack) {
+            newItemData.imageUrlBack = { connect: { id: fileRecordBack.id } };
+        }
+
         // Create the item in the database
+        // const newItem = await prisma.item.create({
+        //     data: {
+        //         title,
+        //         description,
+        //         category, // Ensure these match the Prisma enum values
+        //         location, // Ensure these match the Prisma enum values
+        //         status,   // Ensure these match the Prisma enum values
+        //         reportedBy: { connect: { id: userId } },
+        //         imageUrlFront: imageUrlFrontIdentifier, // Store the internal file path
+        //         imageUrlBack: imageUrlBackIdentifier,   // Store the internal file path
+        //         expiresAt: expiresAt, // Set expiry for found items
+        //         // claimedById will be null initially
+        //     },
+        //     // Select reporter for potential notification trigger
+        //     select: {
+        //         id: true, title: true, description: true, category: true, location: true, status: true,
+        //         imageUrlFront: true, imageUrlBack: true, createdAt: true, updatedAt: true, expiresAt: true,
+        //         reportedBy: { select: { id: true, name: true } }
+        //     }
+        // });
+
+
         const newItem = await prisma.item.create({
-            data: {
-                title,
-                description,
-                category, // Ensure these match the Prisma enum values
-                location, // Ensure these match the Prisma enum values
-                status,   // Ensure these match the Prisma enum values
-                reportedBy: { connect: { id: userId } },
-                imageUrlFront: imageUrlFrontIdentifier, // Store the internal file path
-                imageUrlBack: imageUrlBackIdentifier,   // Store the internal file path
-                expiresAt: expiresAt, // Set expiry for found items
-                // claimedById will be null initially
-            },
-            // Select reporter for potential notification trigger
-            select: {
-                id: true, title: true, description: true, category: true, location: true, status: true,
-                imageUrlFront: true, imageUrlBack: true, createdAt: true, updatedAt: true, expiresAt: true,
-                reportedBy: { select: { id: true, name: true } }
+            data: newItemData,
+            include: { // Include relations to get file URLs in the response
+                reportedBy: { select: { id: true, name: true } },
+                imageUrlFront: true, // Include the full File object
+                imageUrlBack: true,  // Include the full File object
             }
         });
 
@@ -155,12 +169,23 @@ export const createItem = async (req, res) => {
 
 
         // Optionally, return the public URLs in the response
+        // const responseItem = {
+        //     ...newItem,
+        //     imageUrlFront: getImageUrl(newItem.imageUrlFront, req),
+        //     imageUrlBack: getImageUrl(newItem.imageUrlBack, req),
+        //     reportedBy: newItem.reportedBy ? { id: newItem.reportedBy.id, name: newItem.reportedBy.name } : null,
+        // };
+
+
         const responseItem = {
             ...newItem,
-            imageUrlFront: getImageUrl(newItem.imageUrlFront, req),
-            imageUrlBack: getImageUrl(newItem.imageUrlBack, req),
-            reportedBy: newItem.reportedBy ? { id: newItem.reportedBy.id, name: newItem.reportedBy.name } : null,
+            imageUrlFront: newItem.imageUrlFront ? newItem.imageUrlFront.url : null,
+            imageUrlBack: newItem.imageUrlBack ? newItem.imageUrlBack.url : null,
+            // reportedBy: newItem.reportedBy ? { id: newItem.reportedBy.id, name: newItem.reportedBy.name } : null,
         };
+        // We no longer need to keep the file ID relations in the final response
+        delete responseItem.imageUrlFrontId;
+        delete responseItem.imageUrlBackId;
 
 
         return res.status(201).json({
@@ -170,221 +195,35 @@ export const createItem = async (req, res) => {
 
     } catch (error) {
         console.error("Error creating item:", error);
-
-        // Clean up uploaded files if an error occurred *after* multer saved them
-        // Ensure paths are accessed correctly even in catch
+        // This cleanup logic for temp files is still relevant if multer's diskStorage is used
         if (req.files?.imageUrlFront?.[0]?.path) {
             try { fs.unlinkSync(req.files.imageUrlFront[0].path); } catch (e) { console.error("Error cleaning up front image:", e); }
         }
         if (req.files?.imageUrlBack?.[0]?.path) {
             try { fs.unlinkSync(req.files.imageUrlBack[0].path); } catch (e) { console.error("Error cleaning up back image:", e); }
         }
-        // Handle specific Prisma errors if needed, otherwise return generic 500
-        if (error.code === 'P2025') { // Example: User not found (though requireSignin should prevent this)
-            return res.status(404).json({ error: "User not found." });
-        }
-        // Handle other potential errors (e.g., invalid enum value caught by Prisma, network issues)
-        // For now, generic server error is fine
         return res.status(500).json({ error: "Internal server error while creating item." });
     }
 };
 
 
-// export const getItems = async (req, res) => {
-//     try {
-//         // Extract query parameters for pagination, filtering, and search
-//         const page = parseInt(req.query.page, 10) || 1; // Default to page 1
-//         const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 items per page
-//         const status = req.query.status; // Filter by status (e.g., 'FOUND', 'LOST')
-//         const category = req.query.category; // Filter by category
-//         const location = req.query.location; // Filter by location
-//         const searchQuery = req.query.q; // Add search query parameter
-
-//         const skip = (page - 1) * limit; // Calculate number of items to skip
-
-//         // Build the filter (where clause) for the Prisma query
-//         const where = {};
-
-//         // --- Add status filter ---
-//         // If a status query parameter is provided, validate and add it to the where clause.
-//         // Otherwise, default to only showing 'FOUND' items.
-//         if (status) {
-//             // Ensure the status is a valid enum value before adding to where
-//             // Correct: Use Prisma.ItemStatus
-//             if (Object.values(ItemStatus).includes(status)) {
-//                 where.status = status;
-//             } else {
-//                 // Handle invalid status input early
-//                 return res.status(400).json({ error: `Invalid status: ${status}. Must be one of ${Object.values(ItemStatus).join(', ')}` });
-//             }
-//         } else {
-//             // Default behavior: Only show 'FOUND' items publicly if no status filter is provided
-//             where.status = 'FOUND'; // Keep default filter for browsing
-//         }
-
-//         // --- Add category filter ---
-//         if (category) {
-//             // Correct: Use Prisma.ItemCategory
-//             if (Object.values(ItemCategory).includes(category)) {
-//                 where.category = category;
-//             } else {
-//                 // Handle invalid category input early
-//                 return res.status(400).json({ error: `Invalid category: ${category}. Must be one of ${Object.values(ItemCategory).join(', ')}` });
-//             }
-//         }
-
-//         // --- Add location filter ---
-//         if (location) {
-//             // Correct: Use Prisma.ItemLocation
-//             if (Object.values(ItemLocation).includes(location)) {
-//                 where.location = location;
-//             } else {
-//                 // Handle invalid location input early
-//                 return res.status(400).json({ error: `Invalid location: ${location}. Must be one of ${Object.values(ItemLocation).join(', ')}` });
-//             }
-//         }
-
-
-//         // --- Add search condition if searchQuery is provided ---
-//         if (searchQuery) {
-//             // Use 'OR' to search across multiple fields
-//             where.OR = [
-//                 { title: { contains: searchQuery, mode: 'insensitive' } },
-//                 { description: { contains: searchQuery, mode: 'insensitive' } },
-//                 // Searching on enum fields requires matching the exact string value of the enum,
-//                 // not necessarily part of the user-friendly display name. 'contains' might work if the enum value
-//                 // is a substring of the search query (e.g., searching "ELECTRONICS" finds "ELECTRONICS_GADGETS").
-//                 // If you want to search user-friendly names, you might need a mapping or rethink the search strategy for enums.
-//                 { category: { contains: searchQuery, mode: 'insensitive' } }, // These search against the enum string values
-//                 { location: { contains: searchQuery, mode: 'insensitive' } }, // These search against the enum string values
-//             ];
-//             // Note: The search here is applied *within* the existing filters (status, category, location).
-//             // E.g., if status is 'FOUND', search only happens on FOUND items.
-//         }
-
-
-//         // Build the order by clause (e.g., newest first)
-//         const orderBy = {
-//             createdAt: 'desc', // Default sort by newest first
-//         };
-
-//         // Fetch items with pagination, filtering, and sorting
-//         const items = await prisma.item.findMany({
-//             where: where, // Use the constructed where object
-//             orderBy: orderBy,
-//             skip: skip,
-//             take: limit, // Use take for the limit
-//             // Select specific fields for performance and privacy
-//             select: {
-//                 id: true,
-//                 title: true,
-//                 description: true,
-//                 category: true,
-//                 location: true,
-//                 imageUrlFront: true, // Fetch internal paths
-//                 imageUrlBack: true,   // Fetch internal paths
-//                 status: true,
-//                 createdAt: true,
-//                 updatedAt: true,
-//                 expiresAt: true,
-//                 // Include reportedBy and claimedBy if needed for display in the list view
-//                 reportedBy: { // Optional: select minimal reporter info for list view privacy
-//                     select: {
-//                         id: true,
-//                         name: true, // Only expose name and ID in list view for privacy
-//                     }
-//                 },
-//                 // claimedBy: { // Optional: select minimal claimer info for list view privacy
-//                 //      select: {
-//                 //          id: true,
-//                 //          name: true, // Only expose name and ID
-//                 //      }
-//                 // }
-//             },
-//         });
-
-//         // Get the total count of items matching the combined filter and search criteria
-//         // Use the SAME where clause as the findMany query
-//         const totalItems = await prisma.item.count({
-//             where: where,
-//         });
-
-//         // Calculate total pages
-//         const totalPages = Math.ceil(totalItems / limit);
-
-//         // Map items to include public image URLs and clean up user info for list view
-//         const itemsWithPublicUrls = items.map(item => ({
-//             ...item,
-//             imageUrlFront: getImageUrl(item.imageUrlFront),
-//             imageUrlBack: getImageUrl(item.imageUrlBack),
-//             reportedBy: item.reportedBy ? { // Ensure reportedBy exists before mapping
-//                 id: item.reportedBy.id,
-//                 name: item.reportedBy.name // Explicitly include only desired fields
-//             } : null,
-//             // claimedBy: item.claimedBy ? { ... map claimedBy fields ... } : null, // Handle claimedBy similarly if included
-//         }));
-
-
-//         return res.status(200).json({
-//             items: itemsWithPublicUrls,
-//             pagination: {
-//                 totalItems: totalItems,
-//                 totalPages: totalPages,
-//                 currentPage: page,
-//                 itemsPerPage: limit,
-//                 query: searchQuery // Echo the search query back
-//             },
-//         });
-
-//     } catch (error) {
-//         console.error("Error fetching items:", error);
-//         // Handle specific Prisma errors if needed, otherwise return generic 500
-//         // Check if it's a known Prisma error, potentially due to invalid input or database issues
-//         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-//             if (error.code === 'P2011' || error.code === 'P2000') { // P2011: Invalid enum value, P2000: Input data too large/invalid
-//                 return res.status(400).json({ error: "Invalid filter or search value provided." });
-//             }
-//             // You could add more specific error handling for other Prisma errors here based on error.code
-//         }
-//         // Catch other unexpected errors (network, other code issues)
-//         return res.status(500).json({ error: "Internal server error while fetching items." });
-//     }
-// };
 
 
 export const getItemDetails = async (req, res) => {
     try {
         const { id } = req.params;
-
-        // Validate the ID format (Prisma's findUnique might handle invalid format, but explicit check is clearer)
         if (!id) {
             return res.status(400).json({ error: "Item ID is required." });
         }
-        // Basic check if it looks like a MongoDB ObjectId (Requires importing ObjectId from 'mongodb')
-        // If you uncomment this, make sure 'mongodb' is installed (`npm install mongodb`)
-        // try {
-        //     new ObjectId(id);
-        // } catch (e) {
-        //      return res.status(400).json({ error: "Invalid Item ID format." });
-        // }
-
 
         // Fetch the item by ID
         const item = await prisma.item.findUnique({
             where: { id: id },
-            // Include reportedBy and claimedBy details. Be MINDFUL OF PRIVACY HERE.
-            // Only include sensitive info (email, phone) if the requester is authorized (e.g., reporter, claimant, admin).
-            // For a basic detail view accessible to anyone (like FOUND items), you might expose less reporter/claimer info.
-            // If you need conditional exposure, fetch the user performing the request (`req.user`), check their role/ID,
-            // and then decide which user fields to include in the response based on that.
-            // For simplicity in this snippet, we're fetching email/phone but you may want to censor them below.
             include: {
-                reportedBy: {
-                    select: { id: true, name: true, email: true, phone: true } // Decide what reporter fields to fetch
-                },
-                claimedBy: { // Include if claimedBy exists
-                    select: { id: true, name: true, email: true, phone: true } // Decide what claimer fields to fetch
-                }
+                reportedBy: { select: { id: true, name: true, email: true, phone: true } },
+                claimedBy: { select: { id: true, name: true, email: true, phone: true } },
+                imageUrlFront: true, // Include the related File object
+                imageUrlBack: true,  // Include the related File object
             }
         });
 
@@ -393,51 +232,41 @@ export const getItemDetails = async (req, res) => {
             return res.status(404).json({ error: "Item not found." });
         }
 
-        // Transform the item to include public image URLs and potentially censor user info for detail view
-        const itemWithPublicUrls = {
+        const responseItem = {
             ...item,
-            imageUrlFront: getImageUrl(item.imageUrlFront),
-            imageUrlBack: getImageUrl(item.imageUrlBack),
+            imageUrlFront: item.imageUrlFront ? item.imageUrlFront.url : null,
+            imageUrlBack: item.imageUrlBack ? item.imageUrlBack.url : null,
             // Censor reportedBy/claimedBy info if needed for privacy in the detail view
-            reportedBy: item.reportedBy ? { // Ensure reportedBy exists before mapping
+            reportedBy: item.reportedBy ? {
                 id: item.reportedBy.id,
                 name: item.reportedBy.name,
-                // Example of conditional censoring:
-                // email: (req.user && (req.user.id === item.reportedById || req.user.role === 'ADMIN')) ? item.reportedBy.email : '***',
-                // phone: (req.user && (req.user.id === item.reportedById || req.user.role === 'ADMIN')) ? item.reportedBy.phone : '***',
-                // For now, keeping as per the 'include' select statement:
                 email: item.reportedBy.email, // Currently exposing
                 phone: item.reportedBy.phone, // Currently exposing
-            } : null, // Handle case where reportedBy is null (shouldn't happen with schema config but good practice)
-            claimedBy: item.claimedBy ? { // Ensure claimedBy exists before mapping
+            } : null,
+            claimedBy: item.claimedBy ? {
                 id: item.claimedBy.id,
                 name: item.claimedBy.name,
-                // Censor/expose claimedBy info similarly
-                email: item.claimedBy.email, // Currently exposing
-                phone: item.claimedBy.phone, // Currently exposing
-            } : null, // claimedBy is optional in schema, so can be null
-
+                email: item.claimedBy.email,
+                phone: item.claimedBy.phone,
+            } : null,
         };
+        delete responseItem.imageUrlFrontId;
+        delete responseItem.imageUrlBackId;
 
-
-        return res.status(200).json(itemWithPublicUrls); // Return the single item details
-
+        return res.status(200).json(responseItem);
 
     } catch (error) {
         console.error("Error fetching item details:", error);
-        // Handle specific Prisma errors if needed, otherwise return generic 500
-        if (error instanceof Prisma.PrismaClientKnownRequestError) { // Check if it's a known Prisma error
-            // Add checks for specific Prisma error codes related to finding unique records or invalid input
-            if (error.code === 'P2025') { // Record not found (should be caught by !item check, but defensive)
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            // Record not found (should be caught by !item check, but defensive)
+            if (error.code === 'P2025') {
                 return res.status(404).json({ error: "Item not found." });
             }
-            // Example: Invalid ID format passed in params caught by Prisma before ObjectId.isValid check
-            if (error.code === 'P2000') { // Invalid input data (e.g., malformed ID)
+            // Invalid input data (e.g., malformed ID)
+            if (error.code === 'P2000') {
                 return res.status(400).json({ error: "Invalid Item ID format." });
             }
-            // You could add more specific error handling for other Prisma errors here based on error.code
         }
-        // Catch other unexpected errors (network, other code issues)
         return res.status(500).json({ error: "Internal server error while fetching item details." });
     }
 };
@@ -450,20 +279,14 @@ export const updateItem = async (req, res) => {
         return res.status(401).json({ error: "Authentication required." });
     }
 
-    const newFiles = req.files; // Files uploaded by multer for this request (if any)
+    const newFiles = req.files;
 
     try {
         const { id } = req.params;
-        // Extract fields to update from body. Use object destructuring carefully
-        // Only include fields you INTEND to allow updating
-        const { title, description, category, location, status,
-            // Flags to explicitly remove images
-            removeImageUrlFront, // Should be 'true' or 'false' string from form-data
-            removeImageUrlBack   // Should be 'true' or 'false' string from form-data
-            // Do NOT allow updating reportedById, claimedById, createdAt, etc. directly
-        } = req.body;
-        const userId = req.user.id; // User ID from requireSignin
-        const userRole = req.user.role; // User role from requireSignin
+        const { title, description, category, location, status, removeImageUrlFront,
+            removeImageUrlBack } = req.body;
+        const userId = req.user.id;
+        const userRole = req.user.role;
 
 
         // 1. Fetch the existing item to check ownership, get current image paths, and current status
@@ -471,10 +294,9 @@ export const updateItem = async (req, res) => {
             where: { id: id },
             select: {
                 id: true,
-                reportedById: true, title: true, claimedById: true,
-                imageUrlFront: true, // Get current image paths
-                imageUrlBack: true,   // Get current image paths
-                status: true, // Need current status for expiry logic
+                reportedById: true, title: true, claimedById: true, status: true,
+                imageUrlFrontId: true, // Get the ID of the current file record
+                imageUrlBackId: true,
             },
         });
 
@@ -502,46 +324,46 @@ export const updateItem = async (req, res) => {
 
         // 3. Prepare update data object and handle image paths
         const updateData = {};
-        const filesToDelete = []; // Array to store paths of old files to delete AFTER db update
+        const fileIdsToDelete = []; // Array to store paths of old files to delete AFTER db update
 
         //==============================Play==========================
 
-        // Status change logic (refined for notifications)
-        const oldStatus = existingItem.status;
-        let newStatus = oldStatus; // Default new status to old status
-        if (status !== undefined) {
-            if (Object.values(ItemStatus).includes(status)) {
-                newStatus = status; // Update new status if provided and valid
-                updateData.status = newStatus;
+        // // Status change logic (refined for notifications)
+        // const oldStatus = existingItem.status;
+        // let newStatus = oldStatus; // Default new status to old status
+        // if (status !== undefined) {
+        //     if (Object.values(ItemStatus).includes(status)) {
+        //         newStatus = status; // Update new status if provided and valid
+        //         updateData.status = newStatus;
 
-                // Recalculate expiresAt if status changes to FOUND
-                if (newStatus === ItemStatus.FOUND && oldStatus !== ItemStatus.FOUND) {
-                    updateData.expiresAt = new Date();
-                    updateData.expiresAt.setDate(updateData.expiresAt.getDate() + 90);
-                }
-                // If status changes FROM FOUND to something else, clear expiresAt
-                if (oldStatus === ItemStatus.FOUND && newStatus !== ItemStatus.FOUND) {
-                    updateData.expiresAt = null;
-                }
+        //         // Recalculate expiresAt if status changes to FOUND
+        //         if (newStatus === ItemStatus.FOUND && oldStatus !== ItemStatus.FOUND) {
+        //             updateData.expiresAt = new Date();
+        //             updateData.expiresAt.setDate(updateData.expiresAt.getDate() + 90);
+        //         }
+        //         // If status changes FROM FOUND to something else, clear expiresAt
+        //         if (oldStatus === ItemStatus.FOUND && newStatus !== ItemStatus.FOUND) {
+        //             updateData.expiresAt = null;
+        //         }
 
-                // Handle claimedBy update if status changes to CLAIMED - primarily via /claim/:id route
-                // If an admin *forces* status to CLAIMED via update without specifying claimedById
-                // (which isn't allowed in the current updateData structure anyway), claimedById wouldn't change.
-                // If status changes FROM CLAIMED, maybe clear claimedBy?
-                if (oldStatus === ItemStatus.CLAIMED && newStatus !== ItemStatus.CLAIMED) {
-                    // This depends on your desired workflow. E.g., if RETURNED items *should* still show who claimed them, don't clear.
-                    // If clearing unclaimed items, this might happen in archive.
-                    // Let's leave claimedBy as is on status change from CLAIMED for now.
-                }
+        //         // Handle claimedBy update if status changes to CLAIMED - primarily via /claim/:id route
+        //         // If an admin *forces* status to CLAIMED via update without specifying claimedById
+        //         // (which isn't allowed in the current updateData structure anyway), claimedById wouldn't change.
+        //         // If status changes FROM CLAIMED, maybe clear claimedBy?
+        //         if (oldStatus === ItemStatus.CLAIMED && newStatus !== ItemStatus.CLAIMED) {
+        //             // This depends on your desired workflow. E.g., if RETURNED items *should* still show who claimed them, don't clear.
+        //             // If clearing unclaimed items, this might happen in archive.
+        //             // Let's leave claimedBy as is on status change from CLAIMED for now.
+        //         }
 
 
-            } else {
-                // Clean up newly uploaded files before returning error
-                if (newFiles?.imageUrlFront?.[0]?.path) deleteFile(newFiles.imageUrlFront[0].path);
-                if (newFiles?.imageUrlBack?.[0]?.path) deleteFile(newFiles.imageUrlBack[0].path);
-                return res.status(400).json({ error: `Invalid status: ${status}. Must be one of ${Object.values(Prisma.ItemStatus).join(', ')}` });
-            }
-        }
+        //     } else {
+        //         // Clean up newly uploaded files before returning error
+        //         if (newFiles?.imageUrlFront?.[0]?.path) deleteFile(newFiles.imageUrlFront[0].path);
+        //         if (newFiles?.imageUrlBack?.[0]?.path) deleteFile(newFiles.imageUrlBack[0].path);
+        //         return res.status(400).json({ error: `Invalid status: ${status}. Must be one of ${Object.values(Prisma.ItemStatus).join(', ')}` });
+        //     }
+        // }
 
         //===========================End Play============================
 
@@ -607,29 +429,55 @@ export const updateItem = async (req, res) => {
 
 
         // Handle Image Updates/Removal
+        // if (req.files?.imageUrlFront?.[0]) {
+        //     if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
+        //     const result = await uploadFile(req.files.imageUrlFront[0], 'items');
+        //     updateData.imageUrlFront = result.filePath || result.publicId;
+        //     console.log('🔼 Updated front image →', result);
+        // } else if (removeImageUrlFront === 'true') {
+        //     if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
+        //     updateData.imageUrlFront = null;
+        // }
+
+        // // Back Image
+        // if (req.files?.imageUrlBack?.[0]) {
+        //     if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
+        //     const result = await uploadFile(req.files.imageUrlBack[0], 'items');
+        //     updateData.imageUrlBack = result.filePath || result.publicId;
+        //     console.log('🔼 Updated back image  →', result);
+        // } else if (removeImageUrlBack === 'true') {
+        //     if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
+        //     updateData.imageUrlBack = null;
+        // }
+
         if (req.files?.imageUrlFront?.[0]) {
-            if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
-            const result = await uploadFile(req.files.imageUrlFront[0], 'items');
-            updateData.imageUrlFront = result.filePath || result.publicId;
-            console.log('🔼 Updated front image →', result);
-        } else if (removeImageUrlFront === 'true') { 
-            if (existingItem.imageUrlFront) filesToDelete.push(existingItem.imageUrlFront);
-            updateData.imageUrlFront = null;
+            if (existingItem.imageUrlFrontId) {
+                fileIdsToDelete.push(existingItem.imageUrlFrontId);
+            }
+            const newFileRecord = await uploadAndCreateFileRecord(req, req.files.imageUrlFront[0]);
+            updateData.imageUrlFrontId = newFileRecord.id; // Connect the new file by its ID
+        } else if (removeImageUrlFront === 'true') {
+            if (existingItem.imageUrlFrontId) {
+                fileIdsToDelete.push(existingItem.imageUrlFrontId);
+                updateData.imageUrlFrontId = null; // Disconnect the file
+            }
         }
 
-        // Back Image
         if (req.files?.imageUrlBack?.[0]) {
-            if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
-            const result = await uploadFile(req.files.imageUrlBack[0], 'items');
-            updateData.imageUrlBack = result.filePath || result.publicId;
-            console.log('🔼 Updated back image  →', result);
-        } else if (removeImageUrlBack === 'true') { 
-            if (existingItem.imageUrlBack) filesToDelete.push(existingItem.imageUrlBack);
-            updateData.imageUrlBack = null;
+            if (existingItem.imageUrlBackId) {
+                fileIdsToDelete.push(existingItem.imageUrlBackId);
+            }
+            const newFileRecord = await uploadAndCreateFileRecord(req, req.files.imageUrlBack[0]);
+            updateData.imageUrlBackId = newFileRecord.id;
+        } else if (removeImageUrlBack === 'true') {
+            if (existingItem.imageUrlBackId) {
+                fileIdsToDelete.push(existingItem.imageUrlBackId);
+                updateData.imageUrlBackId = null;
+            }
         }
 
 
-      
+
 
 
         // Note: If neither a new file is uploaded nor remove flag is true, the existing imageUrlBack remains untouched.
@@ -642,33 +490,46 @@ export const updateItem = async (req, res) => {
         }
 
         // 4. Perform the update in the database
+        // const updatedItem = await prisma.item.update({
+        //     where: { id: id },
+        //     data: updateData,
+        //     // Select fields for the response, including reporter/claimer if needed
+        //     select: {
+        //         id: true,
+        //         title: true,
+        //         description: true,
+        //         category: true,
+        //         location: true,
+        //         imageUrlFront: true, // Fetch internal paths
+        //         imageUrlBack: true,   // Fetch internal paths
+        //         status: true,
+        //         createdAt: true,
+        //         updatedAt: true,
+        //         expiresAt: true,
+        //         reportedBy: { // Include reporter details in response
+        //             select: { id: true, name: true, email: true, phone: true } // Select fields you want to expose
+        //         },
+        //         claimedBy: { // Include claimer details in response if claimedBy exists
+        //             select: { id: true, name: true, email: true, phone: true } // Select fields you want to expose
+        //         }
+        //     },
+        // });
+
         const updatedItem = await prisma.item.update({
             where: { id: id },
             data: updateData,
-            // Select fields for the response, including reporter/claimer if needed
-            select: {
-                id: true,
-                title: true,
-                description: true,
-                category: true,
-                location: true,
-                imageUrlFront: true, // Fetch internal paths
-                imageUrlBack: true,   // Fetch internal paths
-                status: true,
-                createdAt: true,
-                updatedAt: true,
-                expiresAt: true,
-                reportedBy: { // Include reporter details in response
-                    select: { id: true, name: true, email: true, phone: true } // Select fields you want to expose
-                },
-                claimedBy: { // Include claimer details in response if claimedBy exists
-                    select: { id: true, name: true, email: true, phone: true } // Select fields you want to expose
-                }
+            include: { // Include related data for the response
+                reportedBy: { select: { id: true, name: true } },
+                claimedBy: { select: { id: true, name: true } },
+                imageUrlFront: true,
+                imageUrlBack: true,
             },
         });
 
-        // 5. Delete old files AFTER successful database update
-        filesToDelete.forEach(filePath => deleteFile(filePath));
+        // Delete old files from storage and DB AFTER the item update is successful
+        for (const fileId of fileIdsToDelete) {
+            await deleteFileAndRecord(fileId);
+        }
 
 
         // To Review Start ============START=====================
@@ -814,18 +675,26 @@ export const updateItem = async (req, res) => {
 
 
         // 6. Format response with public image URLs and potentially censor user info
+        // const responseItem = {
+        //     ...updatedItem,
+        //     imageUrlFront: getImageUrl(updatedItem.imageUrlFront, req),
+        //     imageUrlBack: getImageUrl(updatedItem.imageUrlBack, req),
+        //     // Censor reportedBy/claimedBy info if needed for privacy in the response
+        //     reportedBy: updatedItem.reportedBy ? { // Ensure reportedBy exists
+        //         id: updatedItem.reportedBy.id, name: updatedItem.reportedBy.name, email: updatedItem.reportedBy.email, phone: updatedItem.reportedBy.phone
+        //     } : null,
+        //     claimedBy: updatedItem.claimedBy ? { // Ensure claimedBy exists
+        //         id: updatedItem.claimedBy.id, name: updatedItem.claimedBy.name, email: updatedItem.claimedBy.email, phone: updatedItem.claimedBy.phone
+        //     } : null,
+        // };
+
         const responseItem = {
             ...updatedItem,
-            imageUrlFront: getImageUrl(updatedItem.imageUrlFront, req),
-            imageUrlBack: getImageUrl(updatedItem.imageUrlBack, req),
-            // Censor reportedBy/claimedBy info if needed for privacy in the response
-            reportedBy: updatedItem.reportedBy ? { // Ensure reportedBy exists
-                id: updatedItem.reportedBy.id, name: updatedItem.reportedBy.name, email: updatedItem.reportedBy.email, phone: updatedItem.reportedBy.phone
-            } : null,
-            claimedBy: updatedItem.claimedBy ? { // Ensure claimedBy exists
-                id: updatedItem.claimedBy.id, name: updatedItem.claimedBy.name, email: updatedItem.claimedBy.email, phone: updatedItem.claimedBy.phone
-            } : null,
+            imageUrlFront: updatedItem.imageUrlFront ? updatedItem.imageUrlFront.url : null,
+            imageUrlBack: updatedItem.imageUrlBack ? updatedItem.imageUrlBack.url : null,
         };
+        delete responseItem.imageUrlFrontId;
+        delete responseItem.imageUrlBackId;
 
 
         // TODO: Implement Audit Log for UPDATE_ITEM action
@@ -848,16 +717,12 @@ export const updateItem = async (req, res) => {
 
     } catch (error) {
         console.error("Error updating item:", error);
-
-        // Clean up any NEWLY uploaded files if a database or processing error occurred *after* multer saved them
-        // Note: Old files marked for deletion were handled after the successful DB update.
         if (newFiles?.imageUrlFront?.[0]?.path) {
             try { deleteFile(newFiles.imageUrlFront[0].path); } catch (e) { console.error("Error cleaning up newly uploaded front image:", e); }
         }
         if (newFiles?.imageUrlBack?.[0]?.path) {
             try { deleteFile(newFiles.imageUrlBack[0].path); } catch (e) { console.error("Error cleaning up newly uploaded back image:", e); }
         }
-
         // Handle specific Prisma errors
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
             if (error.code === 'P2025') {
@@ -884,9 +749,10 @@ export const deleteItem = async (req, res) => {
             where: { id: id },
             select: {
                 id: true,
+                 title: true, // For audit log
                 reportedById: true,
-                imageUrlFront: true,
-                imageUrlBack: true,
+                imageUrlFrontId: true, // Get the ID of the related file
+                imageUrlBackId: true,  // Get the ID of the related file
             },
         });
 
@@ -902,11 +768,15 @@ export const deleteItem = async (req, res) => {
             return res.status(403).json({ error: "Forbidden: You do not have permission to delete this item." });
         }
 
-        // Delete associated files if they exist
-        if (existingItem.imageUrlFront) deleteFile(existingItem.imageUrlFront);
-        if (existingItem.imageUrlBack) deleteFile(existingItem.imageUrlBack);
+         // Delete associated files from storage and the database BEFORE deleting the item
+        if (existingItem.imageUrlFrontId) {
+            await deleteFileAndRecord(existingItem.imageUrlFrontId);
+        }
+        if (existingItem.imageUrlBackId) {
+            await deleteFileAndRecord(existingItem.imageUrlBackId);
+        }
 
-        // Delete the item from database
+        // Delete the item from the database
         await prisma.item.delete({
             where: { id: id },
         });
@@ -927,7 +797,6 @@ export const deleteItem = async (req, res) => {
 
     } catch (error) {
         console.error("Error deleting item:", error);
-
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
             if (error.code === 'P2025') {
                 return res.status(404).json({ error: "Item not found." });
@@ -1174,25 +1043,47 @@ export const getItems = async (req, res) => {
         }
 
         // Fetch items with pagination, filtering, and sorting
-        const items = await prisma.item.findMany({
-            where: finalWhere, // Use the constructed 'where' object
-            orderBy: { createdAt: 'desc' }, // Default sort
-            skip: skip,
+        // const items = await prisma.item.findMany({
+        //     where: finalWhere, // Use the constructed 'where' object
+        //     orderBy: { createdAt: 'desc' }, // Default sort
+        //     skip: skip, // (page - 1) * limit,
+        //     take: limit,
+        //     select: { // Select fields for performance and privacy
+        //         id: true,
+        //         title: true,
+        //         description: true,
+        //         category: true,
+        //         location: true,
+        //         imageUrlFront: true,
+        //         imageUrlBack: true,
+        //         status: true,
+        //         createdAt: true,
+        //         updatedAt: true,
+        //         expiresAt: true,
+        //         reportedBy: { select: { id: true, name: true } },
+        //         claimedBy: { select: { id: true, name: true } }
+        //     },
+        // });
+
+         const items = await prisma.item.findMany({
+            where: finalWhere,
+            orderBy: { createdAt: 'desc' },
+            skip: (page - 1) * limit,
             take: limit,
-            select: { // Select fields for performance and privacy
+            select: { // Select specific fields plus the related file objects
                 id: true,
                 title: true,
                 description: true,
                 category: true,
                 location: true,
-                imageUrlFront: true,
-                imageUrlBack: true,
                 status: true,
                 createdAt: true,
                 updatedAt: true,
                 expiresAt: true,
                 reportedBy: { select: { id: true, name: true } },
-                claimedBy: { select: { id: true, name: true } }
+                claimedBy: { select: { id: true, name: true } },
+                imageUrlFront: true, // Include the full File object
+                imageUrlBack: true,  // Include the full File object
             },
         });
 
@@ -1201,12 +1092,18 @@ export const getItems = async (req, res) => {
         const totalPages = Math.ceil(totalItems / limit);
 
         // Map items to include public image URLs
-        const itemsWithPublicUrls = items.map(item => ({
+        // const itemsWithPublicUrls = items.map(item => ({
+        //     ...item,
+        //     imageUrlFront: getImageUrl(item.imageUrlFront),
+        //     imageUrlBack: getImageUrl(item.imageUrlBack),
+        //     // reportedBy: item.reportedBy ? { id: item.reportedBy.id, name: item.reportedBy.name } : null,
+        //     // claimedBy: item.claimedBy ? { id: item.claimedBy.id, name: item.claimedBy.name } : null,
+        // }));
+
+         const itemsWithPublicUrls = items.map(item => ({
             ...item,
-            imageUrlFront: getImageUrl(item.imageUrlFront),
-            imageUrlBack: getImageUrl(item.imageUrlBack),
-            // reportedBy: item.reportedBy ? { id: item.reportedBy.id, name: item.reportedBy.name } : null,
-            // claimedBy: item.claimedBy ? { id: item.claimedBy.id, name: item.claimedBy.name } : null,
+            imageUrlFront: item.imageUrlFront ? item.imageUrlFront.url : null,
+            imageUrlBack: item.imageUrlBack ? item.imageUrlBack.url : null,
         }));
 
 
@@ -1231,7 +1128,6 @@ export const getItems = async (req, res) => {
             if (error.code === 'P2011' || error.code === 'P2000') { // P2011: Invalid enum value, P2000: Input data too large/invalid
                 return res.status(400).json({ error: "Invalid filter or search value provided." });
             }
-            // You could add more specific error handling for other Prisma errors here
         }
         return res.status(500).json({ error: "Internal server error while fetching items." });
     }
@@ -1613,7 +1509,3 @@ export const cancelItemClaim = async (req, res) => {
     }
 };
 
-
-
-
-//========================== New ========================================================
