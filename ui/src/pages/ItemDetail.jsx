@@ -266,7 +266,7 @@ const ItemDetail = () => {
   const canDelete = isAuthenticated && (user?.id === currentItem.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (currentItem.status !== 'CLAIMED' && currentItem.status !== 'RETURNED');
 
   return (
-    <div  className='main-container'>
+    <div className='main-container'>
 
       <Sidebar />
 
@@ -278,7 +278,13 @@ const ItemDetail = () => {
           {/* Display Front Image */}
           <div className="image-wrapper">
             {currentItem.imageUrlFront ? (
-              <img src={currentItem.imageUrlFront} alt={`${currentItem.title} (Front)`} className="item-detail-image" />
+              // <img src={currentItem.imageUrlFront} alt={`${currentItem.title} (Front)`} className="item-detail-image" />
+              <img
+                src={currentItem.imageUrlFront}
+                alt={`${currentItem.title} (Front)`}
+                className="item-detail-image"
+                onError={(e) => { e.target.src = itemPlaceholderImage; }}
+              />
             ) : (
               <img src={itemPlaceholderImage} alt="No front image available" className="item-detail-image placeholder" />
             )}
@@ -289,7 +295,15 @@ const ItemDetail = () => {
           {/* Display Back Image (only if it exists) */}
           {currentItem.imageUrlBack && (
             <div className="image-wrapper">
-              <img src={currentItem.imageUrlBack} alt={`${currentItem.title} (Back)`} className="item-detail-image" />
+              {/* <img src={currentItem.imageUrlBack} alt={`${currentItem.title} (Back)`} className="item-detail-image" /> */}
+
+              <img
+                src={currentItem.imageUrlBack}
+                alt={`${currentItem.title} (Back)`}
+                className="item-detail-image"
+                onError={(e) => { e.target.src = itemPlaceholderImage; }}
+              />
+              
               {/* Optional: Caption */}
               <div className="image-caption">Back View</div>
             </div>
@@ -337,7 +351,7 @@ const ItemDetail = () => {
 
             {/* Edit Button: Show if authenticated, and user is the reporter OR is an Admin/Super Admin */}
             {/* Also check if item data is loaded */}
-            {isAuthenticated && currentItem && (user?.id === currentItem.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && canEdit && ( 
+            {isAuthenticated && currentItem && (user?.id === currentItem.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && canEdit && (
               <Link
                 to={`/items/${currentItem.id}/edit`}
                 className="btn-action secondary"

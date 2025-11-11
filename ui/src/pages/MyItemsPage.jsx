@@ -261,125 +261,126 @@ const MyItemsPage = () => {
     return (
         <div className='main-container'>
             <Sidebar />
-            
-        <div className="my-items-container">
-            <h1>My Items</h1>
 
-            {/* --- LOADING, ERROR, EMPTY, AND ITEM LIST RENDERING --- */}
-            {isMyItemsLoading && <p style={{ textAlign: 'center' }}>Loading your items...</p>}
+            <div className="my-items-container">
+                <h1>My Items</h1>
 
-            {myItemsError && <p style={{ textAlign: 'center', color: 'red' }}>{myItemsError}</p>}
+                {/* --- LOADING, ERROR, EMPTY, AND ITEM LIST RENDERING --- */}
+                {isMyItemsLoading && <p style={{ textAlign: 'center' }}>Loading your items...</p>}
+
+                {myItemsError && <p style={{ textAlign: 'center', color: 'red' }}>{myItemsError}</p>}
 
 
-            {!isMyItemsLoading && itemsToDisplay?.length === 0 && !myItemsError && (
-                <p style={{ textAlign: 'center' }}>You haven't reported or claimed any items yet.</p>
-            )}
+                {!isMyItemsLoading && itemsToDisplay?.length === 0 && !myItemsError && (
+                    <p style={{ textAlign: 'center' }}>You haven't reported or claimed any items yet.</p>
+                )}
 
-            {!isMyItemsLoading && !myItemsError && itemsToDisplay?.length > 0 && (
-                <div className="item-list">
-                    {itemsToDisplay.map(item => (
-                        <div key={item.id} className="item-card"> {/* Reusing item-card class */}
-                            <h2>{item.title}</h2>
-                            <img
-                                src={item.imageUrlFront || itemPlaceholderImage}
-                                alt={item.title}
-                                className="item-image"
-                            />
-                            <p>
-                                <strong>Status:</strong> {item.status}
-                            </p>
-                            <p>{item.description}</p>
-                            <p><strong>Category:</strong> {item.category}</p>
-                            <p><strong>Location:</strong> {item.location}</p>
-
-                            {/* Distinguish Reported By vs Claimed By */}
-                            {user && (
+                {!isMyItemsLoading && !myItemsError && itemsToDisplay?.length > 0 && (
+                    <div className="item-list">
+                        {itemsToDisplay.map(item => (
+                            <div key={item.id} className="item-card"> {/* Reusing item-card class */}
+                                <h2>{item.title}</h2>
+                                <img
+                                    src={item.imageUrlFront || itemPlaceholderImage}
+                                    alt={item.title}
+                                    className="item-image"
+                                    onError={(e) => { e.target.src = itemPlaceholderImage; }}
+                                />
                                 <p>
-                                    <strong>Role:</strong> {item.reportedById === user.id ? 'Reporter' : (item.claimedById === user.id ? 'Claimant' : 'Other')}
+                                    <strong>Status:</strong> {item.status}
                                 </p>
-                            )}
+                                <p>{item.description}</p>
+                                <p><strong>Category:</strong> {item.category}</p>
+                                <p><strong>Location:</strong> {item.location}</p>
 
-                            {/* Link to item detail */}
-                            <Link to={`/items/${item.id}`} className="btn-details">
-                                View Details
-                            </Link>
+                                {/* Distinguish Reported By vs Claimed By */}
+                                {user && (
+                                    <p>
+                                        <strong>Role:</strong> {item.reportedById === user.id ? 'Reporter' : (item.claimedById === user.id ? 'Claimant' : 'Other')}
+                                    </p>
+                                )}
 
-                            {/* --- Conditional Actions on My Items --- */}
-                            {/* Edit button */}
-                            {isAuthenticated && user?.id === item.reportedById && (item.status === 'LOST' || item.status === 'FOUND') && (
-                                <Link
-                                    to={`/items/${item.id}/edit`}
-                                    className="btn-action secondary"
-                                    disabled={isAnyItemActionLoading}
-                                >
-                                    Edit
+                                {/* Link to item detail */}
+                                <Link to={`/items/${item.id}`} className="btn-details">
+                                    View Details
                                 </Link>
-                            )}
 
-                            {/* Mark as Returned (for reportedBy user) */}
-                            {isAuthenticated && user?.id === item.reportedById && item.status === 'CLAIMED' && (
-                                <button className="btn-action success"
-                                    onClick={() => handleMarkReturned(item.id)}
-                                    disabled={isAnyItemActionLoading}>
-                                    { isMarkingReturned  ? 'Marking...' : 'Mark as Returned'}
-                                </button>
-                            )}
-                            {/* Confirm Received (for claimedBy user) */}
-                            {isAuthenticated && user?.id === item.claimedById && item.status === 'CLAIMED' && (
-                                <button className="btn-action success"
-                                    onClick={() => handleConfirmReceived(item.id)}
-                                    disabled={isAnyItemActionLoading}>
-                                    { isConfirmingReceived  ? 'Confirming...' : 'Confirm Received'}
-                                </button>
-                            )}
-                            {/* Cancel Claim (for claimedBy user) */}
-                            {isAuthenticated && user?.id === item.claimedById && item.status === 'CLAIMED' && (
-                                <button className="btn-action danger"
-                                    onClick={() => handleCancelClaim(item.id)}
-                                    disabled={isAnyItemActionLoading}>
-                                    { isCancellingClaim  ? 'Cancelling...' : 'Cancel Claim'}
-                                </button>
-                            )}
-
-                            {/* Delete button */}
-                            {/* Show if authenticated, and user is authorized (reporter OR Admin/Super Admin) AND status allows deletion */}
-                            {isAuthenticated && (user?.id === item.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (item.status !== 'CLAIMED' && item.status !== 'RETURNED') && ( 
-                                <button
-                                    className="btn-action danger" 
-                                    onClick={() => handleDeleteItem(item.id)} 
-                                    disabled={isAnyItemActionLoading} 
-                                >
-                                   {isDeleting ? 'Deleting...' : 'Delete'}
-                                </button>
-                            )}
-                            {/* ----------------------------------------- */}
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* --- Pagination for My Items --- */}
-            {!isMyItemsLoading && !myItemsError && myItemsPagination.totalPages > 1 && (
-                <div className="pagination"> {/* Reusing pagination class */}
-                    <nav aria-label="Pagination">
-                        <ul>
-                            {Array.from({ length: myItemsPagination.totalPages }, (_, i) => i + 1).map((page) => (
-                                <li key={page}>
-                                    <button
-                                        onClick={() => paginateMyItems(page)}
-                                        className={myItemsPagination.currentPage === page ? 'active' : ''}
-                                        disabled={isAnyItemActionLoading} 
+                                {/* --- Conditional Actions on My Items --- */}
+                                {/* Edit button */}
+                                {isAuthenticated && user?.id === item.reportedById && (item.status === 'LOST' || item.status === 'FOUND') && (
+                                    <Link
+                                        to={`/items/${item.id}/edit`}
+                                        className="btn-action secondary"
+                                        disabled={isAnyItemActionLoading}
                                     >
-                                        {page}
+                                        Edit
+                                    </Link>
+                                )}
+
+                                {/* Mark as Returned (for reportedBy user) */}
+                                {isAuthenticated && user?.id === item.reportedById && item.status === 'CLAIMED' && (
+                                    <button className="btn-action success"
+                                        onClick={() => handleMarkReturned(item.id)}
+                                        disabled={isAnyItemActionLoading}>
+                                        {isMarkingReturned ? 'Marking...' : 'Mark as Returned'}
                                     </button>
-                                </li>
-                            ))}
-                        </ul>
-                    </nav>
-                </div>
-            )}
-            {/* ------------------------------- */}
-        </div>
+                                )}
+                                {/* Confirm Received (for claimedBy user) */}
+                                {isAuthenticated && user?.id === item.claimedById && item.status === 'CLAIMED' && (
+                                    <button className="btn-action success"
+                                        onClick={() => handleConfirmReceived(item.id)}
+                                        disabled={isAnyItemActionLoading}>
+                                        {isConfirmingReceived ? 'Confirming...' : 'Confirm Received'}
+                                    </button>
+                                )}
+                                {/* Cancel Claim (for claimedBy user) */}
+                                {isAuthenticated && user?.id === item.claimedById && item.status === 'CLAIMED' && (
+                                    <button className="btn-action danger"
+                                        onClick={() => handleCancelClaim(item.id)}
+                                        disabled={isAnyItemActionLoading}>
+                                        {isCancellingClaim ? 'Cancelling...' : 'Cancel Claim'}
+                                    </button>
+                                )}
+
+                                {/* Delete button */}
+                                {/* Show if authenticated, and user is authorized (reporter OR Admin/Super Admin) AND status allows deletion */}
+                                {isAuthenticated && (user?.id === item.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (item.status !== 'CLAIMED' && item.status !== 'RETURNED') && (
+                                    <button
+                                        className="btn-action danger"
+                                        onClick={() => handleDeleteItem(item.id)}
+                                        disabled={isAnyItemActionLoading}
+                                    >
+                                        {isDeleting ? 'Deleting...' : 'Delete'}
+                                    </button>
+                                )}
+                                {/* ----------------------------------------- */}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* --- Pagination for My Items --- */}
+                {!isMyItemsLoading && !myItemsError && myItemsPagination.totalPages > 1 && (
+                    <div className="pagination"> {/* Reusing pagination class */}
+                        <nav aria-label="Pagination">
+                            <ul>
+                                {Array.from({ length: myItemsPagination.totalPages }, (_, i) => i + 1).map((page) => (
+                                    <li key={page}>
+                                        <button
+                                            onClick={() => paginateMyItems(page)}
+                                            className={myItemsPagination.currentPage === page ? 'active' : ''}
+                                            disabled={isAnyItemActionLoading}
+                                        >
+                                            {page}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </nav>
+                    </div>
+                )}
+                {/* ------------------------------- */}
+            </div>
         </div>
     );
 };

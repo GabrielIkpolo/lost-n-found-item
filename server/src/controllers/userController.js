@@ -1,14 +1,13 @@
 import prisma from "../helpers/prisma.js";
 import { UserRole, AuditAction, Prisma, ItemStatus } from '@prisma/client';
-import { sendNotification } from '../services/notificationService.js'; 
-import { getImageUrl } from '../helpers/imageHelper.js'; 
+import { sendNotification } from '../services/notificationService.js';
 
 
 // --- Standard User: Get My Items ---
 // Requires requireSignin middleware on the route
 export const getMyItems = async (req, res) => {
     if (!req.user) {
-         return res.status(401).json({ error: "Authentication required." });
+        return res.status(401).json({ error: "Authentication required." });
     }
 
     const userId = req.user.id;
@@ -27,10 +26,12 @@ export const getMyItems = async (req, res) => {
                     { claimedById: userId }   // Items claimed by this user
                 ]
             },
-             include: {
-                 reportedBy: { select: { id: true, name: true } },
-                 claimedBy: { select: { id: true, name: true } }
-             },
+            include: { // CORRECT: Include the full related objects
+                reportedBy: { select: { id: true, name: true } },
+                claimedBy: { select: { id: true, name: true } },
+                imageUrlFront: true, // Include the full File object
+                imageUrlBack: true   // Include the full File object
+            },
             orderBy: {
                 createdAt: 'desc'
             },
@@ -39,32 +40,32 @@ export const getMyItems = async (req, res) => {
         });
 
         // Count total items
-         const totalItems = await prisma.item.count({
+        const totalItems = await prisma.item.count({
             where: {
                 OR: [
                     { reportedById: userId },
                     { claimedById: userId }
                 ]
             }
-         });
-         const totalPages = Math.ceil(totalItems / limit);
+        });
+        const totalPages = Math.ceil(totalItems / limit);
 
-        // Format items to include public image URLs
-         const itemsWithPublicUrls = myItems.map(item => ({
-             ...item,
-             imageUrlFront: getImageUrl(item.imageUrlFront),
-             imageUrlBack: getImageUrl(item.imageUrlBack),
-         }));
+        // CORRECT: Format items to get the URL from the nested File object
+        const itemsWithPublicUrls = myItems.map(item => ({
+            ...item,
+            imageUrlFront: item.imageUrlFront ? item.imageUrlFront.url : null,
+            imageUrlBack: item.imageUrlBack ? item.imageUrlBack.url : null,
+        }));
 
 
         return res.status(200).json({
             items: itemsWithPublicUrls,
-             pagination: {
-                 totalItems: totalItems,
-                 totalPages: totalPages,
-                 currentPage: page,
-                 itemsPerPage: limit,
-             },
+            pagination: {
+                totalItems: totalItems,
+                totalPages: totalPages,
+                currentPage: page,
+                itemsPerPage: limit,
+            },
         });
 
     } catch (error) {
@@ -72,7 +73,6 @@ export const getMyItems = async (req, res) => {
         return res.status(500).json({ error: "Internal server error while fetching user's items." });
     }
 };
-
 
 // --- Standard User: Save FCM Token ---
 // Requires requireSignin middleware on the route
@@ -86,17 +86,17 @@ export const saveFcmToken = async (req, res) => {
 
     if (!fcmToken || typeof fcmToken !== 'string') {
         if (fcmToken === null || fcmToken === undefined) {
-             console.log(`Received null/undefined FCM token for user ${userId}. Clearing token.`);
-             try {
-                 await prisma.user.update({
-                     where: { id: userId },
-                     data: { fcmToken: null, lastFcmUpdate: new Date() }
-                 });
-                 return res.status(200).json({ message: "FCM token cleared successfully." });
-             } catch (error) {
-                 console.error(`Error clearing FCM token for user ${userId}:`, error);
-                 return res.status(500).json({ error: "Internal server error while clearing FCM token." });
-             }
+            console.log(`Received null/undefined FCM token for user ${userId}. Clearing token.`);
+            try {
+                await prisma.user.update({
+                    where: { id: userId },
+                    data: { fcmToken: null, lastFcmUpdate: new Date() }
+                });
+                return res.status(200).json({ message: "FCM token cleared successfully." });
+            } catch (error) {
+                console.error(`Error clearing FCM token for user ${userId}:`, error);
+                return res.status(500).json({ error: "Internal server error while clearing FCM token." });
+            }
         }
         return res.status(400).json({ error: "Invalid FCM token format." });
     }
@@ -113,17 +113,17 @@ export const saveFcmToken = async (req, res) => {
         return res.status(200).json({
             message: "FCM token saved successfully.",
             user: {
-                 id: updatedUser.id,
-                 fcmToken: updatedUser.fcmToken,
-                 lastFcmUpdate: updatedUser.lastFcmUpdate,
+                id: updatedUser.id,
+                fcmToken: updatedUser.fcmToken,
+                lastFcmUpdate: updatedUser.lastFcmUpdate,
             }
         });
 
     } catch (error) {
         console.error(`Error saving FCM token for user ${userId}:`, error);
-         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-             return res.status(404).json({ error: "Authenticated user not found." });
-         }
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+            return res.status(404).json({ error: "Authenticated user not found." });
+        }
         return res.status(500).json({ error: "Internal server error while saving FCM token." });
     }
 };
@@ -165,28 +165,28 @@ export const getUserDetails = async (req, res) => {
 
         const user = await prisma.user.findUnique({
             where: { id: id },
-             select: {
-                 id: true,
-                 name: true,
-                 email: true,
-                 phone: true,
-                 provider: true,
-                 providerId: true,
-                 role: true,
-                 emailVerified: true,
-                 fcmToken: true, // Can show token for admin
-                 lastFcmUpdate: true,
-                 emailNotificationsEnabled: true,
-                 inAppNotificationsEnabled: true,
-                 pushNotificationsEnabled: true,
-                 createdAt: true,
-                 updatedAt: true,
-                 // Exclude sensitive tokens
-                 emailVerificationToken: false,
-                 emailVerificationExpires: false,
-                 passwordResetToken: false,
-                 passwordResetExpires: false,
-             }
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                provider: true,
+                providerId: true,
+                role: true,
+                emailVerified: true,
+                fcmToken: true, // Can show token for admin
+                lastFcmUpdate: true,
+                emailNotificationsEnabled: true,
+                inAppNotificationsEnabled: true,
+                pushNotificationsEnabled: true,
+                createdAt: true,
+                updatedAt: true,
+                // Exclude sensitive tokens
+                emailVerificationToken: false,
+                emailVerificationExpires: false,
+                passwordResetToken: false,
+                passwordResetExpires: false,
+            }
         });
 
         if (!user) {
@@ -198,7 +198,7 @@ export const getUserDetails = async (req, res) => {
     } catch (error) {
         console.error("Error fetching user details:", error);
         if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2025' || error.code === 'P2000')) {
-             return res.status(400).json({ error: "Invalid User ID format or user not found." }); // Combine errors for simplicity
+            return res.status(400).json({ error: "Invalid User ID format or user not found." }); // Combine errors for simplicity
         }
         return res.status(500).json({ error: "Internal server error while fetching user details." });
     }
@@ -217,24 +217,24 @@ export const updateUserRole = async (req, res) => {
         }
 
         // --- Security Checks ---
-         if (req.user.id === id) {
-              return res.status(403).json({ error: "Forbidden: You cannot change your own role via this endpoint." });
-         }
+        if (req.user.id === id) {
+            return res.status(403).json({ error: "Forbidden: You cannot change your own role via this endpoint." });
+        }
 
-         const targetUser = await prisma.user.findUnique({ where: { id: id }, select: { id: true, role: true } });
+        const targetUser = await prisma.user.findUnique({ where: { id: id }, select: { id: true, role: true } });
 
-         if (!targetUser) {
-             return res.status(404).json({ error: "Target user not found." });
-         }
+        if (!targetUser) {
+            return res.status(404).json({ error: "Target user not found." });
+        }
 
-         if (targetUser.role === UserRole.SUPER_ADMIN) {
-              return res.status(403).json({ error: "Forbidden: You cannot change another Super Admin's role." });
-         }
+        if (targetUser.role === UserRole.SUPER_ADMIN) {
+            return res.status(403).json({ error: "Forbidden: You cannot change another Super Admin's role." });
+        }
 
-         if (role === UserRole.SUPER_ADMIN) {
-              return res.status(403).json({ error: "Forbidden: You cannot assign the Super Admin role via this endpoint." });
-         }
-         // --- End Security Checks ---
+        if (role === UserRole.SUPER_ADMIN) {
+            return res.status(403).json({ error: "Forbidden: You cannot assign the Super Admin role via this endpoint." });
+        }
+        // --- End Security Checks ---
 
 
         const updatedUser = await prisma.user.update({
@@ -244,13 +244,13 @@ export const updateUserRole = async (req, res) => {
         });
 
         await prisma.auditLog.create({
-             data: {
-                 userId: req.user.id,
-                 action: AuditAction.MANAGE_USER_ROLE,
-                 details: `Changed role of user "${updatedUser.name}" (${updatedUser.id}) from ${targetUser.role} to ${updatedUser.role}.`,
-                 ipAddress: req.ip,
-                 userAgent: req.headers['user-agent'],
-             }
+            data: {
+                userId: req.user.id,
+                action: AuditAction.MANAGE_USER_ROLE,
+                details: `Changed role of user "${updatedUser.name}" (${updatedUser.id}) from ${targetUser.role} to ${updatedUser.role}.`,
+                ipAddress: req.ip,
+                userAgent: req.headers['user-agent'],
+            }
         });
 
         return res.status(200).json({
@@ -261,7 +261,7 @@ export const updateUserRole = async (req, res) => {
     } catch (error) {
         console.error("Error updating user role:", error);
         if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2025' || error.code === 'P2000')) {
-             return res.status(400).json({ error: "Invalid User ID format or user not found." });
+            return res.status(400).json({ error: "Invalid User ID format or user not found." });
         }
         return res.status(500).json({ error: "Internal server error while updating user role." });
     }
@@ -278,22 +278,22 @@ export const deleteUser = async (req, res) => {
         const { id } = req.params; // User ID to delete
 
         // --- Security Checks ---
-         const targetUser = await prisma.user.findUnique({ where: { id: id }, select: { id: true, role: true } });
+        const targetUser = await prisma.user.findUnique({ where: { id: id }, select: { id: true, role: true } });
 
-         if (!targetUser) {
-             return res.status(404).json({ error: "User not found." });
-         }
+        if (!targetUser) {
+            return res.status(404).json({ error: "User not found." });
+        }
 
-         // Prevent user from deleting themselves
-         if (req.user.id === id) {
-             return res.status(403).json({ error: "Forbidden: You cannot delete your own account via this endpoint." });
-         }
+        // Prevent user from deleting themselves
+        if (req.user.id === id) {
+            return res.status(403).json({ error: "Forbidden: You cannot delete your own account via this endpoint." });
+        }
 
-         // Prevent ADMIN from deleting ADMIN or SUPER_ADMIN
-         if (req.user.role === UserRole.ADMIN && (targetUser.role === UserRole.ADMIN || targetUser.role === UserRole.SUPER_ADMIN)) {
-             return res.status(403).json({ error: "Forbidden: Admins cannot delete other Admins or Super Admins." });
-         }
-         // --- End Security Checks ---
+        // Prevent ADMIN from deleting ADMIN or SUPER_ADMIN
+        if (req.user.role === UserRole.ADMIN && (targetUser.role === UserRole.ADMIN || targetUser.role === UserRole.SUPER_ADMIN)) {
+            return res.status(403).json({ error: "Forbidden: Admins cannot delete other Admins or Super Admins." });
+        }
+        // --- End Security Checks ---
 
 
         // Perform the delete operation
@@ -301,19 +301,19 @@ export const deleteUser = async (req, res) => {
         // for related models like Item, Notification, AuditLog, etc.
         const deletedUser = await prisma.user.delete({
             where: { id: id },
-             // Select fields for audit log before deletion
-             select: { id: true, name: true, email: true, role: true }
+            // Select fields for audit log before deletion
+            select: { id: true, name: true, email: true, role: true }
         });
 
         // Create Audit Log for deletion
         await prisma.auditLog.create({
-             data: {
-                 userId: req.user.id,
-                 action: AuditAction.DELETE_USER, // Using the enum value
-                 details: `Deleted user "${deletedUser.name}" (${deletedUser.id}) with role ${deletedUser.role}.`,
-                 ipAddress: req.ip,
-                 userAgent: req.headers['user-agent'],
-             }
+            data: {
+                userId: req.user.id,
+                action: AuditAction.DELETE_USER, // Using the enum value
+                details: `Deleted user "${deletedUser.name}" (${deletedUser.id}) with role ${deletedUser.role}.`,
+                ipAddress: req.ip,
+                userAgent: req.headers['user-agent'],
+            }
         });
 
         return res.status(200).json({ message: "User deleted successfully", user: { id: deletedUser.id } });
@@ -321,18 +321,18 @@ export const deleteUser = async (req, res) => {
     } catch (error) {
         console.error("Error deleting user:", error);
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-             if (error.code === 'P2025') {
-                 return res.status(404).json({ error: "User not found." });
-             }
-             // P2003: Foreign key constraint failed (if cascade rules are missing/incorrect)
-             if (error.code === 'P2003') {
-                  console.error("Prisma P2003 Error: Foreign key constraint failed during user deletion. Check schema.prisma `onDelete` rules.");
-                  return res.status(409).json({ error: "Cannot delete user due to related data. Check database cascade rules or implement soft delete." });
-             }
-             if (error.code === 'P2000') {
-                  return res.status(400).json({ error: "Invalid User ID format." });
-             }
-         }
+            if (error.code === 'P2025') {
+                return res.status(404).json({ error: "User not found." });
+            }
+            // P2003: Foreign key constraint failed (if cascade rules are missing/incorrect)
+            if (error.code === 'P2003') {
+                console.error("Prisma P2003 Error: Foreign key constraint failed during user deletion. Check schema.prisma `onDelete` rules.");
+                return res.status(409).json({ error: "Cannot delete user due to related data. Check database cascade rules or implement soft delete." });
+            }
+            if (error.code === 'P2000') {
+                return res.status(400).json({ error: "Invalid User ID format." });
+            }
+        }
         return res.status(500).json({ error: "Internal server error while deleting user." });
     }
 };
@@ -343,7 +343,7 @@ export const deleteUser = async (req, res) => {
 export const updateNotificationPreferences = async (req, res) => {
     // requireSignin middleware ensures req.user is populated
     if (!req.user) {
-         return res.status(401).json({ error: "Authentication required." });
+        return res.status(401).json({ error: "Authentication required." });
     }
 
     const userId = req.user.id;
@@ -381,21 +381,21 @@ export const updateNotificationPreferences = async (req, res) => {
             },
         });
 
-         // Create Audit Log for updating notification preferences
-         try {
-             const changedFields = Object.keys(updateData).join(', ');
-             await prisma.auditLog.create({
-                 data: {
-                     userId: userId,
-                     action: AuditAction.UPDATE_NOTIFICATION_PREFS, // Use the enum value
-                     details: `Updated notification preferences for user ${userId}. Fields changed: ${changedFields}.`,
-                     ipAddress: req.ip,
-                     userAgent: req.headers['user-agent'],
-                 }
-             });
-         } catch (auditError) {
-             console.error("Failed to create audit log for update notification prefs:", auditError);
-         }
+        // Create Audit Log for updating notification preferences
+        try {
+            const changedFields = Object.keys(updateData).join(', ');
+            await prisma.auditLog.create({
+                data: {
+                    userId: userId,
+                    action: AuditAction.UPDATE_NOTIFICATION_PREFS, // Use the enum value
+                    details: `Updated notification preferences for user ${userId}. Fields changed: ${changedFields}.`,
+                    ipAddress: req.ip,
+                    userAgent: req.headers['user-agent'],
+                }
+            });
+        } catch (auditError) {
+            console.error("Failed to create audit log for update notification prefs:", auditError);
+        }
 
 
         return res.status(200).json({
@@ -405,9 +405,9 @@ export const updateNotificationPreferences = async (req, res) => {
 
     } catch (error) {
         console.error(`Error updating notification preferences for user ${userId}:`, error);
-         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-             return res.status(404).json({ error: "Authenticated user not found." }); // Should not happen with requireSignin
-         }
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+            return res.status(404).json({ error: "Authenticated user not found." }); // Should not happen with requireSignin
+        }
         return res.status(500).json({ error: "Internal server error while updating notification preferences." });
     }
 };
@@ -418,7 +418,7 @@ export const updateNotificationPreferences = async (req, res) => {
 export const getUserNotifications = async (req, res) => {
     // requireSignin middleware ensures req.user is populated
     if (!req.user) {
-         return res.status(401).json({ error: "Authentication required." });
+        return res.status(401).json({ error: "Authentication required." });
     }
 
     const userId = req.user.id;
@@ -434,24 +434,24 @@ export const getUserNotifications = async (req, res) => {
 
         // Apply read status filter if provided
         if (readFilter !== undefined) {
-             if (readFilter === 'true') {
-                 where.read = true;
-             } else if (readFilter === 'false') {
-                 where.read = false;
-             } else {
-                 return res.status(400).json({ error: "Invalid 'read' filter value. Must be 'true' or 'false'." });
-             }
+            if (readFilter === 'true') {
+                where.read = true;
+            } else if (readFilter === 'false') {
+                where.read = false;
+            } else {
+                return res.status(400).json({ error: "Invalid 'read' filter value. Must be 'true' or 'false'." });
+            }
         }
 
         // Fetch notifications with pagination
         const notifications = await prisma.notification.findMany({
             where: where,
-             // Optionally include related item details if needed for display
-             include: {
-                 item: {
-                     select: { id: true, title: true, imageUrlFront: true } // Select minimal item info
-                 }
-             },
+            // Optionally include related item details if needed for display
+            include: {
+                item: {
+                    select: { id: true, title: true, imageUrlFront: true } // Select minimal item info
+                }
+            },
             orderBy: {
                 createdAt: 'desc' // Newest notifications first
             },
@@ -459,31 +459,31 @@ export const getUserNotifications = async (req, res) => {
             take: limit,
         });
 
-         // Count total notifications matching the criteria for pagination info
-         const totalNotifications = await prisma.notification.count({
+        // Count total notifications matching the criteria for pagination info
+        const totalNotifications = await prisma.notification.count({
             where: where
-         });
-         const totalPages = Math.ceil(totalNotifications / limit);
+        });
+        const totalPages = Math.ceil(totalNotifications / limit);
 
         // Format notifications (e.g., include public item image URL)
-         const formattedNotifications = notifications.map(notification => ({
-             ...notification,
-              // Add public image URL for related item if available
-              item: notification.item ? {
-                  ...notification.item,
-                  imageUrlFront: getImageUrl(notification.item.imageUrlFront) // Re-using getImageUrl from imageHelper
-              } : null,
-         }));
+        const formattedNotifications = notifications.map(notification => ({
+            ...notification,
+            // Add public image URL for related item if available
+            item: notification.item ? {
+                ...notification.item,
+                imageUrlFront: getImageUrl(notification.item.imageUrlFront) // Re-using getImageUrl from imageHelper
+            } : null,
+        }));
 
 
         return res.status(200).json({
             notifications: formattedNotifications,
-             pagination: {
-                 totalItems: totalNotifications,
-                 totalPages: totalPages,
-                 currentPage: page,
-                 itemsPerPage: limit,
-             },
+            pagination: {
+                totalItems: totalNotifications,
+                totalPages: totalPages,
+                currentPage: page,
+                itemsPerPage: limit,
+            },
         });
 
     } catch (error) {
@@ -496,57 +496,57 @@ export const getUserNotifications = async (req, res) => {
 // --- Standard User: Mark Notification As Read ---
 // Requires requireSignin middleware on the route
 export const markNotificationAsRead = async (req, res) => {
-     // requireSignin middleware ensures req.user is populated
-     if (!req.user) {
-         return res.status(401).json({ error: "Authentication required." });
-     }
+    // requireSignin middleware ensures req.user is populated
+    if (!req.user) {
+        return res.status(401).json({ error: "Authentication required." });
+    }
 
-     const userId = req.user.id;
-     const { id } = req.params; // Notification ID from URL parameter
+    const userId = req.user.id;
+    const { id } = req.params; // Notification ID from URL parameter
 
-     try {
-         // Find the notification and ensure it belongs to the current user
-         const notification = await prisma.notification.findUnique({
-             where: { id: id },
-             select: { id: true, userId: true, read: true } // Select id, userId, and read status
-         });
+    try {
+        // Find the notification and ensure it belongs to the current user
+        const notification = await prisma.notification.findUnique({
+            where: { id: id },
+            select: { id: true, userId: true, read: true } // Select id, userId, and read status
+        });
 
-         if (!notification) {
-             return res.status(404).json({ error: "Notification not found." });
-         }
+        if (!notification) {
+            return res.status(404).json({ error: "Notification not found." });
+        }
 
-         // Authorization check: Ensure the notification belongs to the logged-in user
-         if (notification.userId !== userId) {
-             return res.status(403).json({ error: "Forbidden: You do not have permission to access this notification." });
-         }
+        // Authorization check: Ensure the notification belongs to the logged-in user
+        if (notification.userId !== userId) {
+            return res.status(403).json({ error: "Forbidden: You do not have permission to access this notification." });
+        }
 
-         // If already read, no need to update
-         if (notification.read) {
-             return res.status(200).json({ message: "Notification is already marked as read." });
-         }
+        // If already read, no need to update
+        if (notification.read) {
+            return res.status(200).json({ message: "Notification is already marked as read." });
+        }
 
-         // Mark the notification as read
-         const updatedNotification = await prisma.notification.update({
-             where: { id: id },
-             data: { read: true },
-             select: { id: true, read: true, updatedAt: true } // Return updated status
-         });
+        // Mark the notification as read
+        const updatedNotification = await prisma.notification.update({
+            where: { id: id },
+            data: { read: true },
+            select: { id: true, read: true, updatedAt: true } // Return updated status
+        });
 
-          // Consider adding an Audit Log for this action if desired, though maybe less critical than item/user actions.
-          // await prisma.auditLog.create({ ... });
+        // Consider adding an Audit Log for this action if desired, though maybe less critical than item/user actions.
+        // await prisma.auditLog.create({ ... });
 
-         return res.status(200).json({
-             message: "Notification marked as read.",
-             notification: updatedNotification,
-         });
+        return res.status(200).json({
+            message: "Notification marked as read.",
+            notification: updatedNotification,
+        });
 
-     } catch (error) {
-         console.error(`Error marking notification ${id} as read for user ${userId}:`, error);
-          if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2025' || error.code === 'P2000')) {
-              return res.status(400).json({ error: "Invalid Notification ID format or notification not found." });
-          }
-         return res.status(500).json({ error: "Internal server error while marking notification as read." });
-     }
+    } catch (error) {
+        console.error(`Error marking notification ${id} as read for user ${userId}:`, error);
+        if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2025' || error.code === 'P2000')) {
+            return res.status(400).json({ error: "Invalid Notification ID format or notification not found." });
+        }
+        return res.status(500).json({ error: "Internal server error while marking notification as read." });
+    }
 };
 
 // TODO: Implement a batch update endpoint to mark multiple notifications as read (e.g., PUT /api/users/notifications/mark-read)

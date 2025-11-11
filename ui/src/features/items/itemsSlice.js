@@ -164,6 +164,7 @@ export const createItem = createAsyncThunk(
       }
       const headers = {
         Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
       };
 
       const response = await axios.post('/api/items', formData, { headers });
@@ -300,13 +301,9 @@ export const updateItem = createAsyncThunk(
       }
       const headers = {
         Authorization: `Bearer ${token}`,
-        // Content-Type will be set automatically for FormData
+         'Content-Type': 'multipart/form-data',
       };
-      // ---------------------------------------------
-
-      // Make the API call to update the item (PUT or PATCH /api/items/:id)
-      // Use PUT if sending complete data including files, PATCH if only sending changes
-      // Based on your backend route /api/items/:id expecting PUT with FormData
+      
       const response = await axios.put(`/api/items/${itemId}`, formData, { headers });
 
       // Assuming your backend returns the updated item object on success

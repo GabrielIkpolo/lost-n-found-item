@@ -94,7 +94,7 @@ export const createItem = async (req, res) => {
         };
 
         if (fileRecordFront) {
-             newItemData.imageUrlFront = { connect: { id: fileRecordFront.id } };
+            newItemData.imageUrlFront = { connect: { id: fileRecordFront.id } };
         }
         if (fileRecordBack) {
             newItemData.imageUrlBack = { connect: { id: fileRecordBack.id } };
@@ -301,10 +301,18 @@ export const updateItem = async (req, res) => {
         });
 
         // Handle item not found
+        // if (!existingItem) {
+        //     // Clean up any newly uploaded files if the item doesn't exist
+        //     if (newFiles?.imageUrlFront?.[0]?.path) deleteFile(newFiles.imageUrlFront[0].path);
+        //     if (newFiles?.imageUrlBack?.[0]?.path) deleteFile(newFiles.imageUrlBack[0].path);
+        //     return res.status(404).json({ error: "Item not found." });
+        // }
+
         if (!existingItem) {
             // Clean up any newly uploaded files if the item doesn't exist
-            if (newFiles?.imageUrlFront?.[0]?.path) deleteFile(newFiles.imageUrlFront[0].path);
-            if (newFiles?.imageUrlBack?.[0]?.path) deleteFile(newFiles.imageUrlBack[0].path);
+            // This assumes multer uses diskStorage. If memoryStorage, there's no file to clean.
+            if (req.files?.imageUrlFront?.[0]?.path) fs.unlinkSync(req.files.imageUrlFront[0].path);
+            if (req.files?.imageUrlBack?.[0]?.path) fs.unlinkSync(req.files.imageUrlBack[0].path);
             return res.status(404).json({ error: "Item not found." });
         }
 
@@ -314,10 +322,16 @@ export const updateItem = async (req, res) => {
         const isAdminOrSuperAdmin = userRole === UserRole.ADMIN || userRole === UserRole.SUPER_ADMIN;
 
         // Owners can update their items, Admins can update any item
+        // if (!isOwner && !isAdminOrSuperAdmin) {
+        //     // Clean up any newly uploaded files if authorization fails
+        //     if (newFiles?.imageUrlFront?.[0]?.path) deleteFile(newFiles.imageUrlFront[0].path);
+        //     if (newFiles?.imageUrlBack?.[0]?.path) deleteFile(newFiles.imageUrlBack[0].path);
+        //     return res.status(403).json({ error: "Forbidden: You do not have permission to update this item." });
+        // }
+
         if (!isOwner && !isAdminOrSuperAdmin) {
-            // Clean up any newly uploaded files if authorization fails
-            if (newFiles?.imageUrlFront?.[0]?.path) deleteFile(newFiles.imageUrlFront[0].path);
-            if (newFiles?.imageUrlBack?.[0]?.path) deleteFile(newFiles.imageUrlBack[0].path);
+            if (req.files?.imageUrlFront?.[0]?.path) fs.unlinkSync(req.files.imageUrlFront[0].path);
+            if (req.files?.imageUrlBack?.[0]?.path) fs.unlinkSync(req.files.imageUrlBack[0].path);
             return res.status(403).json({ error: "Forbidden: You do not have permission to update this item." });
         }
 
@@ -367,6 +381,8 @@ export const updateItem = async (req, res) => {
 
         //===========================End Play============================
 
+        const oldStatus = existingItem.status;
+        let newStatus = oldStatus;
 
         // Add other fields if provided after status check
         if (title !== undefined) updateData.title = title;
@@ -397,6 +413,7 @@ export const updateItem = async (req, res) => {
         if (status !== undefined) {
             if (Object.values(ItemStatus).includes(status)) {
                 updateData.status = status;
+                newStatus = status; // Update newStatus tracker
 
                 // Recalculate expiresAt if status changes to FOUND
                 if (updateData.status === 'FOUND' && existingItem.status !== 'FOUND') {
@@ -421,8 +438,8 @@ export const updateItem = async (req, res) => {
 
             } else {
                 // Clean up newly uploaded files before returning error
-                if (newFiles?.imageUrlFront?.[0]?.path) deleteFile(newFiles.imageUrlFront[0].path);
-                if (newFiles?.imageUrlBack?.[0]?.path) deleteFile(newFiles.imageUrlBack[0].path);
+                if (newFiles?.imageUrlFront?.[0]?.path) fs.unlinkSync(newFiles.imageUrlFront[0].path);
+                if (newFiles?.imageUrlBack?.[0]?.path) fs.unlinkSync(newFiles.imageUrlBack[0].path);
                 return res.status(400).json({ error: `Invalid status: ${status}. Must be one of ${Object.values(Prisma.ItemStatus).join(', ')}` });
             }
         }
@@ -476,16 +493,12 @@ export const updateItem = async (req, res) => {
             }
         }
 
-
-
-
-
         // Note: If neither a new file is uploaded nor remove flag is true, the existing imageUrlBack remains untouched.
         // If no fields are provided for update, return a 400 or 200 with a message
         if (Object.keys(updateData).length === 0) {
             // Clean up newly uploaded files if no update data was valid
-            if (newFiles?.imageUrlFront?.[0]?.path) deleteFile(newFiles.imageUrlFront[0].path);
-            if (newFiles?.imageUrlBack?.[0]?.path) deleteFile(newFiles.imageUrlBack[0].path);
+            if (newFiles?.imageUrlFront?.[0]?.path) fs.unlinkSync(newFiles.imageUrlFront[0].path);
+            if (newFiles?.imageUrlBack?.[0]?.path) fs.unlinkSync(newFiles.imageUrlBack[0].path);
             return res.status(400).json({ error: "No valid fields provided for update." });
         }
 
@@ -518,9 +531,9 @@ export const updateItem = async (req, res) => {
         const updatedItem = await prisma.item.update({
             where: { id: id },
             data: updateData,
-            include: { // Include related data for the response
-                reportedBy: { select: { id: true, name: true } },
-                claimedBy: { select: { id: true, name: true } },
+            include: {
+                reportedBy: { select: { id: true, name: true, email: true, phone: true } },
+                claimedBy: { select: { id: true, name: true, email: true, phone: true } },
                 imageUrlFront: true,
                 imageUrlBack: true,
             },
@@ -749,7 +762,7 @@ export const deleteItem = async (req, res) => {
             where: { id: id },
             select: {
                 id: true,
-                 title: true, // For audit log
+                title: true, // For audit log
                 reportedById: true,
                 imageUrlFrontId: true, // Get the ID of the related file
                 imageUrlBackId: true,  // Get the ID of the related file
@@ -768,7 +781,7 @@ export const deleteItem = async (req, res) => {
             return res.status(403).json({ error: "Forbidden: You do not have permission to delete this item." });
         }
 
-         // Delete associated files from storage and the database BEFORE deleting the item
+        // Delete associated files from storage and the database BEFORE deleting the item
         if (existingItem.imageUrlFrontId) {
             await deleteFileAndRecord(existingItem.imageUrlFrontId);
         }
@@ -1065,7 +1078,7 @@ export const getItems = async (req, res) => {
         //     },
         // });
 
-         const items = await prisma.item.findMany({
+        const items = await prisma.item.findMany({
             where: finalWhere,
             orderBy: { createdAt: 'desc' },
             skip: (page - 1) * limit,
@@ -1100,7 +1113,7 @@ export const getItems = async (req, res) => {
         //     // claimedBy: item.claimedBy ? { id: item.claimedBy.id, name: item.claimedBy.name } : null,
         // }));
 
-         const itemsWithPublicUrls = items.map(item => ({
+        const itemsWithPublicUrls = items.map(item => ({
             ...item,
             imageUrlFront: item.imageUrlFront ? item.imageUrlFront.url : null,
             imageUrlBack: item.imageUrlBack ? item.imageUrlBack.url : null,

@@ -6,7 +6,6 @@ import { addNotification, NotificationType } from '../features/notifications/not
 import './lostItemPage.css';
 import itemImage from '../assets/images/logo-1.png';
 import { Link, useNavigate } from 'react-router-dom';
-import { getImageUrl } from '../util/axiosInstance'; // rough
 
 // Categories can be the same as FoundItems
 const categories = [
@@ -177,11 +176,19 @@ const LostItemPage = () => {
             {itemsToDisplay.map((item) => (
               <div key={item.id} className="item-card">
                 <h2>{item.title}</h2>
-                <img
-                  src={getImageUrl(item.imageUrlFront || itemImage)}
-                  // src={item.imageUrlFront || itemImage}
+                {/* <img
+                  src={item.imageUrlFront || itemImage}
                   alt={item.title}
                   className="item-image"
+                /> */}
+
+                <img
+                  src={item.imageUrlFront || itemImage}
+                  alt={item.title}
+                  className="item-image"
+                  onError={(e) => {
+                    e.target.src = itemImage;
+                  }}
                 />
                 <p>
                   <strong>Status:</strong> {item.status}

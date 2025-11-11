@@ -48,248 +48,148 @@ const ReportItem = () => {
     // State for file inputs
     const [imageFront, setImageFront] = useState(null);
     const [imageBack, setImageBack] = useState(null);
-    // State to display file names
-    const [imageFrontName, setImageFrontName] = useState(''); // <-- Picking up here
-    const [imageBackName, setImageBackName] = useState(''); // <-- Picking up here
+    const [imageFrontName, setImageFrontName] = useState('');
+    const [imageBackName, setImageBackName] = useState('');
 
+    // Local state to prevent double submission
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Redux hooks and state
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    // Select relevant state from the items slice for item creation
     const { isCreating, creationError, itemCreationSuccess, createdItem } = useSelector(state => state.items);
 
 
     // --- Effect to handle successful item creation ---
     useEffect(() => {
         if (itemCreationSuccess) {
-            // Show success notification
             dispatch(addNotification({
-                message: `Item "${createdItem?.title || 'Unknown'}" reported successfully!`, // Use createdItem data
+                message: `Item "${createdItem?.title || 'Unknown'}" reported successfully!`,
                 type: NotificationType.SUCCESS,
                 duration: 5000,
             }));
-
-            // Clear the creation status flags and created item data from Redux state
             dispatch(clearItemCreationStatus());
-
-            // Optional: Redirect to the created item's detail page or a confirmation page
-            // Or redirect back to the home page or My Items page
-            navigate('/'); // Redirect to home for now
+            navigate('/');
         }
-    }, [itemCreationSuccess, dispatch, navigate, createdItem]); // Depend on success flag, dispatch, navigate, and createdItem
+    }, [itemCreationSuccess, dispatch, navigate, createdItem]);
 
 
     // --- Effect to handle item creation errors ---
     useEffect(() => {
         if (creationError) {
-            // Show error notification
             dispatch(addNotification({
-                message: `Failed to report item: ${creationError}`, // Use the error message
+                message: `Failed to report item: ${creationError}`,
                 type: NotificationType.ERROR,
                 duration: 5000,
             }));
-
-            // Clear the creation error state from Redux state
-            // We don't need clearItemCreationStatus here if the error effect
-            // is the only place we show the error notification based on this state.
-            // If you wanted the error message to persist on the page, you might not clear it immediately.
-            // dispatch(clearItemCreationStatus()); 
+            // It's good to clear the error status so it doesn't re-appear on other pages
+            dispatch(clearItemCreationStatus());
         }
-    }, [creationError, dispatch]); // Depend on creationError and dispatch
+    }, [creationError, dispatch]);
 
 
     // Handler for file input changes
     const handleImageFrontChange = (e) => {
         const file = e.target.files[0];
         setImageFront(file);
-        setImageFrontName(file ? file.name : ''); // Set file name for display
+        setImageFrontName(file ? file.name : '');
     };
 
     const handleImageBackChange = (e) => {
         const file = e.target.files[0];
         setImageBack(file);
-        setImageBackName(file ? file.name : ''); // Set file name for display
+        setImageBackName(file ? file.name : '');
     };
 
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
 
-        // Basic frontend validation (required fields)
-        if (!title || !description || !category || !location || !status) {
-            dispatch(addNotification({
-                message: 'Please fill in all required fields.',
-                type: NotificationType.WARNING,
-                duration: 3000
-            }));
-            return;
-        }
-        // Basic validation for the required front image
-        if (!imageFront) {
-            dispatch(addNotification({
-                message: 'Please provide a front image for the item.',
-                type: NotificationType.WARNING,
-                duration: 3000
-            }));
-            // You might want to clear any previous creationError here if present
-            dispatch(clearItemCreationStatus());
+        // Prevent double submission with both local and redux state
+        if (isSubmitting || isCreating) {
             return;
         }
 
-        // Create FormData object to send both text data and files
+        // Basic frontend validation
+        if (!title || !description || !category || !location || !status) {
+            dispatch(addNotification({ message: 'Please fill in all required fields.', type: NotificationType.WARNING, duration: 3000 }));
+            return;
+        }
+        if (!imageFront) {
+            dispatch(addNotification({ message: 'Please provide a front image for the item.', type: NotificationType.WARNING, duration: 3000 }));
+            return;
+        }
+
+        // Set local submitting state immediately to lock the form
+        setIsSubmitting(true);
+
         const formData = new FormData();
         formData.append('title', title);
         formData.append('description', description);
         formData.append('category', category);
         formData.append('location', location);
         formData.append('status', status);
-        // Append actual File objects
         formData.append('imageUrlFront', imageFront);
         if (imageBack) {
             formData.append('imageUrlBack', imageBack);
         }
 
-        // Dispatch the createItem async thunk with the FormData
         console.log('Dispatching createItem thunk with FormData.');
-        dispatch(createItem(formData));
-
-        // Form will be cleared and redirected on success via useEffect
-
-        // Optional: Clear the form fields immediately after dispatch if you want
-        // setTitle('');
-        // setDescription('');
-        // setCategory('');
-        // setLocation('');
-        // setStatus('');
-        // setImageFront(null);
-        // setImageBack(null);
-        // setImageFrontName('');
-        // setImageBackName('');
-
+        dispatch(createItem(formData)).finally(() => {
+            // Re-enable the form after the async thunk is settled (fulfilled or rejected)
+            setIsSubmitting(false);
+        });
     };
 
 
     return (
         <div className='main-container' >
             <Sidebar />
-
             <div className="report-item-container">
                 <h2>Report a Lost or Found Item</h2>
-                {/* Optional: Display loading/error messages on the form itself */}
-                {isCreating && <p style={{ textAlign: 'center' }}>Submitting...</p>}
-                {creationError && <p style={{ color: 'red', textAlign: 'center' }}>Error: {creationError}</p>}
-
-
+                
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label htmlFor="title">Title:</label>
-                        <input
-                            type="text"
-                            id="title"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            required
-                            disabled={isCreating} // Disable inputs while submitting
-                        />
+                        <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} required disabled={isCreating || isSubmitting} />
                     </div>
-
                     <div className="form-group">
                         <label htmlFor="description">Description:</label>
-                        <textarea
-                            id="description"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            required
-                            disabled={isCreating} // Disable inputs while submitting
-                        ></textarea>
+                        <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} required disabled={isCreating || isSubmitting}></textarea>
                     </div>
-
                     <div className="form-group">
                         <label htmlFor="category">Category:</label>
-                        <select
-                            id="category"
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            required
-                            disabled={isCreating} // Disable inputs while submitting
-                        >
-                            {categories.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
+                        <select id="category" value={category} onChange={(e) => setCategory(e.target.value)} required disabled={isCreating || isSubmitting}>
+                            {categories.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
                         </select>
                     </div>
-
                     <div className="form-group">
                         <label htmlFor="location">Location:</label>
-                        <select
-                            id="location"
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            required
-                            disabled={isCreating} // Disable inputs while submitting
-                        >
-                            {locations.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
+                        <select id="location" value={location} onChange={(e) => setLocation(e.target.value)} required disabled={isCreating || isSubmitting}>
+                            {locations.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
                         </select>
                     </div>
-
                     <div className="form-group">
                         <label htmlFor="status">Status:</label>
-                        <select
-                            id="status"
-                            value={status}
-                            onChange={(e) => setStatus(e.target.value)}
-                            required
-                            disabled={isCreating} // Disable inputs while submitting
-                        >
-                            {statuses.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
+                        <select id="status" value={status} onChange={(e) => setStatus(e.target.value)} required disabled={isCreating || isSubmitting}>
+                            {statuses.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
                         </select>
                     </div>
-
-
                     <div className="form-group">
                         <label htmlFor="imageFront">Front Image:</label>
-                        <input
-                            type="file"
-                            id="imageFront"
-                            accept="image/*" // Accept only image files
-                            onChange={handleImageFrontChange}
-                            required // Front image is required
-                            disabled={isCreating} // Disable input while submitting
-                        />
-                        {/* Display selected file name */}
+                        <input type="file" id="imageFront" accept="image/*" onChange={handleImageFrontChange} required disabled={isCreating || isSubmitting} />
                         {imageFrontName && <p className="file-name-display">{imageFrontName}</p>}
                     </div>
-
                     <div className="form-group">
                         <label htmlFor="imageBack">Back Image (Optional):</label>
-                        <input
-                            type="file"
-                            id="imageBack"
-                            accept="image/*"
-                            onChange={handleImageBackChange}
-                            disabled={isCreating} // Disable input while submitting
-                        />
-                        {/* Display selected file name */}
+                        <input type="file" id="imageBack" accept="image/*" onChange={handleImageBackChange} disabled={isCreating || isSubmitting} />
                         {imageBackName && <p className="file-name-display">{imageBackName}</p>}
                     </div>
-
-                    <button type="submit" disabled={isCreating}>
-                        {isCreating ? 'Submitting...' : 'Submit Report'}
+                    <button type="submit" disabled={isCreating || isSubmitting}>
+                        {isCreating || isSubmitting ? 'Submitting...' : 'Submit Report'}
                     </button>
                 </form>
             </div>
-
         </div>
     );
 };
