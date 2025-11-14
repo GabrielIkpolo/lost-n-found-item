@@ -83,7 +83,7 @@ model Item {
   // --- END NEW ---
 
   status       ItemStatus @default(LOST) // Enum: LOST, FOUND, CLAIMED, RETURNED, ARCHIVED
-  reportedBy   User       @relation("UserItems", fields: [reportedById], references: [id])
+  reportedBy   User       @relation("UserItems", fields: [reportedById], references: [id], onDelete: Cascade)
   reportedById String     @db.ObjectId
   claimedBy    User?      @relation("ClaimedItems", fields: [claimedById], references: [id])
   claimedById  String?    @db.ObjectId

@@ -3,16 +3,34 @@ import dotenv from 'dotenv';
 
 dotenv.config(); // loads environment variables
 
-// Configure the transporter using environment variables
+//==== Google configuration ==================
 const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST, // e.g., 'smtp.sendgrid.net'
-    port: parseInt(process.env.EMAIL_PORT, 10), // e.g., 587 or 465
-    secure: process.env.EMAIL_PORT === '465', // true for 465, false for other ports like 587
+    host: process.env.EMAIL_HOST,
+    port: parseInt(process.env.EMAIL_PORT, 10),
+    secure: true, // Gmail uses port 465 with SSL
     auth: {
-        user: process.env.EMAIL_USER, // Your SMTP username from the email service
-        pass: process.env.EMAIL_PASS, // Your SMTP password or API key from the email service
+        type: 'OAuth2',
+        user: process.env.EMAIL_USER,
+        clientId: process.env.OAUTH_CLIENT_ID,
+        clientSecret: process.env.OAUTH_CLIENT_SECRET,
+        refreshToken: process.env.OAUTH_REFRESH_TOKEN,
     },
 });
+
+
+
+
+// Configure the transporter using environment variables from mailgun
+// const transporter = nodemailer.createTransport({
+//     host: process.env.EMAIL_HOST, // e.g., 'smtp.sendgrid.net'
+//     port: parseInt(process.env.EMAIL_PORT, 10), // e.g., 587 or 465
+//     secure: process.env.EMAIL_PORT === '465', // true for 465, false for other ports like 587
+//     auth: {
+//         user: process.env.EMAIL_USER, 
+//         pass: process.env.EMAIL_PASS, 
+//     },
+// });
+
 
 // New generic email sending function
 /**
@@ -56,27 +74,20 @@ export const sendVerificationEmail = async (toEmail, token) => {
     return sendEmail(toEmail, subject, text, html);
 };
 
-// Password reset email using the generic sendEmail function
-// export const sendPasswordResetEmail = async (toEmail, token, resetUrl) => {
-//     const subject = 'Password Reset Request';
-//     const text = `Hello,\n\nYou requested a password reset. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link is valid for 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nThanks,\nThe Your App Team`;
-//     const html = `<p>Hello,</p><p>You requested a password reset. Click the link below to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link is valid for 15 minutes.</p><p>If you did not request this, please ignore this email.</p><p>Thanks,<br/>LAFI Team</p>`;
 
-//     return sendEmail(toEmail, subject, text, html);
-// };
 
 
 export const sendPasswordResetEmail = async (toEmail, token, resetUrl) => {
-    // Ensure the reset URL uses the correct client URL
-    const clientUrl = process.env.NODE_ENV === 'production'
-        ? process.env.VITE_REACT_APP_API_CLIENT_URL
-        : 'http://localhost:5173';
-    
-    const fullResetUrl = `${clientUrl}/reset-password/${token}`;
-    
-    const subject = 'Password Reset Request';
-    const text = `Hello,\n\nYou requested a password reset. Click the link below to reset your password:\n\n${fullResetUrl}\n\nThis link is valid for 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nThanks,\nThe Your App Team`;
-    const html = `<p>Hello,</p><p>You requested a password reset. Click the link below to reset your password:</p><p><a href="${fullResetUrl}">${fullResetUrl}</a></p><p>This link is valid for 15 minutes.</p><p>If you did not request this, please ignore this email.</p><p>Thanks,<br/>LAFI Team</p>`;
+  // Prefer the resetUrl passed in; fallback to env if not provided
+  const clientUrlFromEnv = process.env.CLIENT_URL || process.env.VITE_REACT_APP_API_CLIENT_URL || process.env.VITE_APP_CLIENT_URL;
+  const clientUrl = resetUrl ? undefined : (process.env.NODE_ENV === 'production' ? clientUrlFromEnv : 'http://localhost:5173');
 
-    return sendEmail(toEmail, subject, text, html);
+  // If resetUrl was passed, use it; otherwise build from clientUrl + token
+  const fullResetUrl = resetUrl || `${clientUrl}/reset-password/${token}`;
+
+  const subject = 'Password Reset Request';
+  const text = `Hello,\n\nYou requested a password reset. Click the link below to reset your password:\n\n${fullResetUrl}\n\nThis link is valid for 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nThanks,\nThe Your App Team`;
+  const html = `<p>Hello,</p><p>You requested a password reset. Click the link below to reset your password:</p><p><a href="${fullResetUrl}">${fullResetUrl}</a></p><p>This link is valid for 15 minutes.</p><p>If you did not request this, please ignore this email.</p><p>Thanks,<br/>LAFI Team</p>`;
+
+  return sendEmail(toEmail, subject, text, html);
 };
