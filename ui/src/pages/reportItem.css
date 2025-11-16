@@ -1,9 +1,8 @@
 /* Styles for the Report Item Page */
-/* .main-container{
+.main-container{
  width: 100%;
-} */
+}
 .report-item-container {
-    /* Limit max width of the form container */
     max-width: 600px;
     /* Center container with space above/below */
     margin: 40px auto;
@@ -48,22 +47,17 @@
     border: 1px solid #ccc;
     border-radius: 5px;
     width: 100%;
-    /* Make inputs take full width of group */
     box-sizing: border-box;
-    /* Include padding and border in element's total width */
 }
 
 .form-group textarea {
     min-height: 100px;
-    /* Give textarea a reasonable default height */
     resize: vertical;
-    /* Allow vertical resizing only */
 }
 
 
 .form-group input[type="file"] {
     padding: 10px 0;
-    /* Adjust padding for file input */
     font-size: 16px;
 }
 
@@ -71,7 +65,6 @@
 .form-group textarea:focus,
 .form-group select:focus {
     border-color: #007bff;
-    /* Highlight on focus */
     outline: none;
     box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
 }
@@ -111,18 +104,25 @@
     opacity: 0.7;
 }
 
-/* Media query for smaller screens */
-
 @media (min-width: 769px) {
     .main-container {
         display: flex;
         flex-direction: row;
         gap: 20px;
+        width: 100%;
+        padding: 40px 0;
+    }
+
+    .report-item-container {
+        max-width: none; 
+        flex-grow: 1; 
+        width: 100%; 
+        margin: 0;
+        padding: 5px; 
     }
 }
 
 @media (max-width: 600px) {
-
     .main-container {
         display: flex;
         flex-direction: column;
@@ -160,3 +160,5 @@
         padding: 10px 15px;
     }
 }
+
+

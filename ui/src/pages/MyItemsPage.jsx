@@ -6,7 +6,6 @@ import {
     clearMarkReturnedStatus, clearConfirmReceivedStatus, clearCancelClaimStatus,
 } from '../features/items/itemsSlice';
 import { addNotification, NotificationType } from '../features/notifications/notificationsSlice';
-// Import Link for item details navigation and potentially useNavigate
 import { Link, useNavigate } from 'react-router-dom';
 
 // Import item placeholder image if needed for list
@@ -266,10 +265,11 @@ const MyItemsPage = () => {
                 <h1>My Items</h1>
 
                 {/* --- LOADING, ERROR, EMPTY, AND ITEM LIST RENDERING --- */}
-                {isMyItemsLoading && <p style={{ textAlign: 'center' }}>Loading your items...</p>}
+                {/* {isMyItemsLoading && <p style={{ textAlign: 'center' }}>Loading your items...</p>} */}
+                {isMyItemsLoading && <p className="status-message">Loading your items...</p>}
 
-                {myItemsError && <p style={{ textAlign: 'center', color: 'red' }}>{myItemsError}</p>}
-
+                {/* {myItemsError && <p style={{ textAlign: 'center', color: 'red' }}>{myItemsError}</p>} */}
+                {myItemsError && <p className="status-message error">{myItemsError}</p>}
 
                 {!isMyItemsLoading && itemsToDisplay?.length === 0 && !myItemsError && (
                     <p style={{ textAlign: 'center' }}>You haven't reported or claimed any items yet.</p>
@@ -295,7 +295,7 @@ const MyItemsPage = () => {
 
                                 {/* Distinguish Reported By vs Claimed By */}
                                 {user && (
-                                    <p>
+                                    <p className='item-role'>
                                         <strong>Role:</strong> {item.reportedById === user.id ? 'Reporter' : (item.claimedById === user.id ? 'Claimant' : 'Other')}
                                     </p>
                                 )}

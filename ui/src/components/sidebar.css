@@ -1,25 +1,107 @@
-.sidebar{
-  margin-top: 2rem;
-  margin-bottom: 2rem;
-  margin-right: 0px;
+.sidebar {
+    margin: 0; 
+    padding: 20px;
+    background-color: #ffffff; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    border-radius: 8px; 
+    min-width: 250px; 
+    height: fit-content; 
+}
+
+.desktop-sidebar h2, .mobile-sidebar h2 {
+    font-size: 1.2rem;
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-weight: 700;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.sidebar ul li {
+    padding: 8px 0;
+    font-size: 0.95rem;
+    color: #555;
+    cursor: pointer;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.sidebar ul li:hover {
+    color: #007bff;
+    background-color: #f7f7f7;
+    padding-left: 5px;
+}
+
+.sidebar ul li.active {
+    color: #007bff;
+    font-weight: 600;
+}
+
+.sidebar-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.btn-sidebar {
+    width: 100%;
+    padding: 10px 15px;
+    background-color: #007bffbd; /* Bright blue background, matching the image */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.2s, opacity 0.2s;
+    text-align: center;
+}
+
+.btn-sidebar:hover {
+    background-color: #0056b3;
+}
+
+.btn-sidebar.active {
+    background-color: #0056b3; /* Slightly darker blue for active state */
 }
 
 /* Media Queries for Small Screens */
 @media (max-width: 768px) {
-  .sidebar{
-    width: 85%;
-    background-color: #ffffff;
-    padding: 20px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    display: block;
-  }
-  .desktop-sidebar {
-      display: none;
-  }
+    /* Update mobile sidebar structure */
+    .sidebar{
+        width: 100%; /* Take full width on mobile */
+        margin-top: 0;
+        margin-bottom: 20px;
+        box-sizing: border-box;
+    }
+    .desktop-sidebar {
+        display: none;
+    }
 
-  .mobile-sidebar {
-      display: block;
-  }
+    .mobile-sidebar {
+        display: block;
+        padding: 20px;
+    }
 }
 
-
+/* Ensure desktop sidebar is visible on large screens */
+@media (min-width: 769px) {
+    .sidebar {
+        margin: 0; /* Remove any accidental margins */
+        min-width: 250px;
+        /* Setting max-width to control its size in the flex container */
+        max-width: 250px; 
+    }
+    .mobile-sidebar {
+        display: none;
+    }
+    .desktop-sidebar {
+        display: block;
+    }
+}
