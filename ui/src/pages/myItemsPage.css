@@ -1,7 +1,7 @@
 /* Styles for the My Items Page */
 .my-items-container {
-    max-width: 1000px; /* Adjust as needed */
-    margin: 30px auto;
+    /* max-width: 1000px; Removed for dynamic layout on large screens */
+    /* margin: 30px auto; Removed for dynamic layout on large screens */
     padding: 20px;
     background-color: #fff;
     border-radius: 8px;
@@ -16,23 +16,48 @@
     font-weight: 700;
 }
 
-/* You might reuse item-list and item-card styles from foundItems.css */
-/* If you want a different layout, define new styles here */
-
-/* Example of reusing/adapting styles */
 
 .my-items-list {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    /* Updated minmax size from 250px to 280px based on common item card size */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
 }
 
 .my-item-card { 
-    /* // ... copy styles from .item-card in foundItems.css ... */
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+        display: flex;
+    flex-direction: column;
+    }
+
+.my-item-card h2 {
+    font-size: 1.5rem;
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+.my-item-card p {
+    margin: 5px 0;
+    font-size: 0.95rem;
+    color: #666;
+    }
+
+.my-item-card strong {
+    color: #333;
+    font-weight: 600;
 }
 
-.my-item-image { 
-    /* // ... copy styles from .item-image in foundItems.css ... */
+.my-item-image {
+    width: 100%;
+    height: 150px;
+    object-fit: contain;
+    margin-bottom: 15px;
+    background-color: #f0f0f0;
+    border: 1px solid #e0e0e0;
 }
 
 /*  Add styles specific to displaying user role (reporter/claimant) */
@@ -41,16 +66,98 @@
     color: #007bff; 
     margin-top: 5px;
     font-weight: 500;
+    margin-bottom: 15px; /* Space before buttons */
 }
 
-/* // Add styles for buttons specific to this page (e.g., Edit, Mark Returned, etc.) */
-/* // Reuse .btn-action classes or define new ones */
+
+/* --- Action Buttons --- */
+
+.btn-group {
+        display: flex;
+    gap: 10px;
+    margin-top: auto; /* Push buttons to the bottom of the card */
+    padding-top: 5px;
+    flex-wrap: wrap;
+    }
+
+.btn-details, .btn-action {
+    padding: 10px 15px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s, opacity 0.2s;
+    text-align: center;
+    text-decoration: none;
+  }
+
+.btn-details {
+    /* Assumes var(--blue-color) is defined elsewhere, falling back to standard blue */
+    background-color: #007bff;
+    color: white;
+    width: 100%; /* Full width for View Details button */
+    margin-bottom: 10px;
+}
+
+.btn-details:hover {
+    background-color: #0056b3;
+}
+
+.btn-action {
+    /* Actions like Edit, Delete, Mark Returned */
+    flex-grow: 1;
+    min-width: 100px;
+}
+
+/* Specific Action Colors */
+.btn-action.secondary { /* Edit Button */
+    background-color: #f8f9fa; /* Light Gray */
+    color: #333;
+    border: 1px solid #ccc;
+}
+
+.btn-action.secondary:hover {
+    background-color: #e2e6ea;
+}
+
+.btn-action.danger { /* Delete/Cancel Claim Button */
+    background-color: #dc3545; /* Red */
+    color: white;
+}
+
+.btn-action.danger:hover {
+    background-color: #c82333;
+}
+
+.btn-action.success { /* Mark Returned/Confirm Received Button */
+    background-color: #28a745; /* Green */
+    color: white;
+}
+
+.btn-action.success:hover {
+    background-color: #218838;
+}
+
+.btn-action[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 
 @media (min-width: 769px) {
     .main-container{
         display: flex;
         flex-direction: row;
-        /* gap: 20px; */
+        gap: 20px; /* Added gap */
+        width: 100%; /* Added width */
+        padding: 40px 0; /* Adjust container padding for full width usage */
+    }
+    .my-items-container {
+        flex-grow: 1; /* Take up all remaining space */
+        max-width: none; /* Override any max-width limits */
+        margin: 0; /* Remove auto centering */
+        padding: 30px; /* Internal padding for desktop */
     }
 }
 
@@ -61,3 +168,4 @@
         flex-direction: column;
     }
   }
+
