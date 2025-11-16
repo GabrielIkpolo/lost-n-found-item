@@ -8,8 +8,7 @@ import {
 import { addNotification, NotificationType } from '../features/notifications/notificationsSlice';
 import { useSelector as useAuthSelector } from 'react-redux';
 
-// import './manageUsersPage.css';
-
+import './manageUsersPage.css'; // <-- Import the new CSS file
 // Define available roles for the dropdown (Keep synced with backend enum)
 const userRoles = [
     { label: 'User', value: 'USER' },
@@ -191,68 +190,70 @@ const ManageUsersPage = () => {
 
     // --- Render the Users List ---
     return (
-        <div className="manage-users-container"> {/* Optional CSS class */}
-            <h2>Manage Users</h2>
+        <div className="manage-users-container">
+            <h2 className="manage-title">Manage Users</h2>
 
             {/* Optional: Display loading/action status */}
             {isUpdatingRole && <p style={{ textAlign: 'center' }}>Updating role...</p>}
             {isDeletingUser && <p style={{ textAlign: 'center' }}>Deleting user...</p>}
 
-
+            <div className="users-table-wrapper">
             {/* Render the user list (e.g., in a table) */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}> {/* Basic inline style */}
-                <thead>
-                    <tr>
-                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Name</th>
-                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Email</th>
-                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Provider</th>
-                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Role</th>
-                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {users.map(user => (
-                        <tr key={user.id}>
-                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>{user.name}</td>
-                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>{user.email}</td>
-                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>{user.provider}</td>
-                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Provider</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {users.map(user => (
+                            <tr key={user.id}>
+                                <td>{user.name}</td>
+                                <td>{user.email}</td>
+                                <td>{user.provider}</td>
+                                <td>
                                 {/* Role Selector (only editable for non-Super Admins, not self) */}
                                 {user.role === 'SUPER_ADMIN' ? (
                                     // Display 'Super Admin' role as text if user is Super Admin
-                                    'SUPER_ADMIN'
-                                ) : (
+                                        <span className="user-role-display">SUPER_ADMIN</span>
+                                    ) : (
                                     // For other roles, display a dropdown if not self and not loading
                                     <select
                                         value={user.role}
                                         onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                                        disabled={isAnyUserActionLoading || currentUser?.id === user.id} // Disable if loading or is the current user
-                                    >
-                                        {userRoles.map(roleOption => (
-                                            <option key={roleOption.value} value={roleOption.value}>
-                                                {roleOption.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                )}
-                            </td>
-                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>
-                                {/* Delete Button (only visible for non-Super Admins, not self) */}
-                                {user.role !== 'SUPER_ADMIN' && currentUser?.id !== user.id && (
-                                    <button
-                                        onClick={() => handleDeleteUser(user.id, user.name)}
-                                        disabled={isAnyUserActionLoading} // Disable if loading any action
-                                        style={{ backgroundColor: 'red', color: 'white', border: 'none', padding: '5px 10px', cursor: 'pointer', borderRadius: '4px' }}
-                                    >
-                                        Delete
-                                    </button>
-                                )}
-                                {/* Add Edit button for other user properties if needed */}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+                                            disabled={isAnyUserActionLoading || currentUser?.id === user.id}
+                                            className="role-select"
+                                        >
+                                            {userRoles.map(roleOption => (
+                                                <option key={roleOption.value} value={roleOption.value}>
+                                                    {roleOption.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </td>
+                                <td className="user-actions">
+                                    {/* Delete Button (only visible for non-Super Admins, not self) */}
+                                    {user.role !== 'SUPER_ADMIN' && currentUser?.id !== user.id && (
+                                        <button
+                                            onClick={() => handleDeleteUser(user.id, user.name)}
+                                            disabled={isAnyUserActionLoading}
+                                            className="action-button delete-user-button"
+                                        >
+                                            Delete
+                                        </button>
+                                    )}
+                                    {/* Add Edit button for other user properties if needed */}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+        </div>
 
         </div>
     );

@@ -1,35 +1,46 @@
 import React from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom'; // Import useLocation to check active route
 import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
 
-// import './adminDashboard.css';
+import './adminDashboard.css';
 
 const AdminDashboard = () => {
     // Get the logged-in user from auth state
     const { user, isAuthenticated } = useSelector((state) => state.auth);
+    const location = useLocation(); // Get current location
 
+    // 1. Authorization check:
+    if (!isAuthenticated || (user?.role !== 'ADMIN' && user?.role !== 'SUPER_ADMIN')) {
+        return <Navigate to="/" replace />;
+    }
+
+    // Helper function to determine if a link is active
+    const getLinkClass = (path) => {
+        return location.pathname.startsWith(path) ? 'active' : '';
+    };
 
     return (
-        <div className="admin-dashboard-container" style={{ padding: '20px' }}>
+        <div className="admin-dashboard-container">
             <h1>Admin Dashboard</h1>
+            <p>Welcome, {user.name} ({user.role})</p>
 
             {/* Navigation for Admin sections */}
-            <nav className="admin-nav" style={{ marginBottom: '20px', borderBottom: '1px solid #ccc', paddingBottom: '10px' }}> {/* Basic inline style */}
-                <ul style={{ listStyle: 'none', padding: 0, display: 'flex', gap: '15px' }}> {/* Basic inline style */}
+            <nav className="admin-nav">
+                <ul>
 
                     <li>
-                        <Link to="/admin/users">Manage Users</Link>
+                        {/* Use /admin/users as the index/default admin page, or use /admin if you set an index route */}
+                        <Link to="/admin/users" className={getLinkClass('/admin/users')}>Manage Users</Link>
                     </li>
 
-                    {/* Add links to other admin sections as you create them */}
                     <li>
-                        <Link to="/admin/items">Manage Items</Link>
+                        <Link to="/admin/items" className={getLinkClass('/admin/items')}>Manage Items</Link>
                     </li>
 
                     {user?.role === 'SUPER_ADMIN' && (
                         <li>
-                            <Link to="/admin/settings">System Settings</Link>
+                            <Link to="/admin/settings" className={getLinkClass('/admin/settings')}>System Settings</Link>
                         </li>
                     )}
 

@@ -1,0 +1,75 @@
+.admin-dashboard-container {
+    padding: 30px;
+    background-color: #f7f9fc; 
+    min-height: calc(100vh - 120px); /* Adjust based on header/footer height */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.admin-dashboard-container h1 {
+    font-size: 2.5rem;
+    color: #34495e; /* Darker heading color */
+    margin-bottom: 20px;
+    border-bottom: 3px solid #007bff;
+    padding-bottom: 10px;
+}
+
+/* Admin Navigation (Sidebar-like structure on top) */
+.admin-nav {
+    margin-bottom: 30px;
+    background-color: transparent; /* Remove white box */
+    border-radius: 6px;
+    box-shadow: none; /* Remove shadow */
+    border-bottom: 1px solid #ddd; /* Add a subtle separator */
+    padding-bottom: 5px;
+}
+
+.admin-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    gap: 30px; /* Increase space between links */
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+.admin-nav li {
+    flex-grow: 0; /* Let list items take only necessary width */
+    text-align: left;
+    border-right: none;
+}
+
+/* The previous rule for li:last-child is now unnecessary as border-right is removed from li */
+.admin-nav a {
+    display: block;
+    padding: 10px 0; /* Smaller padding */
+    text-decoration: none;
+    color: #007bff; /* Primary link color */
+    font-weight: 500;
+    transition: color 0.3s;
+    border-bottom: 3px solid transparent;
+}
+
+.admin-nav a:hover {
+    background-color: transparent;
+    color: #0056b3;
+    border-bottom-color: #007bff; /* Underline on hover */
+}
+
+/* Active link style - assuming router-dom adds an 'active' class */
+.admin-nav a.active {
+    background-color: transparent;
+    color: #000; /* Use black for the active text */
+    font-weight: 700;
+    border-bottom-color: #007bff; /* Highlight with a blue underline */
+}
+
+/* Content Area where nested routes render */
+.admin-content {
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+

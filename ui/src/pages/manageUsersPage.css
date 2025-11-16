@@ -1,0 +1,97 @@
+.manage-users-container {
+    padding: 0;
+}
+
+.manage-users-container h2 {
+    font-size: 1.8rem;
+    color: #34495e;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.users-table-wrapper {
+    overflow-x: auto;
+}
+
+.users-table-wrapper table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background-color: white;
+}
+
+.users-table-wrapper th,
+.users-table-wrapper td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.users-table-wrapper th {
+    background-color: #f7f7f7;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}
+
+/* Row Hover Effect */
+.users-table-wrapper tbody tr:hover {
+    background-color: #f5f5f5;
+    transition: background-color 0.2s ease;
+}
+
+/* Role display style */
+.user-role-display {
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: #e9ecef;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* User Actions */
+.user-actions {
+    min-width: 100px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.role-select,
+.action-button {
+    padding: 6px 10px;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.role-select {
+    border: 1px solid #ccc;
+    background-color: white;
+}
+
+.role-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #f0f0f0;
+}
+
+.delete-user-button {
+    background-color: #dc3545; /* Red */
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.delete-user-button:hover:not(:disabled) {
+    background-color: #c82333;
+}
+
+.delete-user-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

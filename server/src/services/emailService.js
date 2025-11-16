@@ -18,8 +18,6 @@ const transporter = nodemailer.createTransport({
 });
 
 
-
-
 // Configure the transporter using environment variables from mailgun
 // const transporter = nodemailer.createTransport({
 //     host: process.env.EMAIL_HOST, // e.g., 'smtp.sendgrid.net'
