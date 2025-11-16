@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { createBrowserRouter, createHashRouter,RouterProvider, Link, Outlet, Navigate } from "react-router-dom";
+import { createBrowserRouter, createHashRouter, RouterProvider, Link, Outlet, Navigate } from "react-router-dom";
 import './App.css'
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -24,9 +24,11 @@ import ManageUsersPage from './pages/ManageUsersPage';
 import ManageItemsPage from './pages/ManageItemsPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import SystemSettings from './pages/SystemSettings';
+
 // import AuthCallback from './pages/AuthCallback';
 import LostItemPage from './pages/LostItemPage';
-import { setAuthState } from './features/auth/authSlice'; 
+import { setAuthState } from './features/auth/authSlice';
 import RootErrorBoundary from './pages/RootErrorBoundary';
 
 
@@ -92,7 +94,7 @@ const routerConfig = [
 
       // { path: '/auth/callback', element: <AuthCallback /> },
 
-      {path: 'verify-email', element: <Navigate to="/login" replace />},
+      { path: 'verify-email', element: <Navigate to="/login" replace /> },
 
 
       {
@@ -125,7 +127,14 @@ const routerConfig = [
 
           {
             path: 'items',
-            element: <ManageItemsPage /> 
+            element: <ManageItemsPage />
+          },
+
+          {
+            path: 'settings',
+            element: <ProtectedRoutes requiredRoles={[UserRole.SUPER_ADMIN]}>
+              <SystemSettings />
+            </ProtectedRoutes>
           },
         ],
       },
@@ -140,14 +149,14 @@ const routerConfig = [
 
 function App() {
   const dispatch = useDispatch();
-  const {isAuthLoading} = useSelector((state)=> state.auth);
+  const { isAuthLoading } = useSelector((state) => state.auth);
 
   const router = createBrowserRouter(routerConfig);
 
   // Effect to load auth state from localStorage on initial render
   useEffect(() => {
     dispatch(loadAuthState());
-  }, [dispatch]); 
+  }, [dispatch]);
 
 
   useEffect(() => {
@@ -161,7 +170,7 @@ function App() {
       if (token && userDataString) {
         try {
           const user = JSON.parse(decodeURIComponent(userDataString));
-          
+
           // Dispatch the action to set the auth state in Redux
           dispatch(setAuthState({ user, token }));
 
@@ -183,7 +192,7 @@ function App() {
 
   if (isAuthLoading) {
     return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading application...</div>;
- }
+  }
 
   return (
     <>

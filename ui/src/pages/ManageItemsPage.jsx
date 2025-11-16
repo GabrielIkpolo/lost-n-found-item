@@ -10,7 +10,7 @@ import { useSelector as useAuthSelector } from 'react-redux'; // Alias for auth 
 import { Link } from 'react-router-dom'; // For linking to item details or edit page
 
 // Optional: Import a CSS file for this page
-// import './manageItemsPage.css'; // Create this file if needed
+import './manageItemsPage.css'; // Now importing the CSS file
 
 // Re-define ItemStatus enum locally if not importing from backend client directly
 const ItemStatus = {
@@ -43,13 +43,27 @@ const ItemLocation = {
 };
 
 
+// Helper to get status class for styling (ribbons/badges)
+const getStatusClass = (status) => {
+    switch (status) {
+        case ItemStatus.FOUND:
+            return 'status-found';
+        case ItemStatus.LOST:
+            return 'status-lost';
+        case ItemStatus.CLAIMED:
+            return 'status-claimed';
+        case ItemStatus.RETURNED:
+            return 'status-returned';
+        default:
+            return '';
+    }
+};
+
+
 const ManageItemsPage = () => {
     const dispatch = useDispatch();
 
     // Select state from the items slice (reusing existing item list state for simplicity)
-    // Note: This will share the same state as the public FoundItems list.
-    // If you need separate state (e.g., different pagination/filters for admin),
-    // you might need a dedicated adminItemsSlice or a separate state structure within itemsSlice.
     const {
         items, pagination, isLoading, error, // State for the main items list
         isDeleting, deleteError, deleteSuccess, deletedItemId // State for item deletion
@@ -71,8 +85,6 @@ const ManageItemsPage = () => {
         }));
 
         // Cleanup function: Consider if you need to clear the items state on unmount
-        // Clearing might affect other pages using the same 'items' state.
-        // For now, let's NOT clear 'items' state here, but maybe clear delete status.
         return () => {
             console.log('ManageItemsPage: Clearing delete status on unmount.');
             dispatch(clearDeleteStatus());
@@ -125,13 +137,8 @@ const ManageItemsPage = () => {
      useEffect(() => {
         if (error) { // Error from fetchItems
              console.error('ManageItemsPage: Fetch items failed:', error);
-             // Notification is already handled by the effect in FoundItems.jsx (if using shared state/effect)
-             // If you want a specific notification here, uncomment:
-            //  dispatch(addNotification({
-            //      message: `Failed to load items: ${error}`,
-            //      type: NotificationType.ERROR,
-            //      duration: 5000,
-            //  }));
+             // Notification handling left mostly to the shared state/effect logic,
+             // but we keep the error state check here for UI rendering.
          }
      }, [error, dispatch]); // Depend on error state
 
@@ -203,68 +210,74 @@ const ManageItemsPage = () => {
 
 
     return (
-        <div className="manage-items-container"> {/* Optional CSS class */}
-            <h2>Manage Items</h2>
+        <div className="manage-items-container">
+            <h2 className="manage-title">Manage Items</h2>
 
             {/* Optional: Display action status */}
-            {isDeleting && <p style={{ textAlign: 'center' }}>Deleting item...</p>}
+            {isDeleting && <p className="action-status-message">Deleting item...</p>}
 
 
             {/* Render the item list (e.g., in a table) */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}> {/* Basic inline style */}
-                <thead>
-                    <tr>
-                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Title</th>
-                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Status</th>
-                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Category</th>
-                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Location</th>
-                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Reported By</th>
-                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Claimed By</th>
-                        <th style={{ border: '1px solid #ddd', padding: '8px' }}>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {itemsToDisplay.map(item => (
-                        <tr key={item.id}>
-                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.title}</td>
-                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.status}</td>
-                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.category}</td>
-                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.location}</td>
-                            {/* Display Reported By and Claimed By names (assuming backend includes them) */}
-                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.reportedBy?.name || 'N/A'}</td>
-                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>{item.claimedBy?.name || 'N/A'}</td> {/* claimedBy might be null */}
-                            <td style={{ border: '1px solid #ddd', padding: '8px' }}>
-                                {/* Actions: View, Edit, Delete */}
-                                <Link to={`/items/${item.id}`} style={{ marginRight: '10px' }}>View</Link> {/* Link to existing detail page */}
-                                <Link to={`/items/${item.id}/edit`} style={{ marginRight: '10px' }}>Edit</Link> {/* Link to existing edit page */}
-
-                                {/* Delete Button */}
-                                <button
-                                    onClick={() => handleDeleteItem(item.id, item.title)}
-                                    disabled={isAnyItemActionLoading} // Disable if any item action is loading
-                                    style={{ backgroundColor: 'red', color: 'white', border: 'none', padding: '5px 10px', cursor: 'pointer', borderRadius: '4px' }}
-                                >
-                                    {isDeleting && deletedItemId === item.id ? 'Deleting...' : 'Delete'} {/* Show specific loading text for this item */}
-                                </button>
-                            </td>
+            <div className="items-table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Category</th>
+                            <th>Location</th>
+                            <th>Reported By</th>
+                            <th>Claimed By</th>
+                            <th>Actions</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {itemsToDisplay.map(item => (
+                            <tr key={item.id}>
+                                <td>{item.title}</td>
+                                <td>
+                                    {/* Use status badge helper for styling */}
+                                    <span className={`item-status-badge ${getStatusClass(item.status)}`}>
+                                        {item.status}
+                                    </span>
+                                </td>
+                                <td>{item.category}</td>
+                                <td>{item.location}</td>
+                                {/* Display Reported By and Claimed By names (assuming backend includes them) */}
+                                <td>{item.reportedBy?.name || 'N/A'}</td>
+                                <td>{item.claimedBy?.name || 'N/A'}</td> {/* claimedBy might be null */}
+                                <td className="item-actions">
+                                    {/* Actions: View, Edit, Delete - Using CSS classes */}
+                                    <Link to={`/items/${item.id}`} className="action-link view-link">View</Link>
+                                    <Link to={`/items/${item.id}/edit`} className="action-link edit-link">Edit</Link>
+
+                                    {/* Delete Button */}
+                                    <button
+                                        onClick={() => handleDeleteItem(item.id, item.title)}
+                                        disabled={isAnyItemActionLoading}
+                                        className={`action-button delete-button ${isDeleting && deletedItemId === item.id ? 'loading' : ''}`}
+                                    >
+                                        {isDeleting && deletedItemId === item.id ? 'Deleting...' : 'Delete'}
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
 
 
             {/* --- Pagination --- */}
-            {!isAnyItemActionLoading && totalPages > 1 && ( // Hide pagination while loading/deleting
-                <div className="pagination" style={{ marginTop: '20px', textAlign: 'center' }}> {/* Reusing pagination class */}
+            {!isAnyItemActionLoading && totalPages > 1 && (
+                <div className="pagination">
                     <nav aria-label="Pagination">
-                        <ul style={{ listStyle: 'none', padding: 0, display: 'inline-flex' }}>
+                        <ul>
                             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                <li key={page} style={{ margin: '0 5px' }}>
+                                <li key={page}>
                                     <button
                                         onClick={() => paginateItems(page)}
                                         className={currentPage === page ? 'active' : ''}
                                         disabled={isAnyItemActionLoading}
-                                        style={{ padding: '8px 12px', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer' }}
                                     >
                                         {page}
                                     </button>
