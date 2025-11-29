@@ -3,6 +3,7 @@ import notificationsReducer from './features/notifications/notificationsSlice';
 import authReducer from './features/auth/authSlice.js'
 import itemsReducer from './features/items/itemsSlice.js';
 import userReducer from './features/userSlice.js';
+import supportReducer from './features/support/supportSlice.js';
 
 
 export const store = configureStore({
@@ -13,6 +14,7 @@ export const store = configureStore({
     auth: authReducer,
     items: itemsReducer,
     users: userReducer,
+    support: supportReducer,
 
   },
   // middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(thunk),

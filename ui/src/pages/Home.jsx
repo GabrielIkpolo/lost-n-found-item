@@ -7,6 +7,7 @@ import { addNotification, NotificationType } from '../features/notifications/not
 import "./home.css";
 import smallLogo from '../assets/images/logo-1.png'; // Keep if used elsewhere in Home
 import FoundItems from '../components/FoundItems.jsx';
+// import Sidebar from '../components/Sidebar.jsx';
 
 
 const Home = () => {
@@ -40,8 +41,8 @@ const Home = () => {
         }));
     };
 
-     // Function to dispatch a warning notification
-     const handleWarningClick = () => {
+    // Function to dispatch a warning notification
+    const handleWarningClick = () => {
         dispatch(addNotification({
             message: 'Your session is about to expire!',
             type: NotificationType.WARNING, // Use the WARNING type
@@ -60,8 +61,8 @@ const Home = () => {
                 <button onClick={handleWarningClick} style={{ margin: '0 5px' }}>Show Warning Notification</button>
             </div> */}
 
-            {/* Keep the FoundItems component */}
             <FoundItems />
+
         </>
     )
 }

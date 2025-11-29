@@ -313,6 +313,10 @@ body {
   .mobile-sidebar {
     display: block;
     /* Show the mobile sidebar */
+    width: 100%;
+    margin-bottom: 20px;
+    box-shadow: none;
+    padding: 20px;
   }
 
   .item-list {

@@ -1,0 +1,38 @@
+/* ui/src/components/mainLayout.css */
+.main-layout-container {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px; 
+  overflow: visible;
+}
+
+.sidebar-wrapper {
+  min-width: 250px; 
+}
+
+.main-content-area {
+  flex-grow: 1;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .main-layout-container {
+    flex-direction: column;
+    padding: 0;
+    gap: 0; 
+    overflow: visible; /* Prevent clipping */
+  }
+
+  .sidebar-wrapper {
+    min-width: 100%;
+    order: -1; 
+    overflow: visible; /* Ensure sidebar is not clipped */
+  }
+
+  .main-content-area {
+    padding: 0 10px; 
+  }
+}

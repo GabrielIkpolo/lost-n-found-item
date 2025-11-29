@@ -47,6 +47,7 @@ import fileRoutes from './src/routes/fileRoutes.js'
 import authRoutes from './src/routes/authRoutes.js';
 import itemRoutes from './src/routes/itemRoutes.js';
 import userRoutes from './src/routes/userRoutes.js';
+import supportRoutes from './src/routes/supportRoutes.js';
 
 
 dotenv.config();
@@ -148,6 +149,7 @@ app.use(passport.session());
 app.use('/api/auth', authRoutes);
 app.use('/api/items', itemRoutes(upload));
 app.use('/api/users', userRoutes);
+app.use('/api/support', supportRoutes);
 
 
 // Return 404 for non-accounted routes
