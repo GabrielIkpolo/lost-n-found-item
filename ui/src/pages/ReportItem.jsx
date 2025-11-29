@@ -60,6 +60,16 @@ const ReportItem = () => {
     const { isCreating, creationError, itemCreationSuccess, createdItem } = useSelector(state => state.items);
 
 
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     // --- Effect to handle successful item creation ---
     useEffect(() => {
         if (itemCreationSuccess) {
@@ -143,54 +153,57 @@ const ReportItem = () => {
 
 
     return (
-        <div className='main-container' >
-            <Sidebar />
-            <div className="report-item-container">
-                <h2>Report a Lost or Found Item</h2>
-                
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label htmlFor="title">Title:</label>
-                        <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} required disabled={isCreating || isSubmitting} />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="description">Description:</label>
-                        <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} required disabled={isCreating || isSubmitting}></textarea>
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="category">Category:</label>
-                        <select id="category" value={category} onChange={(e) => setCategory(e.target.value)} required disabled={isCreating || isSubmitting}>
-                            {categories.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="location">Location:</label>
-                        <select id="location" value={location} onChange={(e) => setLocation(e.target.value)} required disabled={isCreating || isSubmitting}>
-                            {locations.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="status">Status:</label>
-                        <select id="status" value={status} onChange={(e) => setStatus(e.target.value)} required disabled={isCreating || isSubmitting}>
-                            {statuses.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="imageFront">Front Image:</label>
-                        <input type="file" id="imageFront" accept="image/*" onChange={handleImageFrontChange} required disabled={isCreating || isSubmitting} />
-                        {imageFrontName && <p className="file-name-display">{imageFrontName}</p>}
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="imageBack">Back Image (Optional):</label>
-                        <input type="file" id="imageBack" accept="image/*" onChange={handleImageBackChange} disabled={isCreating || isSubmitting} />
-                        {imageBackName && <p className="file-name-display">{imageBackName}</p>}
-                    </div>
-                    <button type="submit" disabled={isCreating || isSubmitting}>
-                        {isCreating || isSubmitting ? 'Submitting...' : 'Submit Report'}
-                    </button>
-                </form>
+        <>
+            <div className='main-container' >
+                <Sidebar />
+
+                <div className="report-item-container">
+                    <h2>Report a Lost or Found Item</h2>
+
+                    <form onSubmit={handleSubmit}>
+                        <div className="form-group">
+                            <label htmlFor="title">Title:</label>
+                            <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} required disabled={isCreating || isSubmitting} />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="description">Description:</label>
+                            <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} required disabled={isCreating || isSubmitting}></textarea>
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="category">Category:</label>
+                            <select id="category" value={category} onChange={(e) => setCategory(e.target.value)} required disabled={isCreating || isSubmitting}>
+                                {categories.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="location">Location:</label>
+                            <select id="location" value={location} onChange={(e) => setLocation(e.target.value)} required disabled={isCreating || isSubmitting}>
+                                {locations.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="status">Status:</label>
+                            <select id="status" value={status} onChange={(e) => setStatus(e.target.value)} required disabled={isCreating || isSubmitting}>
+                                {statuses.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="imageFront">Front Image:</label>
+                            <input type="file" id="imageFront" accept="image/*" onChange={handleImageFrontChange} required disabled={isCreating || isSubmitting} />
+                            {imageFrontName && <p className="file-name-display">{imageFrontName}</p>}
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="imageBack">Back Image (Optional):</label>
+                            <input type="file" id="imageBack" accept="image/*" onChange={handleImageBackChange} disabled={isCreating || isSubmitting} />
+                            {imageBackName && <p className="file-name-display">{imageBackName}</p>}
+                        </div>
+                        <button type="submit" disabled={isCreating || isSubmitting}>
+                            {isCreating || isSubmitting ? 'Submitting...' : 'Submit Report'}
+                        </button>
+                    </form>
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 

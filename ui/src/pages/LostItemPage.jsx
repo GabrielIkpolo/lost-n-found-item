@@ -173,6 +173,8 @@ const LostItemPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
+  const { isAuthenticated } = useSelector((state) => state.auth);
+
   const navigate = useNavigate();
 
   // --- EFFECT 1: Debounce search input and update fetching state ---
@@ -267,6 +269,15 @@ const LostItemPage = () => {
           <button className="btn-foundItems" onClick={() => navigate('/report')}>
             Report Item (Lost | Found )
           </button>
+
+          {isAuthenticated && (
+            <button
+              className={`btn-sidebar ${location.pathname.includes('support') ? 'active' : ''}`}
+              onClick={() => navigate('/support')}
+            >
+              Contact Support
+            </button>
+          )}
         </div>
       ) : (
         <aside className="sidebar">
@@ -293,6 +304,15 @@ const LostItemPage = () => {
           <button className="btn-foundItems" onClick={() => navigate('/report')}>
             Report Item (Lost | Found )
           </button>
+
+          {isAuthenticated && (
+            <button
+              className={`btn-sidebar ${location.pathname.includes('support') ? 'active' : ''}`}
+              onClick={() => navigate('/support')}
+            >
+              Contact Support
+            </button>
+          )}
         </aside>
       )}
 

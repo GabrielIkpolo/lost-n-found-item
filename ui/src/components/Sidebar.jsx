@@ -65,7 +65,7 @@ const Sidebar = () => {
                     className={`btn-sidebar ${location.pathname.includes('support') ? 'active' : ''}`}
                     onClick={() => navigate('/support')}
                 >
-                    My Support
+                    Contact Support
                 </button>
             )}
         </div>

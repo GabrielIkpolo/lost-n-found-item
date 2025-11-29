@@ -152,6 +152,7 @@ import { addNotification, NotificationType } from '../features/notifications/not
 import './foundItems.css';
 import itemImage from '../assets/images/logo-1.png';
 import { Link, useNavigate } from 'react-router-dom';
+import Sidebar from './Sidebar';
 
 // Sidebar Categories (mapped to ItemCategory enum)
 const categories = [
@@ -175,6 +176,8 @@ const FoundItems = () => {
   // FIX: Use local state to manage the page number, which then triggers the fetch effect
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   const navigate = useNavigate();
 
@@ -272,6 +275,15 @@ const FoundItems = () => {
             Report Item (Lost | Found)
           </button>
 
+          {isAuthenticated && (
+            <button
+              className={`btn-sidebar ${location.pathname.includes('support') ? 'active' : ''}`}
+              onClick={() => navigate('/support')}
+            >
+              Contact Support
+            </button>
+          )}
+
         </div>
       ) : (
         <aside className="sidebar">
@@ -298,6 +310,16 @@ const FoundItems = () => {
           <button className="btn-foundItems" onClick={() => navigate('/report')}>
             Report Item (Lost | Found)
           </button>
+
+          {isAuthenticated && (
+            <button
+              className={`btn-sidebar ${location.pathname.includes('support') ? 'active' : ''}`}
+              onClick={() => navigate('/support')}
+            >
+              Contact Support
+            </button>
+          )}
+
 
         </aside>
       )}
