@@ -13,6 +13,9 @@ const initialState = {
   isReplying: false,
   replyError: null,
   replySuccess: false,
+  isUpdatingStatus: false, // NEW
+  updateStatusError: null, // NEW
+  updateStatusSuccess: false, // NEW
 };
 
 // Async Thunk to fetch all support tickets for a user
@@ -75,6 +78,23 @@ export const replyToTicket = createAsyncThunk(
   }
 );
 
+// Async Thunk to update ticket status (Admin action)
+export const updateTicketStatus = createAsyncThunk(
+  'support/updateTicketStatus',
+  async ({ ticketId, status }, { dispatch, rejectWithValue }) => {
+    try {
+      // The backend expects a PUT request to /api/support/:id/status with { status: 'OPEN' | 'CLOSED' }
+      const response = await axios.put(`/api/support/${ticketId}/status`, { status });
+      dispatch(addNotification({ message: `Ticket status updated to ${status}.`, type: NotificationType.SUCCESS }));
+      return response.data; // The updated ticket
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message;
+      dispatch(addNotification({ message: `Failed to update ticket status: ${errorMessage}`, type: NotificationType.ERROR }));
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
 const supportSlice = createSlice({
   name: 'support',
   initialState,
@@ -91,6 +111,11 @@ const supportSlice = createSlice({
     },
     clearCurrentThread: (state) => {
       state.currentThread = null;
+    },
+    clearUpdateStatus: (state) => { // NEW
+      state.isUpdatingStatus = false;
+      state.updateStatusError = null;
+      state.updateStatusSuccess = false;
     }
   },
   extraReducers: (builder) => {
@@ -152,10 +177,35 @@ const supportSlice = createSlice({
       .addCase(replyToTicket.rejected, (state, action) => {
         state.isReplying = false;
         state.replyError = action.payload;
+      })
+      // Update Ticket Status
+      .addCase(updateTicketStatus.pending, (state) => {
+        state.isUpdatingStatus = true;
+        state.updateStatusError = null;
+        state.updateStatusSuccess = false;
+      })
+      .addCase(updateTicketStatus.fulfilled, (state, action) => {
+        state.isUpdatingStatus = false;
+        state.updateStatusSuccess = true;
+        // Update the current thread if it's the one that was updated
+        if (state.currentThread && state.currentThread.id === action.payload.id) {
+          state.currentThread.status = action.payload.status;
+          state.currentThread.updatedAt = action.payload.updatedAt; // Update timestamp
+        }
+        // Also update the ticket in the main list
+        const index = state.tickets.findIndex(t => t.id === action.payload.id);
+        if (index !== -1) {
+          state.tickets[index] = { ...state.tickets[index], ...action.payload };
+        }
+      })
+      .addCase(updateTicketStatus.rejected, (state, action) => {
+        state.isUpdatingStatus = false;
+        state.updateStatusError = action.payload;
       });
   },
 });
 
-export const { clearCreateStatus, clearReplyStatus, clearCurrentThread } = supportSlice.actions;
+export const { clearCreateStatus, clearReplyStatus, clearCurrentThread, clearUpdateStatus } = supportSlice.actions;
 
 export default supportSlice.reducer;
+

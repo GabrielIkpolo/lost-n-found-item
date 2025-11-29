@@ -168,7 +168,16 @@ export const updateTicketStatus = asyncHandler(async (req, res) => {
   const ticket = await prisma.supportTicket.update({
     where: { id: req.params.id },
     data: { status },
+    include: { // Include the user details needed for the frontend ManageTicketsPage if we update the list
+        user: {
+            select: {
+                name: true,
+                email: true,
+            },
+        },
+    }
   });
 
   res.json(ticket);
 });
+

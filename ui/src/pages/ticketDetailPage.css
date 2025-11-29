@@ -17,8 +17,10 @@
 
 .ticket-header {
   display: flex;
-  justify-content: space-between;
+    justify-content: flex-start; /* Align header contents to the left */
+    gap: 15px; /* Space between title, badge, and button */
   align-items: center;
+    flex-wrap: wrap; /* Ensure elements wrap on smaller screens */
   padding-bottom: 1rem;
   border-bottom: 2px solid #f0f0f0;
   margin-bottom: 2rem;
@@ -26,6 +28,41 @@
 
 .ticket-header h2 {
   font-size: 1.6rem;
+    flex-grow: 1; /* Allow the title to take up most space */
+}
+
+/* Style for the Admin status toggle button */
+.status-toggle-button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, opacity 0.2s;
+  font-size: 0.9rem;
+}
+
+.status-toggle-button.btn-open {
+    background-color: #ffc107; /* Warning yellow for 're-open' */
+  color: #333;
+}
+
+.status-toggle-button.btn-open:hover {
+    background-color: #e0a800;
+}
+
+.status-toggle-button.btn-close {
+    background-color: #6c757d; /* Secondary gray for 'close' */
+    color: #fff;
+}
+
+.status-toggle-button.btn-close:hover {
+    background-color: #5a6268;
+}
+
+.status-toggle-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .status-badge {
@@ -69,6 +106,10 @@
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;
   align-self: flex-start;
+}
+
+.message-item.admin .message-sender strong {
+    color: #007bff; /* Highlight admin name */
 }
 
 .message-sender {
@@ -120,3 +161,4 @@
 .reply-form button {
   align-self: flex-start;
 }
+
