@@ -94,6 +94,9 @@ model Item {
   updatedAt    DateTime   @updatedAt
   expiresAt    DateTime? // For automatic archival of FOUND items
 
+  reporterConfirmedTransfer Boolean @default(false)
+  claimantConfirmedReceived Boolean @default(false)
+
   // Relations
   notifications Notification[] // Notifications related to this item
   auditLogs     AuditLog[] // Audit trail for this item
