@@ -1,3 +1,4 @@
+/* ui/src/components/sidebar.css */
 .sidebar {
     margin: 0; 
     padding: 20px;
@@ -6,7 +7,10 @@
     border-radius: 8px; 
     min-width: 250px; 
     height: fit-content; 
-}
+    /* overflow: visible;  */
+    position: static;
+
+    }
 
 .desktop-sidebar h2, .mobile-sidebar h2 {
     font-size: 1.2rem;
@@ -14,16 +18,15 @@
     margin-top: 0;
     margin-bottom: 15px;
     font-weight: 700;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-}
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+    }
 
 .sidebar ul {
     list-style: none;
     padding: 0;
     margin-bottom: 20px;
 }
-
 .sidebar ul li {
     padding: 8px 0;
     font-size: 0.95rem;
@@ -40,19 +43,19 @@
 
 .sidebar ul li.active {
     color: #007bff;
-    font-weight: 600;
-}
+        font-weight: 600;
+    }
 
 .sidebar-buttons {
-    display: flex;
-    flex-direction: column;
+        display: flex;
+        flex-direction: column;
     gap: 10px;
 }
 
 .btn-sidebar {
     width: 100%;
     padding: 10px 15px;
-    background-color: #007bffbd; /* Bright blue background, matching the image */
+    background-color: #007bff;
     color: white;
     border: none;
     border-radius: 4px;
@@ -68,40 +71,43 @@
 }
 
 .btn-sidebar.active {
-    background-color: #0056b3; /* Slightly darker blue for active state */
+    background-color: #0056b3;
 }
 
-/* Media Queries for Small Screens */
+/* Mobile-specific styles */
 @media (max-width: 768px) {
-    /* Update mobile sidebar structure */
-    .sidebar{
-        width: 100%; /* Take full width on mobile */
+    .sidebar {
+        width: 100%;
         margin-top: 0;
         margin-bottom: 20px;
         box-sizing: border-box;
+        box-shadow: none;
+        padding: 15px;
+        position: relative;
+        overflow: visible;
     }
-    .desktop-sidebar {
-        display: none;
-    }
-
+    
     .mobile-sidebar {
         display: block;
-        padding: 20px;
+        width: 100%;
+        overflow: visible;
+    }
+
+    .mobile-sidebar ul {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+        padding-top: 5px;
+        margin-bottom: 20px; /* Space between categories and buttons */
+    }
+
+    .sidebar-buttons {
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
     }
 }
 
-/* Ensure desktop sidebar is visible on large screens */
-@media (min-width: 769px) {
-    .sidebar {
-        margin: 0; /* Remove any accidental margins */
-        min-width: 250px;
-        /* Setting max-width to control its size in the flex container */
-        max-width: 250px; 
-    }
-    .mobile-sidebar {
-        display: none;
-    }
-    .desktop-sidebar {
-        display: block;
-    }
-}

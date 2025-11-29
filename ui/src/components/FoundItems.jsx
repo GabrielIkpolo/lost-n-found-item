@@ -1,3 +1,149 @@
+// import React, { useState, useEffect } from 'react';
+// import axios from 'axios';
+// import { useDispatch, useSelector } from 'react-redux';
+// import { fetchItems } from '../features/items/itemsSlice';
+// import { addNotification, NotificationType } from '../features/notifications/notificationsSlice';
+// import './foundItems.css';
+// import itemImage from '../assets/images/logo-1.png';
+// import { Link, useNavigate } from 'react-router-dom';
+
+// const FoundItems = () => {
+//   const dispatch = useDispatch();
+//   const { items, pagination, isLoading, error } = useSelector((state) => state.items);
+
+//   console.log(items);
+
+//   const [searchInput, setSearchInput] = useState('');
+//   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+//   const [selectedCategory, setSelectedCategory] = useState(null);
+//   const [currentPage, setCurrentPage] = useState(1);
+
+//   const navigate = useNavigate();
+
+//   useEffect(() => {
+//     const handler = setTimeout(() => {
+//       setDebouncedSearchTerm(searchInput);
+//       setCurrentPage(1);
+//     }, 500);
+
+//     return () => clearTimeout(handler);
+//   }, [searchInput]);
+
+//   useEffect(() => {
+//     dispatch(fetchItems({
+//       page: currentPage,
+//       limit: pagination.itemsPerPage,
+//       category: selectedCategory,
+//       search: debouncedSearchTerm,
+//       status: 'FOUND',
+//     }));
+//   }, [dispatch, currentPage, pagination.itemsPerPage, selectedCategory, debouncedSearchTerm]);
+
+//   useEffect(() => {
+//     if (error) {
+//       dispatch(addNotification({
+//         message: `Error fetching items: ${error}`,
+//         type: NotificationType.ERROR,
+//         duration: 5000,
+//       }));
+//     }
+//   }, [error, dispatch]);
+
+//   const handleCategorySelect = (categoryValue) => {
+//     if (selectedCategory !== categoryValue) {
+//       setSelectedCategory(categoryValue);
+//       setCurrentPage(1);
+//     }
+//   };
+
+//   const handleSearchChange = (event) => {
+//     setSearchInput(event.target.value);
+//   };
+
+//   const paginate = (pageNumber) => {
+//     if (pageNumber !== currentPage) {
+//       setCurrentPage(pageNumber);
+//     }
+//   };
+
+//   const itemsToDisplay = items;
+//   const { totalPages } = pagination;
+
+//   return (
+//     <main className="main-content">
+//       <h1 className="headerOne">
+//         Found items within the University Campus
+//       </h1>
+
+//       <div className="search-bar">
+//         <input
+//           type="text"
+//           placeholder="Search by Name or Description"
+//           value={searchInput}
+//           onChange={handleSearchChange}
+//           className="input-search"
+//         />
+//       </div>
+
+//       {isLoading && <p style={{ textAlign: 'center' }}>Loading items...</p>}
+//       {!isLoading && itemsToDisplay.length === 0 && !error && (
+//         <p style={{ textAlign: 'center' }}>No items found matching your criteria.</p>
+//       )}
+
+//       {!isLoading && !error && itemsToDisplay.length > 0 && (
+//         <div className="item-list">
+//           {itemsToDisplay.map((item) => (
+//             <div key={item.id} className="item-card">
+//               <h2>{item.title}</h2>
+//               <img
+//                 src={item.imageUrlFront || itemImage}
+//                 alt={item.title}
+//                 className="item-image"
+//                 onError={(e) => {
+//                   e.target.src = itemImage;
+//                 }}
+//               />
+//               <p>
+//                 <strong>Status:</strong> {item.status}
+//               </p>
+//               <p>{item.description}</p>
+//               <p><strong>Category:</strong> {item.category}</p>
+//               <p><strong>Location:</strong> {item.location}</p>
+//               <Link to={`/items/${item.id}`} className="btn-details">
+//                 View Details
+//               </Link>
+//             </div>
+//           ))}
+//         </div>
+//       )}
+
+//       {!isLoading && !error && totalPages > 1 && (
+//         <div className="pagination">
+//           <nav aria-label="Pagination">
+//             <ul>
+//               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+//                 <li key={page}>
+//                   <button
+//                     onClick={() => paginate(page)}
+//                     className={currentPage === page ? 'active' : ''}
+//                     disabled={isLoading}
+//                   >
+//                     {page}
+//                   </button>
+//                 </li>
+//               ))}
+//             </ul>
+//           </nav>
+//         </div>
+//       )}
+//     </main>
+//   );
+// };
+
+// export default FoundItems;
+
+
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
@@ -6,6 +152,7 @@ import { addNotification, NotificationType } from '../features/notifications/not
 import './foundItems.css';
 import itemImage from '../assets/images/logo-1.png';
 import { Link, useNavigate } from 'react-router-dom';
+import Sidebar from './Sidebar';
 
 // Sidebar Categories (mapped to ItemCategory enum)
 const categories = [
@@ -29,6 +176,8 @@ const FoundItems = () => {
   // FIX: Use local state to manage the page number, which then triggers the fetch effect
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   const navigate = useNavigate();
 
@@ -126,6 +275,15 @@ const FoundItems = () => {
             Report Item (Lost | Found)
           </button>
 
+          {isAuthenticated && (
+            <button
+              className={`btn-sidebar ${location.pathname.includes('support') ? 'active' : ''}`}
+              onClick={() => navigate('/support')}
+            >
+              Contact Support
+            </button>
+          )}
+
         </div>
       ) : (
         <aside className="sidebar">
@@ -152,6 +310,16 @@ const FoundItems = () => {
           <button className="btn-foundItems" onClick={() => navigate('/report')}>
             Report Item (Lost | Found)
           </button>
+
+          {isAuthenticated && (
+            <button
+              className={`btn-sidebar ${location.pathname.includes('support') ? 'active' : ''}`}
+              onClick={() => navigate('/support')}
+            >
+              Contact Support
+            </button>
+          )}
+
 
         </aside>
       )}
@@ -240,3 +408,7 @@ const FoundItems = () => {
 };
 
 export default FoundItems;
+
+
+
+

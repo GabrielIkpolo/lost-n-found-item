@@ -19,19 +19,23 @@ import MyItemsPage from './pages/MyItemsPage';
 import EditItemPage from './pages/EditItemPage';
 
 
+import SupportPage from './pages/SupportPage';
+import CreateTicketPage from './pages/CreateTicketPage';
+import TicketDetailPage from './pages/TicketDetailPage';
+
+
 import AdminDashboard from './pages/AdminDashboard';
 import ManageUsersPage from './pages/ManageUsersPage';
 import ManageItemsPage from './pages/ManageItemsPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import SystemSettings from './pages/SystemSettings';
+import ManageTicketsPage from './pages/ManageTicketsPage'; // NEW IMPORT
 
 // import AuthCallback from './pages/AuthCallback';
 import LostItemPage from './pages/LostItemPage';
 import { setAuthState } from './features/auth/authSlice';
 import RootErrorBoundary from './pages/RootErrorBoundary';
-
-
 // Import ItemStatus enum from backend or define relevant roles here
 // import { UserRole } from '../../server/prisma/client'; 
 // If not importing directly, define locally:
@@ -115,6 +119,32 @@ const routerConfig = [
 
 
       {
+        path: 'support',
+        element: (
+          <ProtectedRoutes>
+            <SupportPage />
+          </ProtectedRoutes>
+        ),
+      },
+      {
+        path: 'support/new',
+        element: (
+          <ProtectedRoutes>
+            <CreateTicketPage />
+          </ProtectedRoutes>
+        ),
+      },
+      {
+        path: 'support/:id',
+        element: (
+          <ProtectedRoutes>
+            <TicketDetailPage />
+          </ProtectedRoutes>
+        ),
+      },
+
+
+      {
         path: 'admin', element: (
           <ProtectedRoutes requiredRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]} >
             <AdminDashboard />
@@ -129,6 +159,20 @@ const routerConfig = [
             path: 'items',
             element: <ManageItemsPage />
           },
+
+          // NEW: Admin route for managing support tickets
+          {
+            path: 'tickets',
+            element: <ManageTicketsPage />, // The main list view for admins
+          },
+
+          // NEW: Admin route for viewing a specific ticket (reusing the component)
+          // The component handles the necessary Admin/User role checks internally
+          {
+            path: 'tickets/:id',
+            element: <TicketDetailPage />,
+          },
+
 
           {
             path: 'settings',

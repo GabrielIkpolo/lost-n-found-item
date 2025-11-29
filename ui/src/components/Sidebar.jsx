@@ -1,6 +1,7 @@
-
-import React, { useState, useEffect } from 'react';
+// ui/src/components/Sidebar.jsx
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import './sidebar.css';
 
 const categories = [
@@ -15,12 +16,14 @@ const categories = [
 const Sidebar = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { isAuthenticated } = useSelector((state) => state.auth);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
     useEffect(() => {
         const handleResize = () => {
             setIsMobile(window.innerWidth <= 768);
         };
+
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -37,6 +40,37 @@ const Sidebar = () => {
         });
     };
 
+    const renderButtons = () => (
+        <div className="sidebar-buttons">
+            <button
+                className={`btn-sidebar ${location.pathname === '/' ? 'active' : ''}`}
+                onClick={() => navigate('/')}
+            >
+                All Found Items
+            </button>
+            <button
+                className={`btn-sidebar ${location.pathname.includes('lost-items') ? 'active' : ''}`}
+                onClick={() => navigate('/lost-items')}
+            >
+                All Lost Items
+            </button>
+            <button
+                className={`btn-sidebar ${location.pathname.includes('report') ? 'active' : ''}`}
+                onClick={() => navigate('/report')}
+            >
+                Report Item
+            </button>
+            {isAuthenticated && (
+                <button
+                    className={`btn-sidebar ${location.pathname.includes('support') ? 'active' : ''}`}
+                    onClick={() => navigate('/support')}
+                >
+                    Contact Support
+                </button>
+            )}
+        </div>
+    );
+
     return (
         <aside className="sidebar">
             {isMobile ? (
@@ -46,32 +80,16 @@ const Sidebar = () => {
                         {categories.map((category) => (
                             <li
                                 key={category.value}
-                                className={location.state?.category === category.value && 
-                                location.state?.status === (location.pathname.includes('lost-items') ? 'LOST' : 'FOUND') 
-                                ? 'active' : ''}
+                                className={location.state?.category === category.value &&
+                                    location.state?.status === (location.pathname.includes('lost-items') ? 'LOST' : 'FOUND')
+                                    ? 'active' : ''}
                                 onClick={() => handleCategorySelect(category.value)}
                             >
                                 {category.label}
                             </li>
                         ))}
                     </ul>
-                    <div className="sidebar-buttons">
-                        <button 
-                            className={`btn-sidebar ${!location.pathname.includes('lost-items') ? 'active' : ''}`}
-                            onClick={() => navigate('/')}
-                        >
-                            All Found Items
-                        </button>
-                        <button 
-                            className={`btn-sidebar ${location.pathname.includes('lost-items') ? 'active' : ''}`}
-                            onClick={() => navigate('/lost-items')}
-                        >
-                            All Lost Items
-                        </button>
-                        <button className="btn-sidebar" onClick={() => navigate('/report')}>
-                            Report Item (Lost | Found)
-                        </button>
-                    </div>
+                    {renderButtons()}
                 </div>
             ) : (
                 <div className="desktop-sidebar">
@@ -87,26 +105,11 @@ const Sidebar = () => {
                             </li>
                         ))}
                     </ul>
-                    <div className="sidebar-buttons">
-                        <button 
-                            className={`btn-sidebar ${!location.pathname.includes('lost-items') ? 'active' : ''}`}
-                            onClick={() => navigate('/')}
-                        >
-                            All Found Items
-                        </button>
-                        <button 
-                            className={`btn-sidebar ${location.pathname.includes('lost-items') ? 'active' : ''}`}
-                            onClick={() => navigate('/lost-items')}
-                        >
-                            All Lost Items
-                        </button>
-                        <button className="btn-sidebar" onClick={() => navigate('/report')}>
-                            Report Item (Lost | Found)
-                        </button>
-                    </div>
+                    {renderButtons()}
                 </div>
             )}
         </aside>
+
     );
 };
 

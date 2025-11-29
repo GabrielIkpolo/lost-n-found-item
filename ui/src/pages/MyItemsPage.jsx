@@ -1,3 +1,258 @@
+// import React, { useEffect, useState } from 'react';
+// import { useDispatch, useSelector } from 'react-redux';
+// import {
+//     fetchMyItems, deleteItem, clearMyItems, clearDeleteStatus,
+//     markItemReturned, confirmItemReceived, cancelItemClaim,
+//     clearMarkReturnedStatus, clearConfirmReceivedStatus, clearCancelClaimStatus,
+// } from '../features/items/itemsSlice';
+// import { addNotification, NotificationType } from '../features/notifications/notificationsSlice';
+// import { Link, useNavigate } from 'react-router-dom';
+
+// import itemPlaceholderImage from '../assets/images/logo-1.png';
+
+// import './myItemsPage.css';
+
+// const MyItemsPage = () => {
+//     const dispatch = useDispatch();
+//     const navigate = useNavigate();
+
+//     const { myItems, myItemsPagination, isMyItemsLoading, myItemsError,
+//         isDeleting, deleteError, deleteSuccess, deletedItemId,
+//         isMarkingReturned, markReturnedError, markReturnedSuccess,
+//         isConfirmingReceived, confirmReceivedError, confirmReceivedSuccess,
+//         isCancellingClaim, cancelClaimError, cancelClaimSuccess
+//     } = useSelector(state => state.items);
+
+//     const { isAuthenticated, user } = useSelector(state => state.auth);
+
+//     useEffect(() => {
+//         dispatch(fetchMyItems({
+//             page: myItemsPagination.currentPage,
+//             limit: myItemsPagination.itemsPerPage,
+//         }));
+
+//         return () => {
+//             dispatch(clearMyItems());
+//             dispatch(clearDeleteStatus());
+//             dispatch(clearMarkReturnedStatus());
+//             dispatch(clearConfirmReceivedStatus());
+//             dispatch(clearCancelClaimStatus());
+//         };
+//     }, [dispatch]);
+
+//     useEffect(() => {
+//         if (myItemsError) {
+//             dispatch(addNotification({
+//                 message: `Error fetching your items: ${myItemsError}`,
+//                 type: NotificationType.ERROR,
+//                 duration: 5000,
+//             }));
+//         }
+//     }, [myItemsError, dispatch]);
+
+//     useEffect(() => {
+//         if (deleteSuccess && deletedItemId) {
+//             dispatch(addNotification({
+//                 message: 'Item deleted successfully.',
+//                 type: NotificationType.SUCCESS,
+//                 duration: 5000,
+//             }));
+//             dispatch(clearDeleteStatus());
+//             dispatch(fetchMyItems({
+//                 page: myItemsPagination.currentPage,
+//                 limit: myItemsPagination.itemsPerPage,
+//             }));
+//         }
+//     }, [deleteSuccess, deletedItemId, dispatch, myItemsPagination.currentPage, myItemsPagination.itemsPerPage]);
+
+//     useEffect(() => {
+//         if (deleteError) {
+//             dispatch(addNotification({
+//                 message: `Deletion failed: ${deleteError}`,
+//                 type: NotificationType.ERROR,
+//                 duration: 5000,
+//             }));
+//             dispatch(clearDeleteStatus());
+//         }
+//     }, [deleteError, dispatch]);
+
+//     useEffect(() => {
+//         if (markReturnedSuccess || confirmReceivedSuccess || cancelClaimSuccess) {
+//             dispatch(addNotification({ message: 'Item status updated.', type: NotificationType.SUCCESS, duration: 5000 }));
+//             dispatch(clearMarkReturnedStatus());
+//             dispatch(clearConfirmReceivedStatus());
+//             dispatch(clearCancelClaimStatus());
+//             dispatch(fetchMyItems({
+//                 page: myItemsPagination.currentPage,
+//                 limit: myItemsPagination.itemsPerPage,
+//             }));
+//         }
+//     }, [markReturnedSuccess, confirmReceivedSuccess, cancelClaimSuccess, dispatch, myItemsPagination.currentPage, myItemsPagination.itemsPerPage]);
+
+//     useEffect(() => {
+//         if (markReturnedError || confirmReceivedError || cancelClaimError) {
+//             const errorMsg = markReturnedError || confirmReceivedError || cancelClaimError || 'Failed to update item status.';
+//             dispatch(addNotification({ message: `Status update failed: ${errorMsg}`, type: NotificationType.ERROR, duration: 5000 }));
+//             dispatch(clearMarkReturnedStatus());
+//             dispatch(clearConfirmReceivedStatus());
+//             dispatch(clearCancelClaimStatus());
+//         }
+//     }, [markReturnedError, confirmReceivedError, cancelClaimError, dispatch]);
+
+//     const paginateMyItems = (pageNumber) => {
+//         if (pageNumber > 0 && pageNumber <= myItemsPagination.totalPages && pageNumber !== myItemsPagination.currentPage) {
+//             dispatch(fetchMyItems({
+//                 page: pageNumber,
+//                 limit: myItemsPagination.itemsPerPage,
+//             }));
+//         }
+//     };
+
+//     const handleDeleteItem = (itemId) => {
+//         if (itemId && !isDeleting) {
+//             const isConfirmed = window.confirm('Are you sure you want to delete this item? This action cannot be undone.');
+//             if (isConfirmed) {
+//                 dispatch(deleteItem(itemId));
+//             }
+//         }
+//     };
+
+//     const handleMarkReturned = (itemId) => {
+//         if (itemId && !isMarkingReturned) {
+//             dispatch(markItemReturned(itemId));
+//         }
+//     };
+
+//     const handleConfirmReceived = (itemId) => {
+//         if (itemId && !isConfirmingReceived) {
+//             dispatch(confirmItemReceived(itemId));
+//         }
+//     };
+
+//     const handleCancelClaim = (itemId) => {
+//         if (itemId && !isCancellingClaim) {
+//             dispatch(cancelItemClaim(itemId));
+//         }
+//     };
+
+//     const isAnyItemActionLoading = isMyItemsLoading || isDeleting || isMarkingReturned || isConfirmingReceived || isCancellingClaim;
+
+//     if (isMyItemsLoading && myItems.length === 0) {
+//         return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading your items...</div>;
+//     }
+
+//     if (myItemsError) {
+//         return <div style={{ textAlign: 'center', marginTop: '50px', color: 'red' }}>
+//             {myItemsError}
+//         </div>;
+//     }
+    
+//     const itemsToDisplay = myItems || [];
+//     const { totalPages, currentPage } = myItemsPagination;
+
+//     return (
+//         <div className="my-items-container">
+//             <h1>My Items</h1>
+//             {isAnyItemActionLoading && <div className="loading-overlay">Processing...</div>}
+            
+//             {!isMyItemsLoading && itemsToDisplay.length === 0 ? (
+//                 <p style={{ textAlign: 'center', marginTop: '30px' }}>You haven't reported or claimed any items yet.</p>
+//             ) : (
+//                 <>
+//                     <div className="item-list">
+//                         {itemsToDisplay.map(item => (
+//                             <div key={item.id} className="item-card">
+//                                 <h2>{item.title}</h2>
+//                                 <img
+//                                     src={item.imageUrlFront || itemPlaceholderImage}
+//                                     alt={item.title}
+//                                     className="item-image"
+//                                     onError={(e) => { e.target.src = itemPlaceholderImage; }}
+//                                 />
+//                                 <p><strong>Status:</strong> {item.status}</p>
+//                                 <p>{item.description}</p>
+//                                 <p><strong>Category:</strong> {item.category}</p>
+//                                 <p><strong>Location:</strong> {item.location}</p>
+//                                 {user && (
+//                                     <p className='item-role'>
+//                                         <strong>Role:</strong> {item.reportedById === user.id ? 'Reporter' : (item.claimedById === user.id ? 'Claimant' : 'Other')}
+//                                     </p>
+//                                 )}
+//                                 <Link to={`/items/${item.id}`} className="btn-details">
+//                                     View Details
+//                                 </Link>
+//                                 {isAuthenticated && user?.id === item.reportedById && (item.status === 'LOST' || item.status === 'FOUND') && (
+//                                     <Link
+//                                         to={`/items/${item.id}/edit`}
+//                                         className="btn-action secondary"
+//                                         disabled={isAnyItemActionLoading}
+//                                     >
+//                                         Edit
+//                                     </Link>
+//                                 )}
+//                                 {isAuthenticated && user?.id === item.reportedById && item.status === 'CLAIMED' && (
+//                                     <button className="btn-action success"
+//                                         onClick={() => handleMarkReturned(item.id)}
+//                                         disabled={isAnyItemActionLoading}>
+//                                         {isMarkingReturned ? 'Marking...' : 'Mark as Returned'}
+//                                     </button>
+//                                 )}
+//                                 {isAuthenticated && user?.id === item.claimedById && item.status === 'CLAIMED' && (
+//                                     <button className="btn-action success"
+//                                         onClick={() => handleConfirmReceived(item.id)}
+//                                         disabled={isAnyItemActionLoading}>
+//                                         {isConfirmingReceived ? 'Confirming...' : 'Confirm Received'}
+//                                     </button>
+//                                 )}
+//                                 {isAuthenticated && user?.id === item.claimedById && item.status === 'CLAIMED' && (
+//                                     <button className="btn-action danger"
+//                                         onClick={() => handleCancelClaim(item.id)}
+//                                         disabled={isAnyItemActionLoading}>
+//                                         {isCancellingClaim ? 'Cancelling...' : 'Cancel Claim'}
+//                                     </button>
+//                                 )}
+//                                 {isAuthenticated && (user?.id === item.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (item.status !== 'CLAIMED' && item.status !== 'RETURNED') && (
+//                                     <button
+//                                         className="btn-action danger"
+//                                         onClick={() => handleDeleteItem(item.id)}
+//                                         disabled={isAnyItemActionLoading}
+//                                     >
+//                                         {isDeleting ? 'Deleting...' : 'Delete'}
+//                                     </button>
+//                                 )}
+//                             </div>
+//                         ))}
+//                     </div>
+//                     {!isMyItemsLoading && totalPages > 1 && (
+//                         <div className="pagination">
+//                             <nav aria-label="Pagination">
+//                                 <ul>
+//                                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+//                                         <li key={page}>
+//                                             <button
+//                                                 onClick={() => paginateMyItems(page)}
+//                                                 className={currentPage === page ? 'active' : ''}
+//                                                 disabled={isAnyItemActionLoading}
+//                                             >
+//                                                 {page}
+//                                             </button>
+//                                         </li>
+//                                     ))}
+//                                 </ul>
+//                             </nav>
+//                         </div>
+//                     )}
+//                 </>
+//             )}
+//         </div>
+//     );
+// };
+
+// export default MyItemsPage;
+
+
+
+
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -386,3 +641,4 @@ const MyItemsPage = () => {
 };
 
 export default MyItemsPage;
+

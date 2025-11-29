@@ -1,0 +1,129 @@
+.manage-tickets-page-container {
+    padding: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.manage-tickets-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 10px;
+}
+
+.ticket-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Reusing ticket-item styles from supportPage.css */
+.ticket-item {
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 5px solid;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ticket-item:hover {
+    background-color: var(--color-background-hover);
+}
+
+.ticket-item.open {
+    border-color: var(--color-primary);
+    background-color: var(--color-light-primary);
+}
+
+.ticket-item.closed {
+    border-color: var(--color-secondary);
+    background-color: var(--color-light-secondary);
+    opacity: 0.8;
+}
+
+.ticket-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.ticket-subject {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+}
+
+.ticket-user {
+    font-size: 0.9em;
+    color: var(--color-text-secondary);
+}
+
+.ticket-date {
+    font-size: 0.8em;
+    color: var(--color-text-tertiary);
+    margin-top: 5px;
+}
+
+.ticket-status span {
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 0.9em;
+    color: white;
+}
+
+.ticket-item.open .ticket-status span {
+    background-color: var(--color-primary);
+}
+
+.ticket-item.closed .ticket-status span {
+    background-color: var(--color-secondary);
+}
+
+/* --- Status Toggle Button Styles for Admin List --- */
+.ticket-item button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, opacity 0.2s;
+    font-size: 0.9em;
+    margin-left: 15px; /* Separate button from status badge */
+    flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+/* Style for 'Re-open' button (when status is CLOSED) */
+.ticket-item button.btn-open {
+    background-color: #ffc107; /* Warning yellow */
+    color: #333;
+}
+
+.ticket-item button.btn-open:hover {
+    background-color: #e0a800;
+}
+
+/* Style for 'Close Ticket' button (when status is OPEN) */
+.ticket-item button.btn-close {
+    background-color: #dc3545; /* Red/Danger */
+    color: #fff;
+}
+
+.ticket-item button.btn-close:hover {
+    background-color: #c82333;
+}
+
+.ticket-item button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+/* --- End Status Toggle Button Styles --- */
+
+/* Ensure the admin page uses the appropriate scope */
+.admin-dashboard-container .admin-content .manage-tickets-page-container {
+    padding: 0; /* Adjust padding if necessary to fit nested outlet */
+}

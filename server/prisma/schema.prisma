@@ -43,6 +43,9 @@ model User {
   notifications Notification[] // Notifications for this user
   auditLogs     AuditLog[] // Actions performed by this user
 
+  tickets      SupportTicket[]  @relation("UserTickets")
+  sentMessages SupportMessage[] @relation("SentMessages")
+
   emailVerified            Boolean   @default(false) // Tracks if the email has been verified
   emailVerificationToken   String? // @unique // Stores the verification token
   emailVerificationExpires DateTime? // Expiry for the token
@@ -90,6 +93,9 @@ model Item {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   expiresAt    DateTime? // For automatic archival of FOUND items
+
+  reporterConfirmedTransfer Boolean @default(false)
+  claimantConfirmedReceived Boolean @default(false)
 
   // Relations
   notifications Notification[] // Notifications related to this item
@@ -196,6 +202,37 @@ enum AuditAction {
   MANAGE_USER_ROLE
   DELETE_USER
   // etc.
+}
+
+// --- NEW: Models for User-Admin Communication ---
+model SupportTicket {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  subject   String
+  user      User             @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
+  userId    String           @db.ObjectId
+  status    TicketStatus     @default(OPEN)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  messages  SupportMessage[]
+
+  @@index([userId, status])
+}
+
+enum TicketStatus {
+  OPEN
+  CLOSED
+}
+
+model SupportMessage {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  sender    User          @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  senderId  String        @db.ObjectId
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId  String        @db.ObjectId
+  createdAt DateTime      @default(now())
+
+  @@index([ticketId])
 }
 
 model File {

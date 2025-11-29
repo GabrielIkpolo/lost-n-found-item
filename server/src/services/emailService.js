@@ -30,6 +30,21 @@ const transporter = nodemailer.createTransport({
 // });
 
 
+//========Resend provider configuration==================
+
+// const transporter = nodemailer.createTransport({
+//     host: process.env.EMAIL_HOST, 
+//     port: parseInt(process.env.EMAIL_PORT, 10), // Resend Port: 465
+//     // Set secure: true if port is 465 (SSL), false if port is 587 or 2587 (TLS)
+//     secure: process.env.EMAIL_PORT === '465' || process.env.EMAIL_PORT === '2465', 
+//     auth: {
+//         user: process.env.EMAIL_USER, 
+//         pass: process.env.EMAIL_PASS, 
+//     },
+// });
+
+
+
 // New generic email sending function
 /**
  * Sends a general email.
