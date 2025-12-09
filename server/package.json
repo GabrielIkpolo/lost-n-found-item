@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "deploy": " npm install pm2 --save-dev && npx prisma generate && npx prisma db push && npx pm2 stop all && npx pm2 start index.js -i max && npx pm2 logs"
+    "deploy": "npm install pm2 --save-dev && npx prisma generate && npx prisma db push && npx pm2 stop all && npx pm2 start index.js -i max && npx pm2 logs"
   },
   "type": "module",
   "keywords": [],
@@ -35,5 +37,10 @@
     "passport": "^0.7.0",
     "passport-facebook": "^3.0.0",
     "passport-google-oauth20": "^2.0.0"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.15",
+    "supertest": "^7.1.4",
+    "vitest": "^4.0.15"
   }
 }
