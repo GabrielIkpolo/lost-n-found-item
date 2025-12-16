@@ -1,5 +1,5 @@
 // server/test/integration/fileController.test.js
-import { request } from 'supertest';
+import request from 'supertest';
 import app from '../../index.js';
 import { prisma } from '../../src/helpers/prisma.js';
 import { fileService } from '../../src/services/fileService.js';
@@ -26,7 +26,7 @@ vi.mock('../../src/services/fileService.js', () => ({
 
 describe('File Controller', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('GET /files', () => {

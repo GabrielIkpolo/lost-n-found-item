@@ -3,21 +3,30 @@ import { describe, test, vi } from 'vitest';
 import supertest from 'supertest';
 import app from '../../index.js';
 
-vi.mock('../../src/helpers/prisma.js', async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    prisma: {
-      user: {
+// Mock bcrypt to ensure password comparison succeeds
+vi.mock('bcrypt', () => ({
+  compare: vi.fn().mockResolvedValue(true)
+}));
+
+const prismaMock = {
+  user: {
         findUnique: vi.fn().mockResolvedValue({
           id: '1',
           email: 'test@example.com',
           password: '$2a$10$hashedpassword',
           name: 'Test User',
-          role: 'user'
+      role: 'USER',
+      provider: 'LOCAL',
+      emailVerified: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
         })
       }
-    }
+  };
+vi.mock('../../src/helpers/prisma.js', () => {
+  return {
+    default: prismaMock,
+    prisma: prismaMock,
   };
 });
 
@@ -40,3 +49,4 @@ describe('Auth Routes', () => {
     expect(response.body).toHaveProperty('token');
   });
 });
+

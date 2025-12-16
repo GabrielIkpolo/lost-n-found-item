@@ -1,5 +1,5 @@
 // server/test/integration/userController.test.js
-import { request } from 'supertest';
+import request from 'supertest';
 import app from '../../index.js';
 import { prisma } from '../../src/helpers/prisma.js';
 import { describe, test, vi, beforeEach } from 'vitest';
@@ -19,7 +19,7 @@ vi.mock('../../src/helpers/prisma.js', () => ({
 
 describe('User Controller', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('GET /users', () => {
