@@ -2,9 +2,13 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import dotenv from "dotenv";
 
+
 dotenv.config();
 
+
+
 export default defineConfig({
+
   plugins: [react()],
 
   server: {
@@ -17,11 +21,19 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_REACT_APP_API_BASE_URL,
         changeOrigin: true,
-         secure: process.env.SECURE, // Set to true if your API server uses HTTPS
+        secure: process.env.SECURE, // Set to true if your API server uses HTTPS
         // secure: process.env.NODE_ENV === 'production'
         // rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
+
   },
 
+  // Test configuration
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './test/setup.js', // Updated path
+    include: ['test/**/*.{test,spec}.{js,jsx}'],
+  },
 })
