@@ -96,35 +96,13 @@ export const createItem = async (req, res) => {
             newItemData.imageUrlBack = { connect: { id: fileRecordBack.id } };
         }
 
-        // Create the item in the database
-        // const newItem = await prisma.item.create({
-        //     data: {
-        //         title,
-        //         description,
-        //         category, // Ensure these match the Prisma enum values
-        //         location, // Ensure these match the Prisma enum values
-        //         status,   // Ensure these match the Prisma enum values
-        //         reportedBy: { connect: { id: userId } },
-        //         imageUrlFront: imageUrlFrontIdentifier, // Store the internal file path
-        //         imageUrlBack: imageUrlBackIdentifier,   // Store the internal file path
-        //         expiresAt: expiresAt, // Set expiry for found items
-        //         // claimedById will be null initially
-        //     },
-        //     // Select reporter for potential notification trigger
-        //     select: {
-        //         id: true, title: true, description: true, category: true, location: true, status: true,
-        //         imageUrlFront: true, imageUrlBack: true, createdAt: true, updatedAt: true, expiresAt: true,
-        //         reportedBy: { select: { id: true, name: true } }
-        //     }
-        // });
-
-
+       
         const newItem = await prisma.item.create({
             data: newItemData,
             include: { // Include relations to get file URLs in the response
                 reportedBy: { select: { id: true, name: true } },
-                imageUrlFront: true, // Include the full File object
-                imageUrlBack: true,  // Include the full File object
+                imageUrlFront: true, 
+                imageUrlBack: true,  
             }
         });
 
@@ -162,15 +140,6 @@ export const createItem = async (req, res) => {
         //          data: { itemId: newItem.id, status: newItem.status }
         //      });
         // }
-
-
-        // Optionally, return the public URLs in the response
-        // const responseItem = {
-        //     ...newItem,
-        //     imageUrlFront: getImageUrl(newItem.imageUrlFront, req),
-        //     imageUrlBack: getImageUrl(newItem.imageUrlBack, req),
-        //     reportedBy: newItem.reportedBy ? { id: newItem.reportedBy.id, name: newItem.reportedBy.name } : null,
-        // };
 
 
         const responseItem = {
@@ -236,8 +205,8 @@ export const getItemDetails = async (req, res) => {
             reportedBy: item.reportedBy ? {
                 id: item.reportedBy.id,
                 name: item.reportedBy.name,
-                email: item.reportedBy.email, // Currently exposing
-                phone: item.reportedBy.phone, // Currently exposing
+                email: item.reportedBy.email, 
+                phone: item.reportedBy.phone, 
             } : null,
             claimedBy: item.claimedBy ? {
                 id: item.claimedBy.id,
@@ -423,31 +392,6 @@ export const updateItem = async (req, res) => {
             return res.status(400).json({ error: "No valid fields provided for update." });
         }
 
-        // 4. Perform the update in the database
-        // const updatedItem = await prisma.item.update({
-        //     where: { id: id },
-        //     data: updateData,
-        //     // Select fields for the response, including reporter/claimer if needed
-        //     select: {
-        //         id: true,
-        //         title: true,
-        //         description: true,
-        //         category: true,
-        //         location: true,
-        //         imageUrlFront: true, // Fetch internal paths
-        //         imageUrlBack: true,   // Fetch internal paths
-        //         status: true,
-        //         createdAt: true,
-        //         updatedAt: true,
-        //         expiresAt: true,
-        //         reportedBy: { // Include reporter details in response
-        //             select: { id: true, name: true, email: true, phone: true } // Select fields you want to expose
-        //         },
-        //         claimedBy: { // Include claimer details in response if claimedBy exists
-        //             select: { id: true, name: true, email: true, phone: true } // Select fields you want to expose
-        //         }
-        //     },
-        // });
 
         const updatedItem = await prisma.item.update({
             where: { id: id },
@@ -668,8 +612,8 @@ export const deleteItem = async (req, res) => {
                 id: true,
                 title: true, // For audit log
                 reportedById: true,
-                imageUrlFrontId: true, // Get the ID of the related file
-                imageUrlBackId: true,  // Get the ID of the related file
+                imageUrlFrontId: true, 
+                imageUrlBackId: true,  
             },
         });
 
@@ -732,18 +676,18 @@ export const claimItem = async (req, res) => {
     }
 
     try {
-        const { id } = req.params; // Item ID from URL parameters
-        const userId = req.user.id; // ID of the user attempting to claim
+        const { id } = req.params; 
+        const userId = req.user.id; 
 
         // 1. Fetch the item and necessary details
         const item = await prisma.item.findUnique({
             where: { id: id },
             select: {
                 id: true,
-                status: true, // Need current status
-                reportedById: true, // Need reporter ID
-                claimedById: true, // Need current claimant ID
-                title: true, // For notification/audit logs
+                status: true, 
+                reportedById: true, 
+                claimedById: true, 
+                title: true, 
             },
         });
 
@@ -959,29 +903,7 @@ export const getItems = async (req, res) => {
             });
         }
 
-        // Fetch items with pagination, filtering, and sorting
-        // const items = await prisma.item.findMany({
-        //     where: finalWhere, // Use the constructed 'where' object
-        //     orderBy: { createdAt: 'desc' }, // Default sort
-        //     skip: skip, // (page - 1) * limit,
-        //     take: limit,
-        //     select: { // Select fields for performance and privacy
-        //         id: true,
-        //         title: true,
-        //         description: true,
-        //         category: true,
-        //         location: true,
-        //         imageUrlFront: true,
-        //         imageUrlBack: true,
-        //         status: true,
-        //         createdAt: true,
-        //         updatedAt: true,
-        //         expiresAt: true,
-        //         reportedBy: { select: { id: true, name: true } },
-        //         claimedBy: { select: { id: true, name: true } }
-        //     },
-        // });
-
+       
         const items = await prisma.item.findMany({
             where: finalWhere,
             orderBy: { createdAt: 'desc' },
@@ -1008,15 +930,7 @@ export const getItems = async (req, res) => {
         const totalItems = await prisma.item.count({ where: finalWhere }); // Use the same 'where'
         const totalPages = Math.ceil(totalItems / limit);
 
-        // Map items to include public image URLs
-        // const itemsWithPublicUrls = items.map(item => ({
-        //     ...item,
-        //     imageUrlFront: getImageUrl(item.imageUrlFront),
-        //     imageUrlBack: getImageUrl(item.imageUrlBack),
-        //     // reportedBy: item.reportedBy ? { id: item.reportedBy.id, name: item.reportedBy.name } : null,
-        //     // claimedBy: item.claimedBy ? { id: item.claimedBy.id, name: item.claimedBy.name } : null,
-        // }));
-
+       
         const itemsWithPublicUrls = items.map(item => ({
             ...item,
             imageUrlFront: item.imageUrlFront ? item.imageUrlFront.url : null,
@@ -1297,133 +1211,110 @@ export const confirmItemReceived = async (req, res) => {
 
 
 // --- New Controller function to cancel a claim on an item ---
+
 export const cancelItemClaim = async (req, res) => {
-    // Ensure req.user is available from requireSignin middleware
     if (!req.user) {
         return res.status(401).json({ error: "Authentication required." });
     }
 
     try {
-        const { id } = req.params; // Item ID
-        const userId = req.user.id; // ID of the user cancelling the claim
+        const { id } = req.params;
+        const userId = req.user.id;
 
-        // 1. Fetch the item and necessary details
+        // 1. Fetch item AND the current claimant details before we clear them
         const item = await prisma.item.findUnique({
             where: { id: id },
             select: {
                 id: true,
                 status: true,
-                reportedById: true, // Need reporter ID
-                claimedById: true,  // Need claimant ID
+                reportedById: true, 
+                claimedById: true, // This is the ID we are about to clear
                 title: true,
             },
         });
 
-        // 2. Validate item existence
         if (!item) {
             return res.status(404).json({ error: "Item not found." });
         }
 
-        // 3. Authorization Check: Only the claimedBy user OR Admin/Super_Admin can cancel the claim
+        // 2. Authorization Check
         const isClaimant = item.claimedById === userId;
-        const isAdminOrSuperAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN;
+        const isReporter = item.reportedById === userId;
+        const isAdmin = req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN';
 
-        if (!isClaimant && !isAdminOrSuperAdmin) {
-            return res.status(403).json({ error: "Forbidden: You do not have permission to cancel the claim on this item." });
-        }
-        // Also ensure the item *is* actually claimed by this user if they are the claimant
-        if (isClaimant && item.claimedById !== userId) {
-            // This is a redundant check if isClaimant is true, but defensive
-            return res.status(403).json({ error: "Forbidden: You can only cancel claims on items you have claimed." });
+        if (!isClaimant && !isReporter && !isAdmin) {
+            return res.status(403).json({ error: "Forbidden: Access denied." });
         }
 
-
-        // 4. Status Validation: Can only cancel a claim if the status is CLAIMED
-        if (item.status !== ItemStatus.CLAIMED) {
-            return res.status(400).json({ error: `Claim cannot be cancelled. Current status is ${item.status}.` });
+        if (item.status !== 'CLAIMED') {
+            return res.status(400).json({ error: `Item is currently ${item.status}` });
         }
 
-        // 5. Update the item status back to FOUND and disconnect claimedBy
-        // When status goes back to FOUND, reset the expiry date.
+        // 3. Reset Expiry
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 90); // Reset expiry to 90 days from now
+        expiresAt.setDate(expiresAt.getDate() + 90);
 
+        // 4. Update the Item (Clearing the active claim)
         const updatedItem = await prisma.item.update({
             where: { id: id },
             data: {
-                status: ItemStatus.FOUND, // Change status back to FOUND
-                claimedBy: { disconnect: true }, // Disconnect the claimant
-                claimedById: null, // Explicitly set claimedById to null (disconnect should handle this, but good practice)
-                expiresAt: expiresAt, // Set new expiry date for FOUND item
+                status: 'FOUND',
+                claimedBy: { disconnect: true }, // This is the only line needed to clear the claim
+                expiresAt: expiresAt,
             },
-            select: { // Select fields for response and notifications
-                id: true,
-                title: true,
-                status: true,
-                reportedBy: { select: { id: true, email: true, name: true } },
-                // claimedBy will be null now, but might be needed for notification context
-                // claimedBy: { select: { id: true, email: true, name: true } }, // This would be null
+            include: {
+                reportedBy: { select: { id: true, email: true, name: true } }
             }
         });
 
-
-        // 6. Create Audit Log
+        // 5. THE RECORD: Save the history into the AuditLog
+        // This ensures you never lose the record of who previously claimed it.
         try {
             await prisma.auditLog.create({
                 data: {
-                    userId: userId,
+                    userId: userId, // Who performed the cancellation
                     itemId: updatedItem.id,
-                    action: AuditAction.UPDATE_ITEM_STATUS, // Or a new enum like CANCEL_ITEM_CLAIM
-                    details: `Claim cancelled for item "${updatedItem.title}" by user ${userId}. Status reset to FOUND.`,
+                    action: 'UPDATE_ITEM_STATUS', 
+                    details: `Claim by user (ID: ${item.claimedById}) was cancelled by ${req.user.role} (ID: ${userId}). Item returned to FOUND status.`,
                     ipAddress: req.ip,
                     userAgent: req.headers['user-agent'],
                 }
             });
         } catch (auditError) {
-            console.error("Failed to create audit log for cancel claim:", auditError);
+            console.error("Failed to create archival audit log:", auditError);
         }
 
-
-        // 7. Trigger Notifications
-        // Notify the reporter that the claim has been cancelled
-        if (updatedItem.reportedBy && updatedItem.reportedBy.id !== userId) { // Ensure there's a reporter and it's not the user cancelling
-            try {
-                await sendNotification({
-                    userId: updatedItem.reportedBy.id, // Notify the reporter
-                    itemId: updatedItem.id,
-                    type: NotificationType.ITEM_UPDATED, // Or a specific type like ITEM_CLAIM_CANCELLED
-                    message: `The claim on your reported item "${updatedItem.title}" has been cancelled by the claimant. The item is now available again.`,
-                    pushTitle: `Claim Cancelled: "${updatedItem.title}"`,
-                    data: { itemId: updatedItem.id, status: updatedItem.status }
-                });
-                console.log(`Notification triggered to reporter ${updatedItem.reportedBy.id} for item ${updatedItem.id} claim cancelled.`);
-            } catch (notificationError) {
-                console.error("Failed to trigger notification to reporter for cancel claim:", notificationError);
-            }
+        // 6. Notifications (Using 'item' from step 1 for the claimant)
+        // Notify Reporter
+        if (updatedItem.reportedBy?.id && updatedItem.reportedBy.id !== userId) {
+            await sendNotification({
+                userId: updatedItem.reportedBy.id,
+                itemId: updatedItem.id,
+                type: 'ITEM_UPDATED',
+                message: `The claim on your item "${updatedItem.title}" was cancelled. It is available again.`,
+            });
         }
-        // You might also send a confirmation notification to the user who cancelled the claim
 
-        // 8. Send success response
+        // Notify the OLD Claimant (using the ID we saved in step 1)
+        if (item.claimedById && item.claimedById !== userId) {
+             await sendNotification({
+                userId: item.claimedById,
+                itemId: updatedItem.id,
+                type: 'ITEM_UPDATED',
+                message: `Your claim on "${updatedItem.title}" has been cancelled.`,
+            });
+        }
+
         return res.status(200).json({
             message: "Item claim cancelled successfully. Status reset to FOUND.",
-            item: { // Return essential info
-                id: updatedItem.id,
-                title: updatedItem.title,
-                status: updatedItem.status,
-                reportedBy: updatedItem.reportedBy ? { id: updatedItem.reportedBy.id, name: updatedItem.reportedBy.name } : null,
-                claimedBy: null, // Explicitly show claimedBy is null
+            item: {
+                ...updatedItem,
+                claimedBy: null, // UI knows it's now available
             },
         });
 
     } catch (error) {
-        console.error("Error cancelling item claim:", error);
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            if (error.code === 'P2025') return res.status(404).json({ error: "Item not found." });
-            if (error.code === 'P2000') return res.status(400).json({ error: "Invalid Item ID format." });
-            // Handle other Prisma errors
-        }
-        return res.status(500).json({ error: "Internal server error while cancelling item claim." });
+        console.error("Error in cancelItemClaim:", error);
+        return res.status(500).json({ error: "Internal server error." });
     }
 };
-
-
