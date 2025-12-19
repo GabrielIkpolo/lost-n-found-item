@@ -187,9 +187,12 @@ app.use((err, req, res, next) => {
 //   .catch(err => console.error('❌ Cloudinary connection failed:', err));
 
 
+if (process.env.NODE_ENV !== 'test') {
 app.listen(port, '0.0.0.0', () => {
   console.log(`App is listening on port: ${port} `);
   // --- Schedule the automated tasks after the server starts ---
   scheduleArchivalTask();
-
 });
+}
+
+export default app;

@@ -833,7 +833,7 @@ const itemsSlice = createSlice({
         console.log('Item marked Returned successfully:', updatedItem?.title);
         // Update item in lists and current item
         const index = state.items.findIndex(item => item.id === updatedItem.id);
-        if (index !== -1) { state.items[index = updatedItem]; }
+        if (index !== -1) { state.items[index] = updatedItem; }
         const myItemsIndex = state.myItems.findIndex(item => item.id === updatedItem.id);
         if (myItemsIndex !== -1) { state.myItems[myItemsIndex] = updatedItem; }
         if (state.currentItem && state.currentItem.id === updatedItem.id) {
