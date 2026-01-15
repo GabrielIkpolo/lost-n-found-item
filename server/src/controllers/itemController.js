@@ -1212,7 +1212,7 @@ export const confirmItemReceived = async (req, res) => {
                 status: ItemStatus.RETURNED,
                 // Keep claimedBy as is
             },
-            select: { // Select fields for response and notifications
+            select: { 
                 id: true,
                 title: true,
                 status: true,
@@ -1228,7 +1228,7 @@ export const confirmItemReceived = async (req, res) => {
                 data: {
                     userId: userId,
                     itemId: updatedItem.id,
-                    action: AuditAction.UPDATE_ITEM_STATUS, // Or a new enum like CONFIRM_ITEM_RECEIVED
+                    action: AuditAction.UPDATE_ITEM_STATUS, 
                     details: `Item "${updatedItem.title}" status changed to RETURNED (confirmed received) by user ${userId}.`,
                     ipAddress: req.ip,
                     userAgent: req.headers['user-agent'],
@@ -1241,12 +1241,12 @@ export const confirmItemReceived = async (req, res) => {
 
         // 7. Trigger Notifications
         // Notify the reporter that the claimant has confirmed receiving the item
-        if (updatedItem.reportedBy && updatedItem.reportedBy.id !== userId) { // Ensure there's a reporter and it's not the user confirming
+        if (updatedItem.reportedBy && updatedItem.reportedBy.id !== userId) { 
             try {
                 await sendNotification({
                     userId: updatedItem.reportedBy.id, // Notify the reporter
                     itemId: updatedItem.id,
-                    type: NotificationType.ITEM_UPDATED, // Or a specific type like ITEM_RECEIPT_CONFIRMED
+                    type: NotificationType.ITEM_UPDATED, 
                     message: `The item "${updatedItem.title}" has been confirmed as received by the claimant, ${updatedItem.claimedBy?.name || 'the claimant'}.`,
                     pushTitle: `Item Confirmed Received: "${updatedItem.title}"`,
                     data: { itemId: updatedItem.id, status: updatedItem.status }
