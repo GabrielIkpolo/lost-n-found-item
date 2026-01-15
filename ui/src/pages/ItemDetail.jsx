@@ -358,27 +358,6 @@ const renderContactInfo = (person, label) => {
           </div>
           {/* --------------------------- */}
 
-{/* ===========Start ======================== */}
-
-          {/* Display Reported By and Claimed By if available and authorized
-          {/* Be mindful of privacy. Only show if the user is the reporter, claimant, or admin */}
-          {/* {isAuthenticated && user && (user.id === currentItem.reportedById || user.id === currentItem.claimedById || user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') && (
-            <>
-              {currentItem.reportedBy && (
-                <p>
-                  <strong>Reported By:</strong> {currentItem.reportedBy.name} ({currentItem.reportedBy.email}{currentItem.reportedBy.phone ? `, ${currentItem.reportedBy.phone}` : ''})
-                </p>
-              )}
-              {currentItem.claimedBy && (
-                <p>
-                  <strong>Claimed By:</strong> {currentItem.claimedBy.name} ({currentItem.claimedBy.email}{currentItem.claimedBy.phone ? `, ${currentItem.claimedBy.phone}` : ''})
-                </p>
-              )}
-            </>
-          )}  */}
-
-{/* =========================== End  */}
-
           {/* --- Conditional Buttons (Claim, Edit, Delete, Status Updates) --- */}
           <div className="item-actions">
             {/* Claim Button: Show if authenticated, item is FOUND, and user is NOT the reporter */}

@@ -1282,7 +1282,7 @@ export const confirmItemReceived = async (req, res) => {
 };
 
 
-// --- New Controller function to cancel a claim on an item ---
+// Controller function to cancel a claim on an item 
 
 export const cancelItemClaim = async (req, res) => {
     if (!req.user) {
