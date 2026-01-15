@@ -549,6 +549,65 @@ export const markNotificationAsRead = async (req, res) => {
     }
 };
 
+// --- Standard User: Update Profile ---
+export const updateUserProfile = async (req, res) => {
+    // 1. Check Auth
+    if (!req.user) {
+        return res.status(401).json({ error: "Authentication required." });
+    }
+
+    const userId = req.user.id;
+    // 2. Extract only allowed fields
+    const { name, phone, department, address } = req.body;
+
+    try {
+        // 3. Update User
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                name,       // Allow name correction
+                phone,
+                department,
+                address
+            },
+            // Return the updated user object (excluding sensitive data)
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                department: true,
+                address: true,
+                role: true,
+                provider: true,
+                // Don't return passwords or refresh tokens
+            }
+        });
+
+        // 4. Log Action
+        try {
+            await prisma.auditLog.create({
+                data: {
+                    userId: userId,
+                    action: 'UPDATE_PROFILE', // Ensure this enum exists or use a string if strict mode is off
+                    details: `User updated profile details.`,
+                    ipAddress: req.ip,
+                    userAgent: req.headers['user-agent'],
+                }
+            });
+        } catch (e) { console.error("Audit Log Error", e); }
+
+        return res.status(200).json({
+            message: "Profile updated successfully.",
+            user: updatedUser
+        });
+
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        return res.status(500).json({ error: "Internal server error." });
+    }
+};
+
 // TODO: Implement a batch update endpoint to mark multiple notifications as read (e.g., PUT /api/users/notifications/mark-read)
 // Request body could be { notificationIds: ['id1', 'id2', ...] } or { all: true }
 // Need to add a new route and controller function for this if required.
