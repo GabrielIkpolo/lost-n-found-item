@@ -40,6 +40,11 @@ import RootErrorBoundary from './pages/RootErrorBoundary';
 import ProfileSettings from './pages/ProfileSettings';
 import SystemLogsPage from './pages/SystemLogsPage';
 
+import { requestFcmToken, onMessageListener } from './util/firebase'; // Import Firebase helpers
+import { saveFcmToken } from './features/userSlice'; // Import the new thunk
+import { addNotification, NotificationType } from './features/notifications/notificationsSlice';
+
+
 // Import ItemStatus enum from backend or define relevant roles here
 // import { UserRole } from '../../server/prisma/client'; 
 // If not importing directly, define locally:
@@ -217,7 +222,7 @@ const routerConfig = [
 
 function App() {
   const dispatch = useDispatch();
-  const { isAuthLoading } = useSelector((state) => state.auth);
+  const { isAuthLoading,  isAuthenticated  } = useSelector((state) => state.auth);
 
   const router = createBrowserRouter(routerConfig);
 
@@ -258,9 +263,45 @@ function App() {
     }
   }, [dispatch])
 
+   // --- Handle Push Notifications ---
+  useEffect(() => {
+    // Only run if user is logged in
+    if (isAuthenticated) {
+      
+      // 1. Request Permission and Get Token
+      const initializeFirebase = async () => {
+        const token = await requestFcmToken();
+        if (token) {
+          // Send token to backend to save in User model
+          dispatch(saveFcmToken(token));
+        }
+      };
+
+      initializeFirebase();
+
+      // 2. Listen for FOREGROUND messages (when app is open)
+      // Firebase doesn't show system popup when app is open, so we use our In-App Notification system
+      onMessageListener()
+        .then((payload) => {
+          console.log('Foreground Notification:', payload);
+          dispatch(addNotification({
+            message: `${payload.notification.title}: ${payload.notification.body}`,
+            type: NotificationType.INFO,
+            duration: 6000
+          }));
+        })
+        .catch((err) => console.log('failed: ', err));
+    }
+  }, [isAuthenticated, dispatch]);
+
+
   if (isAuthLoading) {
     return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading application...</div>;
   }
+
+
+  
+
 
   return (
     <>
