@@ -12,6 +12,8 @@ import {
 } from '../controllers/userController.js';
 import { requireSignin, isAdmin, isSuperAdmin } from '../helpers/authMiddleware.js'; // Import middleware
 
+import { updateUserProfile } from '../controllers/userController.js';
+
 const router = express.Router();
 
 // --- Standard User Routes (under /api/users) ---
@@ -36,7 +38,7 @@ router.post(
 // PUT /api/users/preferences
 router.put(
     '/preferences',
-    requireSignin, 
+    requireSignin,
     updateNotificationPreferences
 );
 
@@ -82,6 +84,11 @@ router.route('/:id')
     .get(requireSignin, isAdmin, getUserDetails)
     .delete(requireSignin, isAdmin, deleteUser); // Note: isAdmin middleware is sufficient here, controller has further checks
 
-
+// PUT /api/users/profile - Update personal details
+router.put(
+    '/profile',
+    requireSignin,
+    updateUserProfile
+);
 
 export default router;

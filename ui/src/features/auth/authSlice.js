@@ -130,7 +130,7 @@ export const resetPassword = createAsyncThunk(
       const response = await axios.post(`/api/auth/reset-password/${token}`, { password });
 
       // Backend should return a success message
-      return response.data; 
+      return response.data;
 
     } catch (error) {
       let errorMessage = 'Failed to reset password.';
@@ -147,6 +147,35 @@ export const resetPassword = createAsyncThunk(
     }
   }
 );
+
+
+// Update user profile thunk
+export const updateUserProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async (userData, { rejectWithValue, getState }) => {
+    try {
+      // Get token for Authorization header
+      const token = getState().auth.token;
+      const config = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+
+      const response = await axios.put('/api/users/profile', userData, config);
+
+      // Update LocalStorage with new user data
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+
+      return response.data.user;
+    } catch (error) {
+      let errorMessage = 'Failed to update profile';
+      if (error.response && error.response.data.error) {
+        errorMessage = error.response.data.error;
+      }
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
 
 
 // Create the authentication slice
@@ -349,16 +378,31 @@ const authSlice = createSlice({
         state.resetPasswordSuccess = false; // Reset failed
         state.resetPasswordError = action.payload || 'Failed to reset password'; // Use the error message
         console.error('Password reset rejected:', state.resetPasswordError);
-      });
+      })
 
-  },
+      // Handle Update Profile
+      .addCase(updateUserProfile.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload; // Update the user object in Redux
+      })
+      .addCase(updateUserProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      });
+  }
 });
+
+
 
 // Export the synchronous actions
 export const { logout, clearRegistrationSuccess, clearAuthError,
   loadAuthState, clearForgotPasswordStatus, clearResetPasswordStatus,
-  setAuthState } = authSlice.actions;
+  setAuthState  } = authSlice.actions;
 
+// export { updateUserProfile };
 // Export the reducer as the default export
 export default authSlice.reducer;
 

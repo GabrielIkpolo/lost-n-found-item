@@ -48,6 +48,7 @@ import authRoutes from './src/routes/authRoutes.js';
 import itemRoutes from './src/routes/itemRoutes.js';
 import userRoutes from './src/routes/userRoutes.js';
 import supportRoutes from './src/routes/supportRoutes.js';
+import adminRoutes from './src/routes/adminRoutes.js';
 
 
 dotenv.config();
@@ -150,6 +151,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/items', itemRoutes(upload));
 app.use('/api/users', userRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/admin', adminRoutes); 
 
 
 // Return 404 for non-accounted routes

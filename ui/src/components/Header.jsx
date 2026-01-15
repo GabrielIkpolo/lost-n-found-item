@@ -51,7 +51,7 @@ const Header = () => {
         </div>
 
         {/* Title - stays centered in desktop view */}
-        <h1 className="title" onClick={()=> navigate('/')}>Lost and Found Items</h1>
+        <h1 className="title" onClick={() => navigate('/')}>Lost and Found Items</h1>
 
         {/* Mobile Menu Button */}
         <button
@@ -80,13 +80,18 @@ const Header = () => {
                 {/* Example: Link to My Items page */}
                 <NavLink to="/my-items" className="nav-link" onClick={toggleMenu}>My Items</NavLink>
                 <span className="separator">|</span>
-                
+
                 {/* Display user's name (optional) */}
-                {user && <span className="nav-link">Welcome, {user.name}</span>}
+                {/* {user && <span className="nav-link">Welcome, {user.name}</span>} */}
+                {user && (
+                  <NavLink to="/profile" className="nav-link" onClick={toggleMenu}>
+                    Welcome, {user.name}
+                  </NavLink>
+                )}
                 <span className="separator">|</span>
 
                 {/* Logout button/link */}
-                <button onClick={handleLogout} className="nav-link logout-button">Logout</button> 
+                <button onClick={handleLogout} className="nav-link logout-button">Logout</button>
               </>
             )
           }
