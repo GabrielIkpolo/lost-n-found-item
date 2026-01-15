@@ -14,8 +14,10 @@ model User {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
   name       String
   email      String   @unique
-  phone      String? // Removed @unique based on earlier discussion, add back if needed
-  password   String? // Hashed password for local auth, optional if only using OAuth
+  phone      String?
+  department String?
+  address    String?
+  password   String?
   provider   Provider // Enum: LOCAL, GOOGLE, FACEBOOK
   providerId String? // Store Google/Facebook ID, unique per provider
   role       UserRole @default(USER) // Enum: USER, ADMIN, SUPER_ADMIN
@@ -247,4 +249,12 @@ model File {
   itemAsFrontImage Item? @relation("ItemFrontImage")
   itemAsBackImage  Item? @relation("ItemBackImage")
   // --- END NEW ---
+}
+
+model SystemSetting {
+  id                          String   @id @default(auto()) @map("_id") @db.ObjectId
+  foundItemExpiryDays         Int      @default(90)
+  preArchivalNotificationDays Int      @default(7)
+  defaultItemsPerPage         Int      @default(10)
+  updatedAt                   DateTime @updatedAt
 }

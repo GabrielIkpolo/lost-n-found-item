@@ -36,6 +36,9 @@ import ManageTicketsPage from './pages/ManageTicketsPage'; // NEW IMPORT
 import LostItemPage from './pages/LostItemPage';
 import { setAuthState } from './features/auth/authSlice';
 import RootErrorBoundary from './pages/RootErrorBoundary';
+
+import ProfileSettings from './pages/ProfileSettings';
+
 // Import ItemStatus enum from backend or define relevant roles here
 // import { UserRole } from '../../server/prisma/client'; 
 // If not importing directly, define locally:
@@ -181,6 +184,15 @@ const routerConfig = [
             </ProtectedRoutes>
           },
         ],
+      },
+
+      {
+        path: 'profile',
+        element: (
+          <ProtectedRoutes>
+            <ProfileSettings />
+          </ProtectedRoutes>
+        )
       },
 
 
