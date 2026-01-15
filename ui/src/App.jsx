@@ -38,6 +38,7 @@ import { setAuthState } from './features/auth/authSlice';
 import RootErrorBoundary from './pages/RootErrorBoundary';
 
 import ProfileSettings from './pages/ProfileSettings';
+import SystemLogsPage from './pages/SystemLogsPage';
 
 // Import ItemStatus enum from backend or define relevant roles here
 // import { UserRole } from '../../server/prisma/client'; 
@@ -183,6 +184,15 @@ const routerConfig = [
               <SystemSettings />
             </ProtectedRoutes>
           },
+
+          {
+            path: 'logs',
+            element: (
+              <ProtectedRoutes requiredRoles={[UserRole.SUPER_ADMIN]}>
+                <SystemLogsPage />
+              </ProtectedRoutes>
+            )
+          },
         ],
       },
 
@@ -194,6 +204,8 @@ const routerConfig = [
           </ProtectedRoutes>
         )
       },
+
+
 
 
 
