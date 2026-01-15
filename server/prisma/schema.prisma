@@ -250,3 +250,11 @@ model File {
   itemAsBackImage  Item? @relation("ItemBackImage")
   // --- END NEW ---
 }
+
+model SystemSetting {
+  id                          String   @id @default(auto()) @map("_id") @db.ObjectId
+  foundItemExpiryDays         Int      @default(90)
+  preArchivalNotificationDays Int      @default(7)
+  defaultItemsPerPage         Int      @default(10)
+  updatedAt                   DateTime @updatedAt
+}

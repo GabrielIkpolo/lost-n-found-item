@@ -1,23 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
+import { axiosInstance as axios } from '../util/axiosInstance'; // Use your axios instance
 import './systemSettings.css';
 
 const SystemSettings = () => {
-    // Get the logged-in user from auth state
     const { user, isAuthenticated } = useSelector((state) => state.auth);
+    const [isLoading, setIsLoading] = useState(true);
+    const [message, setMessage] = useState({ type: '', text: '' });
 
-    // Initial state for settings, using required defaults from app-requirements.md
     const [settings, setSettings] = useState({
-        foundItemExpiryDays: 90, // Default based on requirement
-        preArchivalNotificationDays: 7, // Default suggestion
-        defaultItemsPerPage: 10, // Default suggestion
+        foundItemExpiryDays: 90,
+        preArchivalNotificationDays: 7,
+        defaultItemsPerPage: 10,
     });
 
-    // Check authorization: Must be logged in AND a SUPER_ADMIN
+    // 1. Fetch Settings on Mount
+    useEffect(() => {
+        if (isAuthenticated && user?.role === 'SUPER_ADMIN') {
+            fetchSettings();
+        }
+    }, [isAuthenticated, user]);
+
+    const fetchSettings = async () => {
+        try {
+            const res = await axios.get('/api/admin/settings');
+            setSettings({
+                foundItemExpiryDays: res.data.foundItemExpiryDays,
+                preArchivalNotificationDays: res.data.preArchivalNotificationDays,
+                defaultItemsPerPage: res.data.defaultItemsPerPage,
+            });
+            setIsLoading(false);
+        } catch (err) {
+            console.error(err);
+            setMessage({ type: 'error', text: 'Failed to load settings.' });
+            setIsLoading(false);
+        }
+    };
+
     if (!isAuthenticated || user?.role !== 'SUPER_ADMIN') {
-        // Use RootErrorBoundary for a proper 403 or redirect to home.
-        // For now, redirecting to home is a simple approach.
         return <Navigate to="/" replace />;
     }
 
@@ -29,22 +50,40 @@ const SystemSettings = () => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    // 2. Submit Updates
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // TODO: Implement API call (e.g., PUT /api/admin/settings) to save settings to the backend
-        console.log('Attempting to save settings:', settings);
-
-        // Mock success message for now
-        alert('System Settings updated successfully!');
+        setMessage({ type: '', text: '' });
+        
+        try {
+            await axios.put('/api/admin/settings', settings);
+            setMessage({ type: 'success', text: 'System Settings updated successfully!' });
+        } catch (err) {
+            console.error(err);
+            setMessage({ type: 'error', text: 'Failed to update settings.' });
+        }
     };
+
+    if (isLoading) return <div style={{padding:'20px'}}>Loading settings...</div>;
 
     return (
         <div className="system-settings-container">
             <h2>System Settings</h2>
-            <p className="subtitle">Configure global application parameters, such as archival policies and UI defaults. Only accessible by Super Administrators.</p>
+            <p className="subtitle">Configure global application parameters. Only accessible by Super Administrators.</p>
+
+            {message.text && (
+                <div style={{ 
+                    padding: '10px', 
+                    marginBottom: '15px', 
+                    borderRadius: '4px',
+                    backgroundColor: message.type === 'error' ? '#f8d7da' : '#d4edda',
+                    color: message.type === 'error' ? '#721c24' : '#155724'
+                }}>
+                    {message.text}
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="settings-form">
-                {/* 1. Item Archival Settings */}
                 <section className="settings-section">
                     <h3>Item Archival Policy</h3>
                     <div className="form-group">
@@ -72,11 +111,10 @@ const SystemSettings = () => {
                             min="0"
                             required
                         />
-                        <small>A notification will be sent to the item reporter this many days before the auto-archival date.</small>
+                        <small>Notification sent to reporter before auto-archival.</small>
                     </div>
                 </section>
 
-                {/* 2. Global UI/Performance Settings */}
                 <section className="settings-section">
                     <h3>UI & Performance</h3>
                     <div className="form-group">
@@ -91,7 +129,7 @@ const SystemSettings = () => {
                             max="50"
                             required
                         />
-                        <small>The default number of items displayed in paginated lists across the application (e.g., Found Items Page, Admin View).</small>
+                        <small>Default number of items in paginated lists.</small>
                     </div>
                 </section>
 

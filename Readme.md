@@ -1,227 +1,195 @@
-# University Lost and Found Application
+# LAFI - University Lost and Found Application
 
-## Table of Contents
+LAFI is a comprehensive web application designed to facilitate the reporting, searching, and claiming of lost and found items within a university campus environment. It features a robust backend, a responsive frontend, role-based access control, and an integrated support system.
 
-- [Overview](#overview)
-- [Core Features](#core-features)
-- [Technology Stack](#technology-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Environment Variables](#environment-variables)
-  - [Running the Application](#running-the-application)
-- [API Endpoints](#api-endpoints)
-- [Contributing](#contributing)
-- [License](#license)
+## 📋 Table of Contents
 
-## Overview
+- [Features](#-features)
+- [Technology Stack](#-technology-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [Environment Variables](#-environment-variables)
+- [Installation & Running](#-installation--running)
+- [API Endpoints](#-api-endpoints)
+- [License](#-license)
 
-This web application provides a platform for managing lost and found items within a university environment. It aims to facilitate the reporting, searching, and claiming of items to increase the chances of reuniting owners with their belongings. The application features distinct user roles, detailed item reporting (including images), search/filtering, notifications, and an admin dashboard for management.
+---
 
-## Core Features
+## 🚀 Features
 
-*   **User Authentication:** Secure registration and login via Email/Password (local), Google, and Facebook. Includes password reset functionality and JWT-based session management with refresh token rotation.
-*   **Role-Based Access Control:** Different capabilities for `USER`, `ADMIN`, and `SUPER_ADMIN` roles.
-*   **Item Reporting:** Users can report lost or found items with details like title, description, category (enum), location (enum), and optional front/back images.
-*   **Item Browsing:** Public view of `FOUND` items. Logged-in users can view `LOST` items and their own reported/claimed items. Features pagination, filtering (category, location), and sorting.
-*   **Item Details View:** Shows full item details and images. Logged-in users see a "Claim" button on found items.
-*   **Claiming Workflow:** Logged-in users can claim found items, triggering notifications to the reporter and claimant.
-*   **Status Updates:** Users and admins can update item statuses (`LOST`, `FOUND`, `CLAIMED`, `RETURNED`, `ARCHIVED`).
-*   **Search:** Full-text search across item details with frontend debouncing.
-*   **Notifications:** Multi-channel notifications (Email, In-App, Push via FCM) for key events like claims, status updates, password resets, etc. Includes user preference settings and an in-app notification center.
-*   **Image Handling:** Local storage (initially) with multipart form uploads and automatic resizing/thumbnail generation.
-*   **Item Archival:** Automatic archival of unclaimed found items after a configurable period (e.g., 90 days) via a scheduled task.
-*   **Admin Dashboard:** Interface for admins to manage items, users, roles, view audit logs, and configure settings.
-*   **Audit Logging:** Tracks significant actions performed by users and the system.
+### 👤 User Features
+*   **Authentication:** Secure registration and login via Email/Password (Local) and OAuth (Google, Facebook).
+*   **Profile Management:** Users can update personal details (Phone, Department/Unit, Address).
+*   **Report Items:** Report 'Lost' or 'Found' items with images (Front/Back view), category, and location.
+*   **Search & Filter:** Advanced search with debouncing, filtering by category, location, and status.
+*   **Claim Workflow:** Claim 'Found' items. The system notifies the reporter via Email/In-App notification.
+*   **My Items Dashboard:** View and manage reported items, confirm returns, and cancel claims.
+*   **Support System:** Create and reply to support tickets for inquiries or disputes.
+*   **Notifications:** Real-time In-App notifications and Email alerts (Nodemailer).
 
-## Technology Stack
+### 🛡️ Admin & Super Admin Features
+*   **Dashboard:** Centralized view to manage the system.
+*   **User Management:** View all users, update user roles (Admin only), and delete users.
+*   **Item Management:** View all items (regardless of status), edit item details, and delete items.
+*   **Ticket Management:** View all support tickets, reply to users, and close tickets.
+*   **System Settings (Super Admin):** Configure global settings like item expiry duration and pagination limits.
+*   **Audit Logging:** Tracks critical actions (Role updates, Item deletions, System setting changes).
+*   **Automated Archival:** Scheduled tasks (Cron) to automatically archive unclaimed items after a set period.
 
-*   **Frontend:** React.js (with Vite)
-*   **Backend:** Node.js, Express.js
+---
+
+## 🛠 Technology Stack
+
+### Backend
+*   **Runtime:** Node.js
+*   **Framework:** Express.js
 *   **Database:** MongoDB
 *   **ORM:** Prisma
-*   **API Communication:** Axios
-*   **Authentication:** Passport.js (Strategies: local, google-oauth20, facebook), JWT
-*   **Password Hashing:** bcrypt
-*   **Image Processing:** sharp (or similar)
-*   **Input Validation:** express-validator 
-*   **Rate Limiting:** express-rate-limit
-*   **Scheduled Tasks:** node-cron 
-*   **Push Notifications:** Firebase Cloud Messaging (FCM)
-*   **UI Framework/Styling:** Vanilla CSS
+*   **Authentication:** Passport.js (JWT Strategy)
+*   **File Uploads:** Multer (Local Storage logic included, Cloudinary ready)
+*   **Email:** Nodemailer (SMTP/Gmail)
+*   **Scheduling:** Node-cron
 
-## Project Structure
+### Frontend
+*   **Framework:** React.js (Vite)
+*   **State Management:** Redux Toolkit
+*   **Routing:** React Router DOM
+*   **HTTP Client:** Axios (with Interceptors)
+*   **Styling:** Vanilla CSS / CSS Modules
+*   **Icons:** FontAwesome / React Icons
 
-```
+---
+
+## 📂 Project Structure
+
+```bash
 .
-├── server/         # Backend (Node.js/Express/Prisma)
-│   ├── prisma/     # Prisma schema and migrations
-│   ├── src/        # Source code (controllers, routes, services, middleware)
-│   ├── fileStorage/# Directory for storing uploaded images (add to .gitignore)
-│   ├── .env        # Environment variables (sensitive, add to .gitignore)
-│   ├── package.json
-│   └── ...
-├── ui/             # Frontend (React/Vite)
-│   ├── public/     # Static assets
-│   ├── src/        # React components, pages, styles, api calls
-│   ├── .env        # Environment variables
-│   ├── package.json
-│   └── ...
-├── app-requirements.md # Detailed application requirements
-├── Readme.md       # This file
-└── .gitignore      # Git ignore rules
+├── server/                 # Backend (Node/Express)
+│   ├── prisma/             # Database Schema (schema.prisma)
+│   ├── src/
+│   │   ├── controllers/    # Route logic (Auth, Item, User, Support, Admin)
+│   │   ├── routes/         # API Route definitions
+│   │   ├── services/       # Email, Notification, File services
+│   │   ├── tasks/          # Cron jobs (Archival task)
+│   │   └── helpers/        # Middleware (Auth, RateLimit), Utilities
+│   └── fileStorage/        # Local image storage
+├── ui/                     # Frontend (React)
+│   ├── src/
+│   │   ├── components/     # Reusable UI components
+│   │   ├── features/       # Redux Slices (Auth, Items, Users, Support)
+│   │   ├── pages/          # Application Pages
+│   │   └── util/           # Axios configuration
+│   └── public/             # Static assets
+└── ...
 ```
-*(Note: Specific subdirectories within `server/src` and `ui/src` will be created as development progresses)*
 
-## Getting Started
+## 🔐 Environment Variables
 
-### Prerequisites
+You must create a .env file in both the server/ and ui/ directories.
 
-*   Node.js (v18 or higher recommended)
-*   npm 
-*   MongoDB instance (local or cloud-based like MongoDB Atlas)
-*   Firebase Project for FCM (Server Key)
-*   Google Cloud Project for OAuth (Client ID, Client Secret)
-*   Facebook Developer App for OAuth (App ID, App Secret)
-*   Git
+Backend (server/.env)
 
-### Installation
+## Server Config
+PORT=3000
+NODE_ENV=development
 
-1.  **Clone the repository:**
-    ```bash
-    # Replace with your actual repository URL if applicable
-    git clone https://github.com/yourusername/lost-and-found-items.git
-    cd lost-and-found-items
-    ```
+## Database
+DATABASE_URL="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/lafi?retryWrites=true&w=majority"
 
-2.  **Install backend dependencies:**
-    ```bash
-    cd server
-    npm install
-    # Or: yarn install
-    ```
-
-3.  **Install frontend dependencies:**
-    ```bash
-    cd ../ui
-    npm install
-    # Or: yarn install
-    ```
-
-### Environment Variables
-
-Create `.env` files in both the `server/` and `ui/` directories based on the examples below. **Never commit your `.env` files to version control.**
-
-**`server/.env`:**
-
-```dotenv
-# Server Configuration
-PORT=3000 # Or any port you prefer
-
-# Database
-DATABASE_URL="mongodb+srv://<user>:<password>@<cluster-url>/lost-and-found?retryWrites=true&w=majority" # Example for MongoDB Atlas or mongodb://localhost:27017/lost-and-found
-
-# Authentication
-JWT_SECRET="YOUR_VERY_STRONG_JWT_SECRET_KEY" # Use a long, random string
-JWT_ACCESS_TOKEN_EXPIRATION="1h"
+## Security
+JWT_SECRET="YOUR_SUPER_SECRET_KEY"
+JWT_ACCESS_TOKEN_EXPIRATION="15m"
 JWT_REFRESH_TOKEN_EXPIRATION="7d"
+SESSION_SECRET="YOUR_SESSION_SECRET"
 
-# OAuth Credentials (Get from Google Cloud Console / Facebook for Developers)
-GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID"
-GOOGLE_CLIENT_SECRET="YOUR_GOOGLE_CLIENT_SECRET"
-FACEBOOK_APP_ID="YOUR_FACEBOOK_APP_ID"
-FACEBOOK_APP_SECRET="YOUR_FACEBOOK_APP_SECRET"
+## OAuth (Google/Facebook)
+GOOGLE_CLIENT_ID="your_google_client_id"
+GOOGLE_CLIENT_SECRET="your_google_client_secret"
+FACEBOOK_APP_ID="your_facebook_app_id"
+FACEBOOK_APP_SECRET="your_facebook_app_secret"
 
-# Notification Service (Get from Firebase Console)
-FCM_SERVER_KEY="YOUR_FCM_SERVER_KEY"
+## Email Service (Nodemailer)
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT=465
+EMAIL_USER="your_email@gmail.com"
+EMAIL_PASS="your_app_password" # Use App Password for Gmail
+EMAIL_FROM_NAME="LAFI Support"
+EMAIL_FROM_ADDRESS="no-reply@lafi.edu.ng"
 
-# Other (Add email service credentials if implementing email notifications)
-# EMAIL_HOST=...
-# EMAIL_PORT=...
-# EMAIL_USER=...
-# EMAIL_PASS=...
-# EMAIL_FROM=...
+## Storage
+STORAGE_TYPE="local" # or 'cloudinary'
 
-# Base URL for frontend (used for constructing links in emails etc.)
-VITE_REACT_APP_API_CLIENT_URL="http://localhost:5173" # Default Vite port
+## Client URL (For CORS and Redirects)
+VITE_REACT_APP_API_CLIENT_URL="http://localhost:5173"
+
+
+
+# Frontend (ui/.env)
+
+## API Base URL
+VITE_REACT_APP_API_BASE_URL="http://localhost:3000"
+
+
+
+### Installation & Running
+
+## 1. Clone the Repository
+
+
+
+```
+git clone https://github.com/your-username/LAFI.git
+cd LAFI
 ```
 
-**`ui/.env`:**
+## 2. Backend Setup
+```
+cd server
+npm install
+```
+# Generate Prisma Client (Required after every schema change)
+```npx prisma generate```
 
-```dotenv
-# API URL for the frontend to connect to the backend
-VITE_API_URL="http://localhost:3000" # Match the backend PORT
+# Start Server
+```
+npm run dev
+```
+Server will run on http://localhost:3000
 
-# OAuth Client IDs (Needed for frontend SDKs/redirects)
-VITE_GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID" # Must match server's
-VITE_FACEBOOK_APP_ID="YOUR_FACEBOOK_APP_ID"   # Must match server's
+## 3. Frontend Setup
 
-# Firebase Config (Get from Firebase Console -> Project Settings -> Web App)
-VITE_FIREBASE_API_KEY="YOUR_FIREBASE_API_KEY"
-VITE_FIREBASE_AUTH_DOMAIN="YOUR_FIREBASE_AUTH_DOMAIN"
-VITE_FIREBASE_PROJECT_ID="YOUR_FIREBASE_PROJECT_ID"
-VITE_FIREBASE_STORAGE_BUCKET="YOUR_FIREBASE_STORAGE_BUCKET"
-VITE_FIREBASE_MESSAGING_SENDER_ID="YOUR_FIREBASE_MESSAGING_SENDER_ID"
-VITE_FIREBASE_APP_ID="YOUR_FIREBASE_APP_ID"
-VITE_FIREBASE_VAPID_KEY="YOUR_FIREBASE_VAPID_KEY" # For FCM Push Notifications
+Open a new terminal.
+```
+cd ui
+npm install
 ```
 
-### Running the Application
+# Start React App
+```npm run dev```
 
-1.  **Apply Prisma Schema:**
-    *   Navigate to the `server/` directory.
-    *   Run `npx prisma generate` to generate the Prisma Client based on your schema.
-    *   *(Note: With MongoDB, `prisma migrate dev` is not used in the same way as SQL databases. Schema changes are primarily managed in `schema.prisma` and reflected via `prisma generate`)*
 
-2.  **Start the backend server:**
-    ```bash
-    cd server
-    npm run dev
-    ```
-    
-3.  **Start the frontend development server:**
-    ```bash
-    cd ../ui
-    npm run dev
-    ```
+App will run on http://localhost:5173
 
-4.  **Open the application:**
-    Open your browser and navigate to `http://localhost:5173` (or the port specified by Vite, usually 5173).
 
-## API Endpoints
+### 📡 API Endpoints Overview
 
-*(This section can be filled out later or link to separate API documentation, e.g., generated via Swagger/OpenAPI)*
+| Area | Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- | :--- |
+| **Auth** | POST | `/api/auth/register` | Register new user | Public |
+| | POST | `/api/auth/login` | Login user | Public |
+| **User** | PUT | `/api/users/profile` | Update profile details | User |
+| | PUT | `/api/users/preferences` | Update notifications | User |
+| **Items** | GET | `/api/items` | Fetch items (filters enabled) | Public |
+| | POST | `/api/items` | Report Item (Multipart/Form) | User |
+| | POST | `/api/items/claim/:id` | Claim a found item | User |
+| | PUT | `/api/items/:id` | Update item details | Owner/Admin |
+| **Support**| POST | `/api/support` | Create ticket | User |
+| | PUT | `/api/support/:id/status`| Close/Open ticket | Admin |
+| **Admin** | GET | `/api/users` | List all users | Admin |
+| | PUT | `/api/users/:id/role` | Change user role | Super Admin |
+| | GET | `/api/admin/settings` | Get System Settings | Super Admin |
+| | PUT | `/api/admin/settings` | Update Settings | Super Admin |
 
-A RESTful API will be provided for frontend communication. Key resource endpoints will include:
+## 📄 License
 
-*   `/auth/register`
-*   `/auth/login/local`
-*   `/auth/google`, `/auth/google/callback`
-*   `/auth/facebook`, `/auth/facebook/callback`
-*   `/auth/refresh`
-*   `/auth/logout`
-*   `/auth/request-password-reset`
-*   `/auth/reset-password`
-*   `/items` (GET, POST)
-*   `/items/:id` (GET, PUT, DELETE)
-*   `/items/:id/claim` (POST)
-*   `/users/me` (GET, PUT)
-*   `/notifications` (GET, PUT)
-*   `/admin/...` (Admin-specific routes)
-
-## Contributing
-
-Contributions are welcome! Please follow standard Git workflow:
-
-1.  Fork the repository.
-2.  Create a feature branch (`git checkout -b feature/AmazingFeature`).
-3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4.  Push to the branch (`git push origin feature/AmazingFeature`).
-5.  Open a Pull Request.
-
-Please ensure code is formatted (`npm run format` or `yarn format` in respective directories) and adheres to project standards. Add tests where applicable.
-
-## License
-
-Distributed under the MIT License. See `LICENSE` file for more information (if one exists, otherwise state MIT License).
+Distributed under the MIT License.
