@@ -265,6 +265,36 @@ const ItemDetail = () => {
   const canEdit = isAuthenticated && (user?.id === currentItem.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN');
   const canDelete = isAuthenticated && (user?.id === currentItem.reportedById || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (currentItem.status !== 'CLAIMED' && currentItem.status !== 'RETURNED');
 
+
+const renderContactInfo = (person, label) => {
+    if (!person) return null;
+
+    // Check if details are masked (null)
+    const isMasked = !person.email && !person.phone;
+
+    return (
+        <div className="contact-card">
+            <h4>{label}</h4>
+            <p><strong>Name:</strong> {person.name}</p>
+            {isMasked ? (
+                <div className="privacy-notice">
+                    <p><em>Contact details are hidden for privacy.</em></p>
+                    {currentItem.status === 'FOUND' && label === 'Reported By' && (
+                        <p className="small-text">Claim this item to reveal contact info and arrange a meetup.</p>
+                    )}
+                </div>
+            ) : (
+                <>
+                    <p><strong>Email:</strong> <a href={`mailto:${person.email}`}>{person.email}</a></p>
+                    {person.phone && <p><strong>Phone:</strong> <a href={`tel:${person.phone}`}>{person.phone}</a></p>}
+                </>
+            )}
+        </div>
+    );
+};
+
+
+
   return (
     <div className='main-container'>
 
@@ -317,9 +347,22 @@ const ItemDetail = () => {
           <p><strong>Description:</strong> {currentItem.description}</p>
           {currentItem.createdAt && <p><strong>Reported On:</strong> {new Date(currentItem.createdAt).toLocaleDateString()}</p>}
 
-          {/* Display Reported By and Claimed By if available and authorized */}
+
+          {/* --- NEW CONTACT SECTION --- */}
+          <div className="contact-section">
+             {/* Show Reporter info (Masked or Unmasked based on backend response) */}
+             {renderContactInfo(currentItem.reportedBy, "Reported By")}
+
+             {/* Show Claimant info if available */}
+             {currentItem.claimedBy && renderContactInfo(currentItem.claimedBy, "Claimed By")}
+          </div>
+          {/* --------------------------- */}
+
+{/* ===========Start ======================== */}
+
+          {/* Display Reported By and Claimed By if available and authorized
           {/* Be mindful of privacy. Only show if the user is the reporter, claimant, or admin */}
-          {isAuthenticated && user && (user.id === currentItem.reportedById || user.id === currentItem.claimedById || user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') && (
+          {/* {isAuthenticated && user && (user.id === currentItem.reportedById || user.id === currentItem.claimedById || user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') && (
             <>
               {currentItem.reportedBy && (
                 <p>
@@ -332,8 +375,9 @@ const ItemDetail = () => {
                 </p>
               )}
             </>
-          )}
+          )}  */}
 
+{/* =========================== End  */}
 
           {/* --- Conditional Buttons (Claim, Edit, Delete, Status Updates) --- */}
           <div className="item-actions">
