@@ -5,6 +5,7 @@ import {
 } from '../controllers/itemController.js';
 import { requireSignin, isAdmin, optionalSignin } from '../helpers/authMiddleware.js';
 import { publicApiLimiter, itemActionLimiter } from '../middleware/rateLimiter.js';
+// import { optionalSignin } from '../helpers/authMiddleware.js';
 
 
 // We'll export a function that takes the multer upload middleware
@@ -30,7 +31,7 @@ const itemRoutes = (upload) => {
 
 
     // Route for getting details of a single item (GET /api/items/:id)
-    router.get('/:id', publicApiLimiter, getItemDetails);
+    router.get('/:id', publicApiLimiter, optionalSignin, getItemDetails);
 
 
     // Route for updating an item (PUT/PATCH /api/items/:id)

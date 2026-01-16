@@ -139,6 +139,25 @@ export const deleteUser = createAsyncThunk(
 );
 
 
+// saveFcmToken thunk 
+export const saveFcmToken = createAsyncThunk(
+    'users/saveFcmToken',
+    async (fcmToken, { rejectWithValue, getState }) => {
+        try {
+            const token = getState().auth.token;
+            if (!token) return; // Not logged in
+
+            const headers = { Authorization: `Bearer ${token}` };
+            await axios.post('/api/users/fcm-token', { fcmToken }, { headers });
+            console.log('FCM Token synced with backend.');
+        } catch (error) {
+            console.error('Failed to save FCM token:', error);
+            // We don't necessarily need to reject/error out the UI for this background task
+        }
+    }
+);
+
+
 
 // Create the user slice
 const userSlice = createSlice({

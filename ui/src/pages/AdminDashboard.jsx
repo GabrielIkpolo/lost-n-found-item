@@ -45,9 +45,14 @@ const AdminDashboard = () => {
 
 
                     {user?.role === 'SUPER_ADMIN' && (
-                        <li>
-                            <Link to="/admin/settings" className={getLinkClass('/admin/settings')}>System Settings</Link>
-                        </li>
+                        <>
+                            <li>
+                                <Link to="/admin/logs" className={getLinkClass('/admin/logs')}>Audit Logs</Link>
+                            </li>
+                            <li>
+                                <Link to="/admin/settings" className={getLinkClass('/admin/settings')}>System Settings</Link>
+                            </li>
+                        </>
                     )}
 
                 </ul>

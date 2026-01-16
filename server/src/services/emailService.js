@@ -88,19 +88,75 @@ export const sendVerificationEmail = async (toEmail, token) => {
 };
 
 
-
-
 export const sendPasswordResetEmail = async (toEmail, token, resetUrl) => {
-  // Prefer the resetUrl passed in; fallback to env if not provided
-  const clientUrlFromEnv = process.env.CLIENT_URL || process.env.VITE_REACT_APP_API_CLIENT_URL || process.env.VITE_APP_CLIENT_URL;
-  const clientUrl = resetUrl ? undefined : (process.env.NODE_ENV === 'production' ? clientUrlFromEnv : 'http://localhost:5173');
+    // Prefer the resetUrl passed in; fallback to env if not provided
+    const clientUrlFromEnv = process.env.CLIENT_URL || process.env.VITE_REACT_APP_API_CLIENT_URL || process.env.VITE_APP_CLIENT_URL;
+    const clientUrl = resetUrl ? undefined : (process.env.NODE_ENV === 'production' ? clientUrlFromEnv : 'http://localhost:5173');
 
-  // If resetUrl was passed, use it; otherwise build from clientUrl + token
-  const fullResetUrl = resetUrl || `${clientUrl}/reset-password/${token}`;
+    // If resetUrl was passed, use it; otherwise build from clientUrl + token
+    const fullResetUrl = resetUrl || `${clientUrl}/reset-password/${token}`;
 
-  const subject = 'Password Reset Request';
-  const text = `Hello,\n\nYou requested a password reset. Click the link below to reset your password:\n\n${fullResetUrl}\n\nThis link is valid for 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nThanks,\nThe Your App Team`;
-  const html = `<p>Hello,</p><p>You requested a password reset. Click the link below to reset your password:</p><p><a href="${fullResetUrl}">${fullResetUrl}</a></p><p>This link is valid for 15 minutes.</p><p>If you did not request this, please ignore this email.</p><p>Thanks,<br/>LAFI Team</p>`;
+    const subject = 'Password Reset Request';
+    const text = `Hello,\n\nYou requested a password reset. Click the link below to reset your password:\n\n${fullResetUrl}\n\nThis link is valid for 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nThanks,\nThe Your App Team`;
+    const html = `<p>Hello,</p><p>You requested a password reset. Click the link below to reset your password:</p><p><a href="${fullResetUrl}">${fullResetUrl}</a></p><p>This link is valid for 15 minutes.</p><p>If you did not request this, please ignore this email.</p><p>Thanks,<br/>LAFI Team</p>`;
 
-  return sendEmail(toEmail, subject, text, html);
+    return sendEmail(toEmail, subject, text, html);
+};
+
+
+/**
+ * Sends handover instructions to both the reporter and the claimant.
+ */
+export const sendHandoverEmail = async (reporter, claimant, item) => {
+    const safeLocation = "Campus Security Post (Main Gate)"; // Default safe spot
+
+    // 1. Email to the Reporter (Finder)
+    const reporterSubject = `Action Required: Someone claimed "${item.title}"`;
+    const reporterHtml = `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+            <h2>Good news, ${reporter.name}!</h2>
+            <p>The item you reported found (<strong>${item.title}</strong>) has been claimed by <strong>${claimant.name}</strong>.</p>
+            <hr />
+            <h3>Claimant Contact Details:</h3>
+            <p><strong>Email:</strong> ${claimant.email}</p>
+            <p><strong>Phone:</strong> ${claimant.phone || 'Not provided'}</p>
+            <hr />
+            <p>Please contact them to arrange a handover.</p>
+            <p style="background-color: #e7f3fe; padding: 10px; border-left: 5px solid #2196F3;">
+                <strong>Safety Tip:</strong> We recommend meeting at the <strong>${safeLocation}</strong> or another public, well-lit area on campus for the exchange.
+            </p>
+            <p>Once returned, please log in and mark the item as <strong>RETURNED</strong>.</p>
+        </div>
+    `;
+
+    // 2. Email to the Claimant (Owner)
+    const claimantSubject = `Claim Successful: "${item.title}"`;
+    const claimantHtml = `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+            <h2>Hello ${claimant.name},</h2>
+            <p>You have successfully claimed <strong>${item.title}</strong>.</p>
+            <hr />
+            <h3>Finder Contact Details:</h3>
+            <p><strong>Name:</strong> ${reporter.name}</p>
+            <p><strong>Email:</strong> ${reporter.email}</p>
+            <p><strong>Phone:</strong> ${reporter.phone || 'Not provided'}</p>
+            <hr />
+            <p>Please contact the finder to retrieve your item.</p>
+            <p style="background-color: #e7f3fe; padding: 10px; border-left: 5px solid #2196F3;">
+                <strong>Safety Tip:</strong> We recommend meeting at the <strong>${safeLocation}</strong>.
+            </p>
+        </div>
+    `;
+
+    // Send both emails in parallel
+    try {
+        await Promise.all([
+            sendEmail(reporter.email, reporterSubject, "Please view HTML version", reporterHtml),
+            sendEmail(claimant.email, claimantSubject, "Please view HTML version", claimantHtml)
+        ]);
+        console.log(`Handover emails sent for item ${item.id}`);
+    } catch (error) {
+        console.error("Error sending handover emails:", error);
+        // Don't throw, just log. We don't want to roll back the claim transaction just because email failed.
+    }
 };

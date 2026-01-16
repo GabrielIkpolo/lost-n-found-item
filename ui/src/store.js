@@ -4,6 +4,7 @@ import authReducer from './features/auth/authSlice.js'
 import itemsReducer from './features/items/itemsSlice.js';
 import userReducer from './features/userSlice.js';
 import supportReducer from './features/support/supportSlice.js';
+import adminReducer from './features/admin/adminSlice.js'; 
 
 
 export const store = configureStore({
@@ -15,8 +16,9 @@ export const store = configureStore({
     items: itemsReducer,
     users: userReducer,
     support: supportReducer,
+    admin: adminReducer,
 
   },
-  // middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(thunk),
+  
   devTools: process.env.NODE_ENV !== 'production', // Enable Redux DevTools Extension in development
 });

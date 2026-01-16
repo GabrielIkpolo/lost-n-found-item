@@ -1,0 +1,123 @@
+.logs-container {
+    padding: 0; 
+}
+
+.logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.logs-header h2 {
+    font-size: 1.8rem;
+    color: #34495e;
+    margin: 0;
+}
+
+.refresh-btn {
+    padding: 8px 16px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.refresh-btn:hover {
+    background-color: #f8f9fa;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.logs-table th, .logs-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.logs-table th {
+    background-color: #f7f7f7;
+    font-weight: 600;
+    color: #555;
+    white-space: nowrap;
+}
+
+/* User Cell Styling */
+.user-cell {
+    display: flex;
+    flex-direction: column;
+}
+.user-name {
+    font-weight: 500;
+}
+.user-email {
+    font-size: 0.8rem;
+    color: #888;
+}
+.system-user {
+    color: #888;
+    font-style: italic;
+}
+
+/* Badges for Actions */
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.badge.create { background-color: #d4edda; color: #155724; }
+.badge.update { background-color: #fff3cd; color: #856404; }
+.badge.delete { background-color: #f8d7da; color: #721c24; }
+.badge.claim { background-color: #cce5ff; color: #004085; }
+.badge.user { background-color: #e2e3e5; color: #383d41; } /* Login/Register */
+
+.col-date {
+    white-space: nowrap;
+    color: #555;
+}
+
+.col-details {
+    max-width: 300px;
+    word-wrap: break-word;
+}
+
+/* Pagination reused from other pages or customized here */
+.pagination {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 15px;
+}
+
+.pagination button {
+    padding: 8px 12px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.pagination button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
