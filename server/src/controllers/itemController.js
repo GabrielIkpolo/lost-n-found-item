@@ -5,6 +5,7 @@ import { Prisma, ItemCategory, ItemLocation, ItemStatus, UserRole, NotificationT
 import { sendNotification } from '../services/notificationService.js';
 import { fileURLToPath } from 'url';
 import { uploadAndCreateFileRecord, deleteFileAndRecord } from '../services/fileService.js';
+import { sendHandoverEmail } from '../services/emailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,7 +47,6 @@ export const createItem = async (req, res) => {
         }
 
         // Determine the status based on reporting type (Lost/Found)
-        // The frontend should ideally send `status` as 'LOST' or 'FOUND'
         if (!validStatuses.includes(status)) {
             // Clean up uploaded files if validation fails
             if (req.files?.imageUrlFront?.[0]?.path) fs.unlinkSync(req.files.imageUrlFront[0].path);
@@ -96,13 +96,13 @@ export const createItem = async (req, res) => {
             newItemData.imageUrlBack = { connect: { id: fileRecordBack.id } };
         }
 
-       
+
         const newItem = await prisma.item.create({
             data: newItemData,
             include: { // Include relations to get file URLs in the response
                 reportedBy: { select: { id: true, name: true } },
-                imageUrlFront: true, 
-                imageUrlBack: true,  
+                imageUrlFront: true,
+                imageUrlBack: true,
             }
         });
 
@@ -174,47 +174,120 @@ export const createItem = async (req, res) => {
 
 
 
+// export const getItemDetails = async (req, res) => {
+//     try {
+//         const { id } = req.params;
+//         if (!id) {
+//             return res.status(400).json({ error: "Item ID is required." });
+//         }
+
+//         // Fetch the item by ID
+//         const item = await prisma.item.findUnique({
+//             where: { id: id },
+//             include: {
+//                 reportedBy: { select: { id: true, name: true, email: true, phone: true } },
+//                 claimedBy: { select: { id: true, name: true, email: true, phone: true } },
+//                 imageUrlFront: true, // Include the related File object
+//                 imageUrlBack: true,  // Include the related File object
+//             }
+//         });
+
+//         // Handle item not found
+//         if (!item) {
+//             return res.status(404).json({ error: "Item not found." });
+//         }
+
+//         const responseItem = {
+//             ...item,
+//             imageUrlFront: item.imageUrlFront ? item.imageUrlFront.url : null,
+//             imageUrlBack: item.imageUrlBack ? item.imageUrlBack.url : null,
+//             // Censor reportedBy/claimedBy info if needed for privacy in the detail view
+//             reportedBy: item.reportedBy ? {
+//                 id: item.reportedBy.id,
+//                 name: item.reportedBy.name,
+//                 email: item.reportedBy.email, 
+//                 phone: item.reportedBy.phone, 
+//             } : null,
+//             claimedBy: item.claimedBy ? {
+//                 id: item.claimedBy.id,
+//                 name: item.claimedBy.name,
+//                 email: item.claimedBy.email,
+//                 phone: item.claimedBy.phone,
+//             } : null,
+//         };
+//         delete responseItem.imageUrlFrontId;
+//         delete responseItem.imageUrlBackId;
+
+//         return res.status(200).json(responseItem);
+
+//     } catch (error) {
+//         console.error("Error fetching item details:", error);
+//         if (error instanceof Prisma.PrismaClientKnownRequestError) {
+//             // Record not found (should be caught by !item check, but defensive)
+//             if (error.code === 'P2025') {
+//                 return res.status(404).json({ error: "Item not found." });
+//             }
+//             // Invalid input data (e.g., malformed ID)
+//             if (error.code === 'P2000') {
+//                 return res.status(400).json({ error: "Invalid Item ID format." });
+//             }
+//         }
+//         return res.status(500).json({ error: "Internal server error while fetching item details." });
+//     }
+// };
+
 export const getItemDetails = async (req, res) => {
     try {
         const { id } = req.params;
-        if (!id) {
-            return res.status(400).json({ error: "Item ID is required." });
-        }
+        // Check who is requesting (from optionalSignin)
+        const userId = req.user?.id;
+        const userRole = req.user?.role;
 
-        // Fetch the item by ID
         const item = await prisma.item.findUnique({
             where: { id: id },
             include: {
                 reportedBy: { select: { id: true, name: true, email: true, phone: true } },
                 claimedBy: { select: { id: true, name: true, email: true, phone: true } },
-                imageUrlFront: true, // Include the related File object
-                imageUrlBack: true,  // Include the related File object
+                imageUrlFront: true,
+                imageUrlBack: true,
             }
         });
 
-        // Handle item not found
-        if (!item) {
-            return res.status(404).json({ error: "Item not found." });
-        }
+        if (!item) return res.status(404).json({ error: "Item not found." });
+
+        // --- PRIVACY LOGIC ---
+        // Determine if the requester is "Authorized" to see full contact details
+        const isOwner = userId && item.reportedById === userId;
+        const isClaimant = userId && item.claimedById === userId;
+        const isAdmin = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
+
+        // Show contact info ONLY if: Admin, Owner, or the item is claimed by the viewer
+        const showContactInfo = isAdmin || isOwner || isClaimant;
 
         const responseItem = {
             ...item,
             imageUrlFront: item.imageUrlFront ? item.imageUrlFront.url : null,
             imageUrlBack: item.imageUrlBack ? item.imageUrlBack.url : null,
-            // Censor reportedBy/claimedBy info if needed for privacy in the detail view
+
+            // Mask ReportedBy details
             reportedBy: item.reportedBy ? {
                 id: item.reportedBy.id,
                 name: item.reportedBy.name,
-                email: item.reportedBy.email, 
-                phone: item.reportedBy.phone, 
+                // Only show email/phone if authorized
+                email: showContactInfo ? item.reportedBy.email : null,
+                phone: showContactInfo ? item.reportedBy.phone : null,
             } : null,
+
+            // Mask ClaimedBy details (Usually only Admin or Reporter should see this)
             claimedBy: item.claimedBy ? {
                 id: item.claimedBy.id,
                 name: item.claimedBy.name,
-                email: item.claimedBy.email,
-                phone: item.claimedBy.phone,
+                email: (isAdmin || isOwner) ? item.claimedBy.email : null,
+                phone: (isAdmin || isOwner) ? item.claimedBy.phone : null,
             } : null,
         };
+
+        // Clean up internal IDs
         delete responseItem.imageUrlFrontId;
         delete responseItem.imageUrlBackId;
 
@@ -222,17 +295,7 @@ export const getItemDetails = async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching item details:", error);
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            // Record not found (should be caught by !item check, but defensive)
-            if (error.code === 'P2025') {
-                return res.status(404).json({ error: "Item not found." });
-            }
-            // Invalid input data (e.g., malformed ID)
-            if (error.code === 'P2000') {
-                return res.status(400).json({ error: "Invalid Item ID format." });
-            }
-        }
-        return res.status(500).json({ error: "Internal server error while fetching item details." });
+        return res.status(500).json({ error: "Internal server error." });
     }
 };
 
@@ -612,8 +675,8 @@ export const deleteItem = async (req, res) => {
                 id: true,
                 title: true, // For audit log
                 reportedById: true,
-                imageUrlFrontId: true, 
-                imageUrlBackId: true,  
+                imageUrlFrontId: true,
+                imageUrlBackId: true,
             },
         });
 
@@ -676,18 +739,18 @@ export const claimItem = async (req, res) => {
     }
 
     try {
-        const { id } = req.params; 
-        const userId = req.user.id; 
+        const { id } = req.params;
+        const userId = req.user.id;
 
         // 1. Fetch the item and necessary details
         const item = await prisma.item.findUnique({
             where: { id: id },
             select: {
                 id: true,
-                status: true, 
-                reportedById: true, 
-                claimedById: true, 
-                title: true, 
+                status: true,
+                reportedById: true,
+                claimedById: true,
+                title: true,
             },
         });
 
@@ -720,17 +783,14 @@ export const claimItem = async (req, res) => {
                 claimedBy: { connect: { id: userId } }, // Link the claiming user
                 expiresAt: null, // Clear expiry date once claimed
             },
-            select: { // Select fields for the response
+            select: {
                 id: true,
                 title: true,
                 status: true,
-                reportedBy: { // Include reporter details for potential notification trigger
-                    select: { id: true, email: true, name: true }
-                },
-                claimedBy: { // Include claimant details in response
-                    select: { id: true, name: true }
-                }
+                reportedBy: { select: { id: true, email: true, name: true, phone: true } },
+                claimedBy: { select: { id: true, name: true, email: true, phone: true } }
             }
+
         });
 
         // 7. Create Audit Log for CLAIM_ITEM action
@@ -790,14 +850,26 @@ export const claimItem = async (req, res) => {
             console.error("Failed to trigger confirmation notification for claimant:", notificationError);
         }
 
+
+        if (updatedItem.reportedBy && updatedItem.claimedBy) {
+            // Send email to Reporter and Claimant
+            await sendHandoverEmail(updatedItem.reportedBy, updatedItem.claimedBy, updatedItem);
+        }
+
         // 9. Send success response
         return res.status(200).json({
-            message: "Item claimed successfully. The reporter has been notified.",
+            message: "Item claimed successfully. Check your email for contact details.",
             item: { // Return only relevant fields in response
                 id: updatedItem.id,
                 title: updatedItem.title,
                 status: updatedItem.status,
-                claimedBy: { // Include minimal claimant details in response
+
+                reportedBy: {
+                    name: updatedItem.reportedBy.name,
+                    email: updatedItem.reportedBy.email,
+                    phone: updatedItem.reportedBy.phone
+                },
+                claimedBy: { 
                     id: updatedItem.claimedBy?.id,
                     name: updatedItem.claimedBy?.name
                 }
@@ -903,7 +975,7 @@ export const getItems = async (req, res) => {
             });
         }
 
-       
+
         const items = await prisma.item.findMany({
             where: finalWhere,
             orderBy: { createdAt: 'desc' },
@@ -930,7 +1002,7 @@ export const getItems = async (req, res) => {
         const totalItems = await prisma.item.count({ where: finalWhere }); // Use the same 'where'
         const totalPages = Math.ceil(totalItems / limit);
 
-       
+
         const itemsWithPublicUrls = items.map(item => ({
             ...item,
             imageUrlFront: item.imageUrlFront ? item.imageUrlFront.url : null,
@@ -1140,7 +1212,7 @@ export const confirmItemReceived = async (req, res) => {
                 status: ItemStatus.RETURNED,
                 // Keep claimedBy as is
             },
-            select: { // Select fields for response and notifications
+            select: { 
                 id: true,
                 title: true,
                 status: true,
@@ -1156,7 +1228,7 @@ export const confirmItemReceived = async (req, res) => {
                 data: {
                     userId: userId,
                     itemId: updatedItem.id,
-                    action: AuditAction.UPDATE_ITEM_STATUS, // Or a new enum like CONFIRM_ITEM_RECEIVED
+                    action: AuditAction.UPDATE_ITEM_STATUS, 
                     details: `Item "${updatedItem.title}" status changed to RETURNED (confirmed received) by user ${userId}.`,
                     ipAddress: req.ip,
                     userAgent: req.headers['user-agent'],
@@ -1169,12 +1241,12 @@ export const confirmItemReceived = async (req, res) => {
 
         // 7. Trigger Notifications
         // Notify the reporter that the claimant has confirmed receiving the item
-        if (updatedItem.reportedBy && updatedItem.reportedBy.id !== userId) { // Ensure there's a reporter and it's not the user confirming
+        if (updatedItem.reportedBy && updatedItem.reportedBy.id !== userId) { 
             try {
                 await sendNotification({
                     userId: updatedItem.reportedBy.id, // Notify the reporter
                     itemId: updatedItem.id,
-                    type: NotificationType.ITEM_UPDATED, // Or a specific type like ITEM_RECEIPT_CONFIRMED
+                    type: NotificationType.ITEM_UPDATED, 
                     message: `The item "${updatedItem.title}" has been confirmed as received by the claimant, ${updatedItem.claimedBy?.name || 'the claimant'}.`,
                     pushTitle: `Item Confirmed Received: "${updatedItem.title}"`,
                     data: { itemId: updatedItem.id, status: updatedItem.status }
@@ -1210,7 +1282,7 @@ export const confirmItemReceived = async (req, res) => {
 };
 
 
-// --- New Controller function to cancel a claim on an item ---
+// Controller function to cancel a claim on an item 
 
 export const cancelItemClaim = async (req, res) => {
     if (!req.user) {
@@ -1227,7 +1299,7 @@ export const cancelItemClaim = async (req, res) => {
             select: {
                 id: true,
                 status: true,
-                reportedById: true, 
+                reportedById: true,
                 claimedById: true, // This is the ID we are about to clear
                 title: true,
             },
@@ -1274,7 +1346,7 @@ export const cancelItemClaim = async (req, res) => {
                 data: {
                     userId: userId, // Who performed the cancellation
                     itemId: updatedItem.id,
-                    action: 'UPDATE_ITEM_STATUS', 
+                    action: 'UPDATE_ITEM_STATUS',
                     details: `Claim by user (ID: ${item.claimedById}) was cancelled by ${req.user.role} (ID: ${userId}). Item returned to FOUND status.`,
                     ipAddress: req.ip,
                     userAgent: req.headers['user-agent'],
@@ -1297,7 +1369,7 @@ export const cancelItemClaim = async (req, res) => {
 
         // Notify the OLD Claimant (using the ID we saved in step 1)
         if (item.claimedById && item.claimedById !== userId) {
-             await sendNotification({
+            await sendNotification({
                 userId: item.claimedById,
                 itemId: updatedItem.id,
                 type: 'ITEM_UPDATED',

@@ -67,3 +67,42 @@ export const updateSystemSettings = async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
+
+export const getAuditLogs = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+
+        // Fetch logs with User and Item details included
+        const logs = await prisma.auditLog.findMany({
+            skip: skip,
+            take: limit,
+            orderBy: { timestamp: 'desc' }, // Newest first
+            include: {
+                user: {
+                    select: { name: true, email: true, role: true }
+                },
+                item: {
+                    select: { title: true, id: true }
+                }
+            }
+        });
+
+        const totalLogs = await prisma.auditLog.count();
+
+        res.json({
+            logs,
+            pagination: {
+                totalItems: totalLogs,
+                totalPages: Math.ceil(totalLogs / limit),
+                currentPage: page,
+                itemsPerPage: limit
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching audit logs:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
