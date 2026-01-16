@@ -5,12 +5,12 @@ importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-comp
 //    because service workers don't access Vite env vars easily without build steps)
 //    REPLACE THESE VALUES WITH YOUR ACTUAL FIREBASE CONFIG
 const firebaseConfig = {
-  apiKey: "AIzaSyCU1KKODDD5AvAX8H5cBFYUfTWveVuZebo",
-  authDomain: "push-notification-f4aaa.firebaseapp.com",
-  projectId: "push-notification-f4aaa",
-  storageBucket: "push-notification-f4aaa.firebasestorage.app",
-  messagingSenderId: "422910494764",
-  appId: "1:422910494764:web:bedc2820c29425c462e989"
+  apiKey: "${VITE_FIREBASE_API_KEY}",
+  authDomain: "${VITE_FIREBASE_AUTH_DOMAIN}",
+  projectId: "${VITE_FIREBASE_PROJECT_ID}",
+  storageBucket: "${VITE_FIREBASE_STORAGE_BUCKET}",
+  messagingSenderId: "${VITE_FIREBASE_MESSAGING_SENDER_ID}",
+  appId: "${VITE_FIREBASE_APP_ID}"
 };
 
 firebase.initializeApp(firebaseConfig);
