@@ -3,12 +3,17 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginUser } from '../features/auth/authSlice'; // Import the loginUser thunk
 import { addNotification, clearAllNotifications, NotificationType } from '../features/notifications/notificationsSlice';
+import { axiosInstance } from '../util/axiosInstance';
 
 import './login.css';
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+
+    // state to toggle the Resend button
+    const [showResend, setShowResend] = useState(false);
+    const [isResending, setIsResending] = useState(false);
 
     const dispatch = useDispatch();
     // Select state from the Redux auth slice
@@ -29,12 +34,19 @@ const Login = () => {
 
 
         }
-    }, [isAuthenticated, navigate, dispatch]); // Add dispatch and navigate to dependencies for best practice
+    }, [isAuthenticated, navigate, dispatch]);
 
-    // Effect to show error notifications
+  
+    // Effect to handle errors
     useEffect(() => {
         if (error) {
-            // Show an error notification using the message from the auth slice state
+            // Check if the error is specifically about verification
+            if (error.toLowerCase().includes('verify your email')) {
+                setShowResend(true); // Show the button
+            } else {
+                setShowResend(false);
+            }
+
             dispatch(addNotification({
                 message: `Login failed: ${error}`,
                 type: NotificationType.ERROR,
@@ -59,9 +71,6 @@ const Login = () => {
 
 
 
-
-
-
     const handleSubmit = (e) => {
         e.preventDefault(); // Prevent default form submission
 
@@ -77,6 +86,28 @@ const Login = () => {
         // Dispatch the loginUser async thunk with credentials
         dispatch(loginUser({ email, password }));
     };
+
+
+
+    // ---  Resend Verification ---
+    const handleResendVerification = async () => {
+        if (!email) return;
+        setIsResending(true);
+        try {
+            await axiosInstance.post('/api/auth/resend-verification', { email });
+            dispatch(addNotification({
+                message: 'Verification email resent! Please check your inbox.',
+                type: NotificationType.SUCCESS
+            }));
+            setShowResend(false); // Hide button after success
+        } catch (err) {
+            const msg = err.response?.data?.error || 'Failed to resend verification.';
+            dispatch(addNotification({ message: msg, type: NotificationType.ERROR }));
+        } finally {
+            setIsResending(false);
+        }
+    };
+
 
     // The full URL of our backend server
     const backendUrl = import.meta.env.VITE_REACT_APP_API_BASE_URL;
@@ -102,6 +133,25 @@ const Login = () => {
             <div className="form-container">
                 <h2>Login</h2>
                 {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
+
+                {/* --- Conditional Resend Button --- */}
+                {showResend && (
+                    <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#fff3cd', borderRadius: '5px' }}>
+                        <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: '#856404' }}>
+                            Account not verified?
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleResendVerification}
+                            disabled={isResending}
+                            style={{ backgroundColor: '#856404', padding: '8px', fontSize: '0.9rem' }}
+                        >
+                            {isResending ? 'Sending...' : 'Resend Verification Email'}
+                        </button>
+                    </div>
+                )}
+
+
                 <form onSubmit={handleSubmit}>
                     <input
                         type="email"
