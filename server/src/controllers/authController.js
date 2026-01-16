@@ -114,7 +114,7 @@ export const loginUser = async (req, res) => {
             return res.status(400).json({ error: `This email is registered via ${user.provider}. Please use ${user.provider} login.` });
         }
 
-        //Check if user is email verified (Optional for login, but good practice if required)
+        //Check if user is email verified 
         // If you need email verification for local logins, uncomment this:
         if (!user.emailVerified) {
             return res.status(403).json({ error: "Please verify your email address before logging in." });
@@ -466,30 +466,60 @@ export const verifyEmail = async (req, res) => {
 
 
 export const resendVerificationEmail = async (req, res) => {
-    const { email } = req.body;
-    const user = await prisma.user.findUnique({
-        where: { email },
-    });
+    try {
+        const { email } = req.body;
+        
+        // 1. Validate Input
+        if (!email) {
+            return res.status(400).json({ error: "Email is required" });
+        }
 
-    if (!user || user.emailVerified) {
-        return res.status(400).json({ error: "Invalide request" });
+        // 2. Find User
+        const user = await prisma.user.findUnique({
+            where: { email: email.toLowerCase() }, // Ensure lowercase normalization
+        });
+
+        // 3. Check if user exists and needs verification
+        if (!user) {
+            // Security: Don't reveal if user doesn't exist, just say sent
+            return res.json({ message: "If an account exists, a verification email has been sent." });
+        }
+
+        if (user.emailVerified) {
+            return res.status(400).json({ error: "This account is already verified. Please log in." });
+        }
+
+        // 4. Generate Token & Update DB
+        const newToken = generateVerificationToken();
+        const hashedToken = await bcrypt.hash(newToken, 12); // Hash token for security
+        
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                emailVerificationToken: hashedToken,
+                emailVerificationExpires: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour
+            },
+        });
+
+        // 5. Send Email (Wrapped in inner try/catch to handle email service failures specifically)
+        try {
+            await sendVerificationEmail(user.email, newToken);
+            return res.json({ message: "Verification email resent successfully." });
+        } catch (emailError) {
+            console.error("Failed to send verification email (Credential/Network Error):", emailError.message);
+            // Return a 500 so the frontend knows it failed, but DO NOT crash the server
+            return res.status(500).json({ 
+                error: "Unable to send email at this time. Please contact support or try again later." 
+            });
+        }
+
+    } catch (error) {
+        // Catch database or other unexpected errors
+        console.error("Error in resendVerificationEmail:", error);
+        return res.status(500).json({ error: "Internal server error" });
     }
-
-    const newToken = generateVerificationToken();
-
-    await prisma.user.update({
-        where: { id: user.id },
-        data: {
-            emailVerificationToken: newToken,
-            emailVerificationExpires: new Date(Date.now() + 1 * 60 * 60 * 1000), //1hr
-        },
-    });
-
-    await sendVerificationEmail(user.email, newToken);
-
-    return res.json({ message: "Verification email resent" });
-
 };
+
 
 //Forgot Password Request: The user  provides their email address 
 // to the server. The server finds the user, generates a unique, 
