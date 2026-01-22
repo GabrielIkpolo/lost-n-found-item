@@ -43,6 +43,7 @@ import SystemLogsPage from './pages/SystemLogsPage';
 import { requestFcmToken, onMessageListener } from './util/firebase'; // Import Firebase helpers
 import { saveFcmToken } from './features/userSlice'; // Import the new thunk
 import { addNotification, NotificationType } from './features/notifications/notificationsSlice';
+import HelpPage from './pages/HelpPage';
 
 
 // Import ItemStatus enum from backend or define relevant roles here
@@ -210,6 +211,10 @@ const routerConfig = [
         )
       },
 
+      {
+        path: 'help',
+        element: <HelpPage />
+      },
 
 
 
@@ -222,7 +227,7 @@ const routerConfig = [
 
 function App() {
   const dispatch = useDispatch();
-  const { isAuthLoading,  isAuthenticated  } = useSelector((state) => state.auth);
+  const { isAuthLoading, isAuthenticated } = useSelector((state) => state.auth);
 
   const router = createBrowserRouter(routerConfig);
 
@@ -263,11 +268,11 @@ function App() {
     }
   }, [dispatch])
 
-   // --- Handle Push Notifications ---
+  // --- Handle Push Notifications ---
   useEffect(() => {
     // Only run if user is logged in
     if (isAuthenticated) {
-      
+
       // 1. Request Permission and Get Token
       const initializeFirebase = async () => {
         const token = await requestFcmToken();
@@ -300,7 +305,7 @@ function App() {
   }
 
 
-  
+
 
 
   return (
