@@ -63,8 +63,10 @@ body {
   width: 100%;
   padding: 12px;
   margin-top: 20px;
-  background-color: #007bff;
-  color: #fff;
+  /* background-color: #007bff;
+  color: #fff; */
+  background-color: var(--header-nav-color);
+  color: var(--yellowish-color);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -74,7 +76,8 @@ body {
 }
 
 .sidebar button:hover {
-  background-color: #0056b3;
+  /* background-color: #0056b3; */
+  background-color: var(--header-nav-color);
 }
 
 
@@ -125,8 +128,10 @@ body {
 .mobile-sidebar button {
   padding: 12px;
   margin-top: 20px;
-  background-color: #007bff;
-  color: #fff;
+  /* background-color: #007bff;
+  color: #fff; */
+  background-color: var(--header-nav-color);
+  color: var(--yellowish-color);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -136,7 +141,8 @@ body {
 }
 
 .mobile-sidebar button:hover {
-  background-color: #0056b3;
+  /* background-color: #0056b3; */
+  background-color: var(--header-nav-color);
 }
 
 /* Main Content */
@@ -190,7 +196,7 @@ body {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   overflow: hidden;
 
- }
+}
 
 .item-card:hover {
   transform: translateY(-5px);
@@ -207,12 +213,14 @@ body {
 .item-image {
   width: 100%;
   /* height: auto; */
-  height: 150px; /* Set a fixed height for consistency */
+  height: 150px;
+  /* Set a fixed height for consistency */
   /* object-fit: contain; */
-  object-fit: contain; 
+  object-fit: contain;
   border-radius: 8px;
   margin-bottom: 10px;
-  flex-shrink: 0; /* Prevent image from shrinking */
+  flex-shrink: 0;
+  /* Prevent image from shrinking */
 }
 
 .item-card p {
@@ -254,8 +262,9 @@ body {
 }
 
 .pagination button.active {
-  background-color: #007bff;
-  color: #fff;
+  /* background-color: #007bff; */
+  background-color: var(--header-nav-color);
+  color: var(--yellowish-color);
 }
 
 .pagination button:hover {
@@ -265,25 +274,34 @@ body {
 
 /* Style for the "View Details" button */
 .btn-details {
-  display: block; /* Make button take full width */
-  width: 100%; /* Ensure it spans the card width */
+  display: block;
+  /* Make button take full width */
+  width: 100%;
+  /* Ensure it spans the card width */
   padding: 10px 15px;
-  margin-top: 15px; /* Add space above the button */
-  background-color: #007bff; /* Primary button color */
-  color: #fff; /* White text */
+  margin-top: 15px;
+  /* Add space above the button */
+  background-color: var(--header-nav-color);
+  color: var(--yellowish-color);
+  /* White text */
   border: none;
-  border-radius: 8px; /* Rounded corners */
+  border-radius: 8px;
+  /* Rounded corners */
   cursor: pointer;
   transition: background-color 0.3s ease, opacity 0.3s ease;
   font-size: 14px;
   font-weight: 500;
-  text-align: center; /* Center text */
-  text-decoration: none; /* Remove underline if it was a link styled as button */
-  margin-top: auto; /* Pushes the button to the bottom of the flex container */
+  text-align: center;
+  /* Center text */
+  text-decoration: none;
+  /* Remove underline if it was a link styled as button */
+  margin-top: auto;
+  /* Pushes the button to the bottom of the flex container */
 }
 
 .btn-details:hover {
-  background-color: #0056b3; /* Darker shade on hover */
+  background-color: #041930;
+  /* Darker shade on hover */
 }
 
 .btn-details:disabled {

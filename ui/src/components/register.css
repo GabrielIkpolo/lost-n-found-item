@@ -1,4 +1,3 @@
-
 .container {
   max-width: 25rem;
   width: 100%;
@@ -58,15 +57,17 @@ input[type="password"] {
 
 input[type="email"]:focus,
 input[type="password"]:focus {
-  border-color: var(--yellowish-color); 
+  border-color: var(--yellowish-color);
   outline: none;
 }
 
 button[type="submit"] {
   padding: 12px 15px;
   font-size: 16px;
-  background-color: #007BFF; /* Primary color */
-  color: #FFF;
+  /* background-color: #007BFF; 
+  color: #FFF; */
+  background-color: var(--header-nav-color);
+  color: var(--yellowish-color);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -74,7 +75,8 @@ button[type="submit"] {
 }
 
 button[type="submit"]:hover {
-  background-color: #0056b3; /* Darker shade of primary color */
+  background-color: var(--header-nav-color);
+  color: var(--yellowish-color);
 }
 
 .social-login {
@@ -99,23 +101,26 @@ button[type="submit"]:hover {
 }
 
 .google-btn {
-  background-color: #fff;
-  color: #007BFF; /* Primary color */
+  /* background-color: #fff;
+  color: #007BFF; */
+  background-color: var(--header-nav-color);
+  color: var(--yellowish-color);
+  /* Primary color */
 }
 
 .google-btn:hover {
-  background-color: #007BFF; /* Primary color */
-  color: #fff;
+  background-color: var(--header-nav-color);
+  color: var(--yellowish-color);
 }
 
 .facebook-btn {
-  background-color: #fff;
-  color: #1877F2; /* Facebook blue */
+  background-color: var(--header-nav-color);
+  color: var(--yellowish-color);
 }
 
 .facebook-btn:hover {
-  background-color: #1877F2; /* Facebook blue */
-  color: #fff;
+  background-color: var(--header-nav-color);
+  color: var(--yellowish-color);
 }
 
 /* Responsive Design */
