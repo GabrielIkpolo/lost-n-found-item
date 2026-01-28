@@ -107,34 +107,103 @@ export const sendPasswordResetEmail = async (toEmail, token, resetUrl) => {
 /**
  * Sends handover instructions to both the reporter and the claimant.
  */
-export const sendHandoverEmail = async (reporter, claimant, item) => {
-    const safeLocation = "Campus Security Post (Main Gate)"; // Default safe spot
+// export const sendHandoverEmail = async (reporter, claimant, item) => {
+//     const safeLocation = "Campus Security Post (Main Gate)"; // Default safe spot
 
-    // 1. Email to the Reporter (Finder)
-    const reporterSubject = `Action Required: Someone claimed "${item.title}"`;
+//     // 1. Email to the Reporter (Finder)
+//     const reporterSubject = `Action Required: Someone claimed "${item.title}"`;
+//     const reporterHtml = `
+//         <div style="font-family: Arial, sans-serif; color: #333;">
+//             <h2>Good news, ${reporter.name}!</h2>
+//             <p>The item you reported found (<strong>${item.title}</strong>) has been claimed by <strong>${claimant.name}</strong>.</p>
+//             <hr />
+//             <h3>Claimant Contact Details:</h3>
+//             <p><strong>Email:</strong> ${claimant.email}</p>
+//             <p><strong>Phone:</strong> ${claimant.phone || 'Not provided'}</p>
+//             <hr />
+//             <p>Please contact them to arrange a handover.</p>
+//             <p style="background-color: #e7f3fe; padding: 10px; border-left: 5px solid #2196F3;">
+//                 <strong>Safety Tip:</strong> We recommend meeting at the <strong>${safeLocation}</strong> or another public, well-lit area on campus for the exchange.
+//             </p>
+//             <p>Once returned, please log in and mark the item as <strong>RETURNED</strong>.</p>
+//         </div>
+//     `;
+
+//     // 2. Email to the Claimant (Owner)
+//     const claimantSubject = `Claim Successful: "${item.title}"`;
+//     const claimantHtml = `
+//         <div style="font-family: Arial, sans-serif; color: #333;">
+//             <h2>Hello ${claimant.name},</h2>
+//             <p>You have successfully claimed <strong>${item.title}</strong>.</p>
+//             <hr />
+//             <h3>Finder Contact Details:</h3>
+//             <p><strong>Name:</strong> ${reporter.name}</p>
+//             <p><strong>Email:</strong> ${reporter.email}</p>
+//             <p><strong>Phone:</strong> ${reporter.phone || 'Not provided'}</p>
+//             <hr />
+//             <p>Please contact the finder to retrieve your item.</p>
+//             <p style="background-color: #e7f3fe; padding: 10px; border-left: 5px solid #2196F3;">
+//                 <strong>Safety Tip:</strong> We recommend meeting at the <strong>${safeLocation}</strong>.
+//             </p>
+//         </div>
+//     `;
+
+//     // Send both emails in parallel
+//     try {
+//         await Promise.all([
+//             sendEmail(reporter.email, reporterSubject, "Please view HTML version", reporterHtml),
+//             sendEmail(claimant.email, claimantSubject, "Please view HTML version", claimantHtml)
+//         ]);
+//         console.log(`Handover emails sent for item ${item.id}`);
+//     } catch (error) {
+//         console.error("Error sending handover emails:", error);
+//         // Don't throw, just log. We don't want to roll back the claim transaction just because email failed.
+//     }
+// };
+
+/**
+ * Sends handover instructions with Proof of Ownership message.
+ */
+export const sendHandoverEmail = async (reporter, claimant, item, proofMessage) => {
+    const safeLocation = "Campus Security Post (Main Gate)";
+
+    // 1. Email to the Reporter (Finder) - INCLUDES PROOF
+    const reporterSubject = `Action Required: Claim request for "${item.title}"`;
     const reporterHtml = `
         <div style="font-family: Arial, sans-serif; color: #333;">
             <h2>Good news, ${reporter.name}!</h2>
             <p>The item you reported found (<strong>${item.title}</strong>) has been claimed by <strong>${claimant.name}</strong>.</p>
+            
+            <div style="background-color: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 5px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #555;">Claimant's Proof of Ownership:</h3>
+                <p style="font-style: italic; font-size: 1.1em; color: #21135d;">
+                    "${proofMessage || 'No specific detail provided.'}"
+                </p>
+                <p style="font-size: 0.9em; color: #666;">
+                    *Please verify this matches the item before handing it over.*
+                </p>
+            </div>
+
             <hr />
             <h3>Claimant Contact Details:</h3>
             <p><strong>Email:</strong> ${claimant.email}</p>
             <p><strong>Phone:</strong> ${claimant.phone || 'Not provided'}</p>
             <hr />
+            
             <p>Please contact them to arrange a handover.</p>
             <p style="background-color: #e7f3fe; padding: 10px; border-left: 5px solid #2196F3;">
-                <strong>Safety Tip:</strong> We recommend meeting at the <strong>${safeLocation}</strong> or another public, well-lit area on campus for the exchange.
+                <strong>Safety Tip:</strong> We recommend meeting at the <strong>${safeLocation}</strong>.
             </p>
-            <p>Once returned, please log in and mark the item as <strong>RETURNED</strong>.</p>
         </div>
     `;
 
-    // 2. Email to the Claimant (Owner)
+    // 2. Email to the Claimant (Owner) - SAME AS BEFORE
     const claimantSubject = `Claim Successful: "${item.title}"`;
     const claimantHtml = `
         <div style="font-family: Arial, sans-serif; color: #333;">
             <h2>Hello ${claimant.name},</h2>
-            <p>You have successfully claimed <strong>${item.title}</strong>.</p>
+            <p>You have successfully initiated a claim for <strong>${item.title}</strong>.</p>
+            <p>The finder has been notified with your proof of ownership description.</p>
             <hr />
             <h3>Finder Contact Details:</h3>
             <p><strong>Name:</strong> ${reporter.name}</p>
@@ -142,13 +211,9 @@ export const sendHandoverEmail = async (reporter, claimant, item) => {
             <p><strong>Phone:</strong> ${reporter.phone || 'Not provided'}</p>
             <hr />
             <p>Please contact the finder to retrieve your item.</p>
-            <p style="background-color: #e7f3fe; padding: 10px; border-left: 5px solid #2196F3;">
-                <strong>Safety Tip:</strong> We recommend meeting at the <strong>${safeLocation}</strong>.
-            </p>
         </div>
     `;
 
-    // Send both emails in parallel
     try {
         await Promise.all([
             sendEmail(reporter.email, reporterSubject, "Please view HTML version", reporterHtml),
@@ -157,6 +222,5 @@ export const sendHandoverEmail = async (reporter, claimant, item) => {
         console.log(`Handover emails sent for item ${item.id}`);
     } catch (error) {
         console.error("Error sending handover emails:", error);
-        // Don't throw, just log. We don't want to roll back the claim transaction just because email failed.
     }
 };

@@ -1,7 +1,7 @@
 import express from 'express';
 import {
     createItem, getItems, getItemDetails, updateItem, deleteItem, claimItem,
-    markItemReturned, confirmItemReceived, cancelItemClaim
+    markItemReturned, confirmItemReceived, cancelItemClaim, reportItem
 } from '../controllers/itemController.js';
 import { requireSignin, isAdmin, optionalSignin } from '../helpers/authMiddleware.js';
 import { publicApiLimiter, itemActionLimiter } from '../middleware/rateLimiter.js';
@@ -67,26 +67,34 @@ const itemRoutes = (upload) => {
 
     // Endpoint to mark an item as RETURNED (typically by the reporter)
     router.put(
-        '/:id/status/returned', 
-        requireSignin, 
-        itemActionLimiter, 
-        markItemReturned 
+        '/:id/status/returned',
+        requireSignin,
+        itemActionLimiter,
+        markItemReturned
     );
 
     // Endpoint to confirm receiving a claimed item (typically by the claimant)
     router.put(
-        '/:id/status/received', 
-        requireSignin, 
+        '/:id/status/received',
+        requireSignin,
         itemActionLimiter,
-        confirmItemReceived 
+        confirmItemReceived
     );
 
     // Endpoint to cancel a claim on an item (typically by the claimant)
     router.put(
-        '/:id/status/cancel-claim', 
-        requireSignin, 
-        itemActionLimiter, 
-        cancelItemClaim 
+        '/:id/status/cancel-claim',
+        requireSignin,
+        itemActionLimiter,
+        cancelItemClaim
+    );
+
+    // Route to report an item
+    router.post(
+        '/:id/report',
+        requireSignin,
+        itemActionLimiter,
+        reportItem
     );
 
     return router;

@@ -72,6 +72,8 @@ const initialState = {
   cancelClaimError: null,
   cancelClaimSuccess: false,
 
+  isReporting: false,
+  reportError: null,
 
   // ------------------------------------------------------
 };
@@ -240,13 +242,12 @@ export const fetchMyItems = createAsyncThunk(
 );
 
 
-
-
 // --- Define a new async thunk to claim an item ---
-// Expects the item ID as payload
+//  Expects an object { itemId, proofMessage }
 export const claimItem = createAsyncThunk(
-  'items/claimItem', // Action type string
-  async (itemId, { rejectWithValue, getState }) => {
+  // Action type string
+  'items/claimItem',
+  async ({ itemId, proofMessage }, { rejectWithValue, getState }) => {
     try {
       // --- This endpoint requires authentication ---
       const token = getState().auth.token;
@@ -259,20 +260,18 @@ export const claimItem = createAsyncThunk(
       // ---------------------------------------------
 
       // Make the API call to claim the item (POST /api/items/claim/:id)
-      // We don't need a request body for this endpoint typically
-      const response = await axios.post(`/api/items/claim/${itemId}`, {}, { headers });
+      const response = await axios.post(`/api/items/claim/${itemId}`, { proofMessage }, { headers });
 
-      // Assuming your backend returns the updated item object on success
-      return response.data; // This will be the payload for the 'fulfilled' action (the updated item)
+      return response.data;
 
     } catch (error) {
-      let errorMessage = 'Failed to claim item.'; // Specific error message
+      let errorMessage = 'Failed to claim item.';
       if (error.response) {
         // Check for specific backend validation errors (e.g., already claimed, not FOUND, user is reporter)
         errorMessage = error.response.data?.error || error.response.data?.message || `Server Error: ${error.response.status}`;
         if (error.response.status === 401 || error.response.status === 403) {
           errorMessage = 'Unauthorized or forbidden to claim this item.';
-        } else if (error.response.status === 400) { // Bad Request, likely due to validation
+        } else if (error.response.status === 400) {
           // Keep backend's specific error message for 400 errors
           errorMessage = error.response.data?.error || error.response.data?.message || 'Invalid request to claim item.';
         }
@@ -282,7 +281,7 @@ export const claimItem = createAsyncThunk(
         errorMessage = `Error sending request: ${error.message}`;
       }
       console.error(`Claim item ${itemId} API call failed:`, error);
-      return rejectWithValue(errorMessage); // Return the error message
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -301,9 +300,9 @@ export const updateItem = createAsyncThunk(
       }
       const headers = {
         Authorization: `Bearer ${token}`,
-         'Content-Type': 'multipart/form-data',
+        'Content-Type': 'multipart/form-data',
       };
-      
+
       const response = await axios.put(`/api/items/${itemId}`, formData, { headers });
 
       // Assuming your backend returns the updated item object on success
@@ -479,6 +478,23 @@ export const cancelItemClaim = createAsyncThunk(
 );
 
 
+// --- Thunk to Report Item ---
+export const reportItem = createAsyncThunk(
+  'items/reportItem',
+  async ({ itemId, reason, details }, { rejectWithValue, getState }) => {
+    try {
+      const token = getState().auth.token;
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const response = await axios.post(`/api/items/${itemId}/report`, { reason, details }, { headers });
+      return response.data;
+    } catch (error) {
+      const msg = error.response?.data?.error || 'Failed to report item.';
+      return rejectWithValue(msg);
+    }
+  }
+);
+
 
 // -----------------------------------------------------
 
@@ -601,6 +617,10 @@ const itemsSlice = createSlice({
       state.isCancellingClaim = false;
       state.cancelClaimError = null;
       state.cancelClaimSuccess = false;
+    },
+    clearReportItem: (state) => {
+      state.isReporting = false;
+      state.reportError = null;
     },
 
     // ------------------------------------------
@@ -905,7 +925,11 @@ const itemsSlice = createSlice({
         state.cancelClaimError = action.payload || 'Failed to cancel item claim';
         console.error('Cancel item claim failed:', state.cancelClaimError);
       })
-
+      // Report Item Handlers
+      .addCase(reportItem.fulfilled, (state) => {
+        // We don't necessarily need to update the item list, just notify success
+        // Success notification is handled by the component or a general listener
+      });
 
     // ---------------------------------------------
   },
@@ -918,7 +942,7 @@ export const { setPagination, clearItems,
   clearUpdateStatus, clearDeleteStatus,
   clearMarkReturnedStatus,
   clearConfirmReceivedStatus,
-  clearCancelClaimStatus } = itemsSlice.actions; // Export clearMyItems
+  clearCancelClaimStatus,  } = itemsSlice.actions; // Export clearMyItems
 
 
 // Export the reducer as the default export

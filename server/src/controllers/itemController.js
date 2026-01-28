@@ -740,6 +740,7 @@ export const claimItem = async (req, res) => {
 
     try {
         const { id } = req.params;
+        const { proofMessage } = req.body;
         const userId = req.user.id;
 
         // 1. Fetch the item and necessary details
@@ -800,14 +801,13 @@ export const claimItem = async (req, res) => {
                     userId: userId, // User who performed the claim
                     itemId: updatedItem.id,
                     action: 'CLAIM_ITEM',
-                    details: `Item "${updatedItem.title}" claimed by user ${userId}.`,
+                    details: `Item "${updatedItem.title}" claimed. Proof: "${proofMessage || 'None'}".`,
                     ipAddress: req.ip,
                     userAgent: req.headers['user-agent'],
                 }
             });
         } catch (auditError) {
             console.error("Failed to create audit log for claim:", auditError);
-            // Continue execution even if audit log fails
         }
 
         // 8. Trigger Notification(s)
@@ -853,7 +853,7 @@ export const claimItem = async (req, res) => {
 
         if (updatedItem.reportedBy && updatedItem.claimedBy) {
             // Send email to Reporter and Claimant
-            await sendHandoverEmail(updatedItem.reportedBy, updatedItem.claimedBy, updatedItem);
+            await sendHandoverEmail(updatedItem.reportedBy, updatedItem.claimedBy, updatedItem, proofMessage);
         }
 
         // 9. Send success response
@@ -869,7 +869,7 @@ export const claimItem = async (req, res) => {
                     email: updatedItem.reportedBy.email,
                     phone: updatedItem.reportedBy.phone
                 },
-                claimedBy: { 
+                claimedBy: {
                     id: updatedItem.claimedBy?.id,
                     name: updatedItem.claimedBy?.name
                 }
@@ -1212,7 +1212,7 @@ export const confirmItemReceived = async (req, res) => {
                 status: ItemStatus.RETURNED,
                 // Keep claimedBy as is
             },
-            select: { 
+            select: {
                 id: true,
                 title: true,
                 status: true,
@@ -1228,7 +1228,7 @@ export const confirmItemReceived = async (req, res) => {
                 data: {
                     userId: userId,
                     itemId: updatedItem.id,
-                    action: AuditAction.UPDATE_ITEM_STATUS, 
+                    action: AuditAction.UPDATE_ITEM_STATUS,
                     details: `Item "${updatedItem.title}" status changed to RETURNED (confirmed received) by user ${userId}.`,
                     ipAddress: req.ip,
                     userAgent: req.headers['user-agent'],
@@ -1241,12 +1241,12 @@ export const confirmItemReceived = async (req, res) => {
 
         // 7. Trigger Notifications
         // Notify the reporter that the claimant has confirmed receiving the item
-        if (updatedItem.reportedBy && updatedItem.reportedBy.id !== userId) { 
+        if (updatedItem.reportedBy && updatedItem.reportedBy.id !== userId) {
             try {
                 await sendNotification({
                     userId: updatedItem.reportedBy.id, // Notify the reporter
                     itemId: updatedItem.id,
-                    type: NotificationType.ITEM_UPDATED, 
+                    type: NotificationType.ITEM_UPDATED,
                     message: `The item "${updatedItem.title}" has been confirmed as received by the claimant, ${updatedItem.claimedBy?.name || 'the claimant'}.`,
                     pushTitle: `Item Confirmed Received: "${updatedItem.title}"`,
                     data: { itemId: updatedItem.id, status: updatedItem.status }
@@ -1388,5 +1388,53 @@ export const cancelItemClaim = async (req, res) => {
     } catch (error) {
         console.error("Error in cancelItemClaim:", error);
         return res.status(500).json({ error: "Internal server error." });
+    }
+};
+
+
+
+
+// Reor or flag item that is inappropriate by users
+export const reportItem = async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: "Authentication required." });
+
+    const { id } = req.params;
+    const { reason, details } = req.body;
+    const userId = req.user.id;
+
+    try {
+        // 1. Check if already reported
+        const existingReport = await prisma.report.findUnique({
+            where: {
+                userId_itemId: {
+                    userId: userId,
+                    itemId: id
+                }
+            }
+        });
+
+        if (existingReport) {
+            return res.status(400).json({ error: "You have already reported this item." });
+        }
+
+        // 2. Create Report
+        await prisma.report.create({
+            data: {
+                reason,
+                details,
+                userId,
+                itemId: id
+            }
+        });
+
+        // 3. (Optional) Auto-hide if too many reports
+        // const reportCount = await prisma.report.count({ where: { itemId: id } });
+        // if (reportCount >= 5) { ... update item status to SUSPENDED ... }
+
+        res.status(201).json({ message: "Item reported. Admins will review it." });
+
+    } catch (error) {
+        console.error("Error reporting item:", error);
+        res.status(500).json({ error: "Internal server error." });
     }
 };
