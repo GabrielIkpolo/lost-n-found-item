@@ -12,6 +12,10 @@ const initialState = {
     isLoading: false,
     error: null,
     reports: [],
+
+    // Add stats object
+    stats: null,
+    isStatsLoading: false,
 };
 
 // Async Thunk to fetch logs
@@ -62,6 +66,26 @@ export const dismissReport = createAsyncThunk(
     }
 );
 
+
+// --- Thunk: Fetch Stats ---
+export const fetchSystemStats = createAsyncThunk(
+    'admin/fetchSystemStats',
+    async (_, { rejectWithValue, getState }) => {
+        try {
+            const token = getState().auth.token;
+            const headers = { Authorization: `Bearer ${token}` };
+            const response = await axios.get('/api/admin/stats', { headers });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.error || 'Failed to fetch stats');
+        }
+    }
+);
+
+
+
+
+
 const adminSlice = createSlice({
     name: 'admin',
     initialState,
@@ -91,7 +115,18 @@ const adminSlice = createSlice({
             })
             .addCase(dismissReport.fulfilled, (state, action) => {
                 state.reports = state.reports.filter(r => r.id !== action.payload);
+            })
+            .addCase(fetchSystemStats.pending, (state) => {
+                state.isStatsLoading = true;
+            })
+            .addCase(fetchSystemStats.fulfilled, (state, action) => {
+                state.isStatsLoading = false;
+                state.stats = action.payload;
+            })
+            .addCase(fetchSystemStats.rejected, (state) => {
+                state.isStatsLoading = false;
             });
+
     }
 });
 

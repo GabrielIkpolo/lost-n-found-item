@@ -45,6 +45,7 @@ import { saveFcmToken } from './features/userSlice'; // Import the new thunk
 import { addNotification, NotificationType } from './features/notifications/notificationsSlice';
 import HelpPage from './pages/HelpPage';
 import ManageReportsPage from './pages/ManageReportsPage';
+import DashboardOverview from './pages/DashboardOverview';
 
 
 
@@ -163,6 +164,12 @@ const routerConfig = [
           </ProtectedRoutes>
         ),
         children: [
+
+          {
+            index: true, // This makes it the default view for /admin
+            element: <DashboardOverview />
+          },
+          
           {
             path: 'users', element: <ManageUsersPage />
           },
@@ -201,7 +208,7 @@ const routerConfig = [
               </ProtectedRoutes>
             )
           },
-          
+
           {
             path: 'reports',
             element: <ManageReportsPage />

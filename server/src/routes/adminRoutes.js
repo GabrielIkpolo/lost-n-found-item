@@ -1,7 +1,7 @@
 import express from 'express';
 import {
     getSystemSettings, updateSystemSettings, getAuditLogs,
-    getReports, dismissReport
+    getReports, dismissReport, getSystemStats 
 } from '../controllers/adminController.js';
 import { requireSignin, isSuperAdmin, isAdmin } from '../helpers/authMiddleware.js';
 
@@ -19,5 +19,8 @@ router.get('/logs', requireSignin, isSuperAdmin, getAuditLogs);
 // --- Report Management ---
 router.get('/reports', requireSignin, isAdmin, getReports); 
 router.delete('/reports/:id', requireSignin, isAdmin, dismissReport); 
+
+// --- Analytics ---
+router.get('/stats', requireSignin, isAdmin, getSystemStats);
 
 export default router;
