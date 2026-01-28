@@ -106,3 +106,34 @@ export const getAuditLogs = async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
+
+
+// --- Get All Reports ---
+export const getReports = async (req, res) => {
+    try {
+        const reports = await prisma.report.findMany({
+            include: {
+                user: { select: { id: true, name: true, email: true } }, // Who reported it
+                item: { select: { id: true, title: true, status: true, imageUrlFront: true } } // The item reported
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(reports);
+    } catch (error) {
+        console.error("Error fetching reports:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+// --- Resolve Report (Dismiss) ---
+// If the item is bad, the admin uses deleteItem. If the report is bad, they use this to delete the report.
+export const dismissReport = async (req, res) => {
+    try {
+        const { id } = req.params; // Report ID
+        await prisma.report.delete({ where: { id } });
+        res.json({ message: "Report dismissed." });
+    } catch (error) {
+        console.error("Error dismissing report:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};

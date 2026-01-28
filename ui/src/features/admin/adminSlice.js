@@ -11,6 +11,7 @@ const initialState = {
     },
     isLoading: false,
     error: null,
+    reports: [],
 };
 
 // Async Thunk to fetch logs
@@ -20,12 +21,43 @@ export const fetchAuditLogs = createAsyncThunk(
         try {
             const token = getState().auth.token;
             const headers = { Authorization: `Bearer ${token}` };
-            
+
             const response = await axios.get(`/api/admin/logs?page=${page}&limit=20`, { headers });
             return response.data;
         } catch (error) {
             const message = error.response?.data?.error || error.message;
             return rejectWithValue(message);
+        }
+    }
+);
+
+
+// --- Thunk: Fetch Reports ---
+export const fetchReports = createAsyncThunk(
+    'admin/fetchReports',
+    async (_, { rejectWithValue, getState }) => {
+        try {
+            const token = getState().auth.token;
+            const headers = { Authorization: `Bearer ${token}` };
+            const response = await axios.get('/api/admin/reports', { headers });
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.error || 'Failed to fetch reports');
+        }
+    }
+);
+
+// --- Thunk: Dismiss Report ---
+export const dismissReport = createAsyncThunk(
+    'admin/dismissReport',
+    async (reportId, { rejectWithValue, getState }) => {
+        try {
+            const token = getState().auth.token;
+            const headers = { Authorization: `Bearer ${token}` };
+            await axios.delete(`/api/admin/reports/${reportId}`, { headers });
+            return reportId; // Return ID to remove from state
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.error || 'Failed to dismiss report');
         }
     }
 );
@@ -53,6 +85,12 @@ const adminSlice = createSlice({
             .addCase(fetchAuditLogs.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload;
+            })
+            .addCase(fetchReports.fulfilled, (state, action) => {
+                state.reports = action.payload;
+            })
+            .addCase(dismissReport.fulfilled, (state, action) => {
+                state.reports = state.reports.filter(r => r.id !== action.payload);
             });
     }
 });

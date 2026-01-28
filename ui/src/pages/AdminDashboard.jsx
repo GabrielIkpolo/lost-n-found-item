@@ -42,6 +42,10 @@ const AdminDashboard = () => {
                     <li>
                         <Link to="/admin/tickets" className={getLinkClass('/admin/tickets')}>Manage Tickets</Link>
                     </li>
+                    
+                    <li>
+                        <Link to="/admin/reports" className={getLinkClass('/admin/reports')}>Reports</Link>
+                    </li>
 
 
                     {user?.role === 'SUPER_ADMIN' && (

@@ -44,6 +44,8 @@ import { requestFcmToken, onMessageListener } from './util/firebase'; // Import 
 import { saveFcmToken } from './features/userSlice'; // Import the new thunk
 import { addNotification, NotificationType } from './features/notifications/notificationsSlice';
 import HelpPage from './pages/HelpPage';
+import ManageReportsPage from './pages/ManageReportsPage';
+
 
 
 // Import ItemStatus enum from backend or define relevant roles here
@@ -198,6 +200,11 @@ const routerConfig = [
                 <SystemLogsPage />
               </ProtectedRoutes>
             )
+          },
+          
+          {
+            path: 'reports',
+            element: <ManageReportsPage />
           },
         ],
       },
