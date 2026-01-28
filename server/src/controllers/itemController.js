@@ -1390,3 +1390,51 @@ export const cancelItemClaim = async (req, res) => {
         return res.status(500).json({ error: "Internal server error." });
     }
 };
+
+
+
+
+// Reor or flag item that is inappropriate by users
+export const reportItem = async (req, res) => {
+    if (!req.user) return res.status(401).json({ error: "Authentication required." });
+
+    const { id } = req.params;
+    const { reason, details } = req.body;
+    const userId = req.user.id;
+
+    try {
+        // 1. Check if already reported
+        const existingReport = await prisma.report.findUnique({
+            where: {
+                userId_itemId: {
+                    userId: userId,
+                    itemId: id
+                }
+            }
+        });
+
+        if (existingReport) {
+            return res.status(400).json({ error: "You have already reported this item." });
+        }
+
+        // 2. Create Report
+        await prisma.report.create({
+            data: {
+                reason,
+                details,
+                userId,
+                itemId: id
+            }
+        });
+
+        // 3. (Optional) Auto-hide if too many reports
+        // const reportCount = await prisma.report.count({ where: { itemId: id } });
+        // if (reportCount >= 5) { ... update item status to SUSPENDED ... }
+
+        res.status(201).json({ message: "Item reported. Admins will review it." });
+
+    } catch (error) {
+        console.error("Error reporting item:", error);
+        res.status(500).json({ error: "Internal server error." });
+    }
+};

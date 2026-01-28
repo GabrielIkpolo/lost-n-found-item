@@ -1,3 +1,4 @@
+import { FaFlag } from 'react-icons/fa';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,6 +14,9 @@ import './itemDetail.css';
 import itemPlaceholderImage from '../assets/images/logo-1.png';
 import Sidebar from '../components/Sidebar';
 import ClaimModal from '../components/ClaimModal';
+import ReportModal from '../components/ReportModal';
+import { reportItem } from '../features/items/itemsSlice';
+
 
 const ItemDetail = () => {
   const { id } = useParams();
@@ -32,6 +36,8 @@ const ItemDetail = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // --- Effect 1: Fetch item details ---
   useEffect(() => {
@@ -137,6 +143,22 @@ const ItemDetail = () => {
   const handleConfirmReceived = () => { if (id && !isConfirmingReceived) dispatch(confirmItemReceived(id)); };
   const handleCancelClaim = () => { if (id && !isCancellingClaim) dispatch(cancelItemClaim(id)); };
 
+
+  const handleReportClick = () => {
+    setIsReportModalOpen(true);
+  };
+
+  const handleConfirmReport = async (reportData) => {
+    setIsReportModalOpen(false);
+    const result = await dispatch(reportItem({ itemId: id, ...reportData }));
+
+    if (reportItem.fulfilled.match(result)) {
+      dispatch(addNotification({ message: 'Item reported. Thank you.', type: NotificationType.SUCCESS }));
+    } else {
+      dispatch(addNotification({ message: result.payload, type: NotificationType.ERROR }));
+    }
+  };
+
   const isAnyItemActionLoading = isClaiming || isDeleting || isMarkingReturned || isConfirmingReceived || isCancellingClaim;
 
   // --- Helper to Render Contact Info ---
@@ -182,7 +204,22 @@ const ItemDetail = () => {
       <Sidebar />
 
       <div className="item-detail-container">
-        <h1>{currentItem.title}</h1>
+        {/* Update Header to include Report Flag */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1>{currentItem.title}</h1>
+
+          {/* Show Report button if User is Logged In AND NOT the owner */}
+          {isAuthenticated && user?.id !== currentItem.reportedById && (
+            <button
+              onClick={handleReportClick}
+              style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: '1.2rem' }}
+              title="Report this item"
+            >
+              <FaFlag />
+            </button>
+          )}
+        </div>
+
 
         {/* Images */}
         <div className="item-images">
@@ -258,6 +295,12 @@ const ItemDetail = () => {
             onClose={() => setIsModalOpen(false)}
             onConfirm={handleConfirmClaim}
             itemTitle={currentItem.title}
+          />
+
+          <ReportModal
+            isOpen={isReportModalOpen}
+            onClose={() => setIsReportModalOpen(false)}
+            onConfirm={handleConfirmReport}
           />
 
         </div>

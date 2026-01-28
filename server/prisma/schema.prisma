@@ -52,6 +52,8 @@ model User {
   emailVerificationToken   String? // @unique // Stores the verification token
   emailVerificationExpires DateTime? // Expiry for the token
   emailVerifiedAt          DateTime?
+
+  reportsMade Report[]
 }
 
 enum Provider {
@@ -72,20 +74,12 @@ model Item {
   description String
   category    ItemCategory // Enum for category
   location    ItemLocation // Enum for location
-  //imageUrlFront          String?
-  //imageUrlBack           String?
-  //imageUrlFrontPublicId  String?
-  //imageUrlBackPublicId   String?
-  //imageUrlFrontLocalPath String?
-  //imageUrlBackLocalPath  String?
 
-  // --- NEW: Relation to File model ---
   imageUrlFront   File?   @relation("ItemFrontImage", fields: [imageUrlFrontId], references: [id], onDelete: SetNull)
   imageUrlFrontId String? @unique @db.ObjectId
 
   imageUrlBack   File?   @relation("ItemBackImage", fields: [imageUrlBackId], references: [id], onDelete: SetNull)
   imageUrlBackId String? @unique @db.ObjectId
-  // --- END NEW ---
 
   status       ItemStatus @default(LOST) // Enum: LOST, FOUND, CLAIMED, RETURNED, ARCHIVED
   reportedBy   User       @relation("UserItems", fields: [reportedById], references: [id], onDelete: Cascade)
@@ -105,6 +99,8 @@ model Item {
 
   // Add text index for full-text search if using MongoDB Atlas Search
   // @@fulltext([title, description, category, location]) 
+
+  reports Report[]
 
   @@index([status]) // Index status for faster querying (e.g., finding all FOUND items)
   @@index([category])
@@ -257,4 +253,21 @@ model SystemSetting {
   preArchivalNotificationDays Int      @default(7)
   defaultItemsPerPage         Int      @default(10)
   updatedAt                   DateTime @updatedAt
+}
+
+model Report {
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  reason  String
+  details String?
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @db.ObjectId
+
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String @db.ObjectId
+
+  createdAt DateTime @default(now())
+
+  // Prevent a user from reporting the same item twice
+  @@unique([userId, itemId])
 }
