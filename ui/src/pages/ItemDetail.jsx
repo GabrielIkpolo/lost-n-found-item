@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -12,6 +12,7 @@ import { addNotification, NotificationType } from '../features/notifications/not
 import './itemDetail.css';
 import itemPlaceholderImage from '../assets/images/logo-1.png';
 import Sidebar from '../components/Sidebar';
+import ClaimModal from '../components/ClaimModal';
 
 const ItemDetail = () => {
   const { id } = useParams();
@@ -29,6 +30,8 @@ const ItemDetail = () => {
 
   // Select auth state
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // --- Effect 1: Fetch item details ---
   useEffect(() => {
@@ -115,7 +118,20 @@ const ItemDetail = () => {
 
 
   // --- Action Handlers ---
-  const handleClaimItem = () => { if (id && !isClaiming) dispatch(claimItem(id)); };
+  const handleClaimClick = () => {
+    if (id && !isClaiming) {
+      setIsModalOpen(true);
+    }
+  };
+
+  // --- Handler for Modal Confirmation ---
+  const handleConfirmClaim = (proofMessage) => {
+    console.log(`Attempting to claim item ${id} with proof: ${proofMessage}`);
+    // Dispatch thunk with OBJECT payload
+    dispatch(claimItem({ itemId: id, proofMessage }));
+    setIsModalOpen(false);
+  };
+
   const handleDeleteItem = () => { if (window.confirm('Are you sure?')) dispatch(deleteItem(id)); };
   const handleMarkReturned = () => { if (id && !isMarkingReturned) dispatch(markItemReturned(id)); };
   const handleConfirmReceived = () => { if (id && !isConfirmingReceived) dispatch(confirmItemReceived(id)); };
@@ -211,7 +227,7 @@ const ItemDetail = () => {
           {/* --- ACTIONS --- */}
           <div className="item-actions">
             {isAuthenticated && currentItem.status === 'FOUND' && user?.id !== currentItem.reportedById && (
-              <button className="btn-action primary" onClick={handleClaimItem} disabled={isAnyItemActionLoading}>
+              <button className="btn-action primary" onClick={handleClaimClick} disabled={isAnyItemActionLoading}>
                 {isClaiming ? 'Claiming...' : 'Claim Item'}
               </button>
             )}
@@ -236,6 +252,14 @@ const ItemDetail = () => {
               <button className="btn-action danger" onClick={handleCancelClaim} disabled={isAnyItemActionLoading}>Cancel Claim</button>
             )}
           </div>
+
+          <ClaimModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onConfirm={handleConfirmClaim}
+            itemTitle={currentItem.title}
+          />
+
         </div>
       </div>
     </div>
