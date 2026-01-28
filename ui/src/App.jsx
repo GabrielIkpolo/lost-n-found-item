@@ -44,6 +44,9 @@ import { requestFcmToken, onMessageListener } from './util/firebase'; // Import 
 import { saveFcmToken } from './features/userSlice'; // Import the new thunk
 import { addNotification, NotificationType } from './features/notifications/notificationsSlice';
 import HelpPage from './pages/HelpPage';
+import ManageReportsPage from './pages/ManageReportsPage';
+import DashboardOverview from './pages/DashboardOverview';
+
 
 
 // Import ItemStatus enum from backend or define relevant roles here
@@ -161,6 +164,12 @@ const routerConfig = [
           </ProtectedRoutes>
         ),
         children: [
+
+          {
+            index: true, // This makes it the default view for /admin
+            element: <DashboardOverview />
+          },
+          
           {
             path: 'users', element: <ManageUsersPage />
           },
@@ -198,6 +207,11 @@ const routerConfig = [
                 <SystemLogsPage />
               </ProtectedRoutes>
             )
+          },
+
+          {
+            path: 'reports',
+            element: <ManageReportsPage />
           },
         ],
       },
